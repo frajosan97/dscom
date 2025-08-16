@@ -15,8 +15,8 @@ export default function ContactInfoBar() {
         {
             icon: <FaWhatsapp size={24} />,
             title: "WhatsApp",
-            info: "+243 (894) 779-059",
-            link: "https://wa.me/243894779059",
+            info: "+243 (827) 306-680",
+            link: "https://wa.me/243827306680",
             color: "success"
         },
         {
