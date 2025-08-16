@@ -171,7 +171,6 @@ return new class extends Migration
 
             // Indexes
             $table->index(['order_id', 'product_id']);
-            $table->index('sku');
         });
 
         // Payments Table
