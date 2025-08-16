@@ -1,0 +1,33 @@
+.contact-info-bar {
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.contact-info-bar .contact-card {
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.contact-info-bar .contact-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+    color: var(--bs-primary) !important;
+}
+
+.contact-info-bar .contact-icon-wrapper {
+    padding: 12px;
+    background: rgba(13, 110, 253, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.contact-info-bar .contact-card:hover .contact-icon-wrapper {
+    background: var(--bs-primary);
+    color: white !important;
+}
+
+.contact-info-bar .contact-card:hover .contact-icon {
+    color: white !important;
+}

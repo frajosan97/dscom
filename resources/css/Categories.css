@@ -1,0 +1,118 @@
+/* Container styling */
+.categories-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+/* Each category block wrapper */
+.categories-container .category-wrapper {
+    position: relative;
+}
+
+/* Main category list item */
+.categories-container .list-group-item {
+    border: none;
+    border-bottom: 1px solid #eee;
+    padding: 12px 10px;
+    border-radius: 0 !important;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    cursor: pointer;
+    background-color: #fff;
+}
+
+.categories-container .list-group-item:last-child {
+    border-bottom: none;
+}
+
+.categories-container .list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Category name (with icon) */
+.categories-container .category-name {
+    font-weight: 500;
+    color: #495057;
+    display: flex;
+    align-items: center;
+}
+
+.categories-container .category-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+    margin-right: 0.5rem;
+}
+
+/* Count badge */
+.categories-container .category-count {
+    color: #718096;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Submenu wrapper */
+.hero-page .categories-container .submenu {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    min-width: 250px;
+    z-index: 999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease-in-out;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(10px);
+}
+
+.categories-menu .categories-container .submenu {
+    margin-left: 12px;
+    border-left: 1px solid #dee2e6;
+}
+
+/* Show submenu on hover */
+.categories-container .category-wrapper:hover .submenu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+}
+
+/* Submenu item */
+.categories-container .submenu-item {
+    transition: background 0.2s ease-in-out;
+    cursor: pointer;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f1f1f1;
+    background-color: #fff;
+}
+
+.categories-container .submenu-item:hover {
+    background-color: #f1f3f5;
+}
+
+.categories-container .submenu-item:last-child {
+    border-bottom: none;
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+    .categories-container {
+        max-width: 100%;
+    }
+
+    .categories-container .submenu {
+        position: static;
+        box-shadow: none;
+        border: none;
+        margin-left: 1rem;
+        transform: none;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .categories-container .category-wrapper:hover .submenu {
+        transform: none;
+    }
+}

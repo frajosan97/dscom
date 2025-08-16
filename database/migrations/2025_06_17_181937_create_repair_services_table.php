@@ -1,0 +1,260 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('technicians', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('specialization');
+            $table->text('skills')->nullable();
+            $table->string('certification')->nullable();
+            $table->integer('experience_years')->default(0);
+            $table->string('service_area')->nullable();
+            $table->boolean('is_available')->default(true);
+            $table->decimal('hourly_rate', 10, 2)->nullable();
+            $table->text('notes')->nullable();
+            $table->timestamps();
+        });
+
+        // Repair Services Table - Enhanced with Additional Fields
+        Schema::create('repair_services', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('slug')->unique();
+            $table->text('description')->nullable();
+            $table->text('detailed_description')->nullable();
+            $table->text('repair_process')->nullable();
+            $table->decimal('base_price', 12, 2);
+            $table->integer('estimated_duration')->nullable(); // in minutes
+            $table->integer('warranty_days')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->boolean('is_featured')->default(false);
+            $table->string('image')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+
+            // Indexes
+            $table->index(['is_active', 'is_featured']);
+        });
+
+        // Device Types Table - Enhanced with Hierarchy Support
+        Schema::create('repair_service_device_types', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('slug')->unique();
+            $table->text('description')->nullable();
+            $table->foreignId('parent_id')->nullable()->constrained('repair_service_device_types')->onDelete('set null');
+            $table->string('icon')->nullable();
+            $table->string('image')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->integer('order')->default(0);
+            $table->timestamps();
+            $table->softDeletes();
+
+            // Indexes
+            $table->index(['parent_id', 'is_active']);
+        });
+
+        // Repair Service Pricings Table - Enhanced with Conditions
+        Schema::create('repair_service_pricings', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('repair_service_id')->constrained()->onDelete('cascade');
+            $table->foreignId('device_type_id')->constrained('repair_service_device_types')->onDelete('cascade');
+            $table->decimal('price', 12, 2);
+            $table->decimal('min_price', 12, 2)->nullable();
+            $table->decimal('max_price', 12, 2)->nullable();
+            $table->boolean('is_flat_rate')->default(false);
+            $table->text('price_notes')->nullable();
+            $table->timestamps();
+
+            $table->unique(['repair_service_id', 'device_type_id']);
+
+            // Indexes
+            $table->index(['price', 'device_type_id']);
+        });
+
+        // Repair Orders Table - Comprehensive Repair Management
+        Schema::create('repair_orders', function (Blueprint $table) {
+            $table->id();
+            $table->string('order_number')->unique();
+            $table->string('invoice_number')->nullable()->unique();
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('branch_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('repair_service_id')->constrained()->onDelete('cascade');
+            $table->foreignId('device_type_id')->constrained('repair_service_device_types')->onDelete('cascade');
+            $table->string('device_brand')->nullable();
+            $table->string('device_model')->nullable();
+            $table->string('device_serial')->nullable();
+            $table->integer('device_age')->nullable();
+            $table->text('device_issue')->nullable();
+            $table->text('device_notes')->nullable();
+            $table->json('device_images')->nullable();
+            $table->json('device_specifications')->nullable();
+            $table->enum('status', [
+                'pending',
+                'diagnosis',
+                'quoted',
+                'approved',
+                'repairing',
+                'awaiting_parts',
+                'awaiting_customer_response',
+                'completed',
+                'delivered',
+                'cancelled',
+                'rejected',
+            ])->default('pending');
+            $table->enum('priority', ['low', 'medium', 'high', 'urgent'])->default('medium');
+            $table->text('diagnosis_details')->nullable();
+            $table->text('repair_notes')->nullable();
+            $table->text('technician_notes')->nullable();
+            $table->decimal('diagnosis_fee', 12, 2)->default(0);
+            $table->decimal('estimated_cost', 12, 2)->nullable();
+            $table->decimal('final_cost', 12, 2)->nullable();
+            $table->decimal('tax_amount', 12, 2)->default(0);
+            $table->decimal('discount_amount', 12, 2)->default(0);
+            $table->decimal('total_amount', 12, 2)->default(0);
+            $table->decimal('amount_paid', 12, 2)->default(0);
+            $table->decimal('balance_due', 12, 2)->default(0);
+            $table->string('currency')->default('$');
+            $table->date('expected_completion_date')->nullable();
+            $table->date('completion_date')->nullable();
+            $table->date('delivery_date')->nullable();
+            $table->foreignId('assigned_technician_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->json('custom_fields')->nullable();
+            $table->text('customer_feedback')->nullable();
+            $table->integer('customer_rating')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+
+            // Indexes
+            $table->index(['order_number', 'status']);
+            $table->index(['user_id', 'created_at']);
+            $table->index(['assigned_technician_id', 'status']);
+            $table->index('created_at');
+        });
+
+        // Repair Order Status History - Enhanced Tracking
+        Schema::create('repair_order_status_history', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+            $table->string('status');
+            $table->text('notes')->nullable();
+            $table->foreignId('changed_by')->constrained('users')->onDelete('cascade');
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            // Indexes
+            $table->index(['repair_order_id', 'created_at']);
+        });
+
+        // Repair Order Payments - Comprehensive Payment Tracking
+        Schema::create('repair_order_payments', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
+            $table->decimal('amount', 12, 2);
+            $table->string('payment_method');
+            $table->string('transaction_id')->nullable();
+            $table->string('receipt_number')->nullable();
+            $table->enum('payment_type', ['deposit', 'partial', 'full', 'refund'])->default('full');
+            $table->enum('status', ['pending', 'completed', 'failed', 'refunded'])->default('completed');
+            $table->text('notes')->nullable();
+            $table->json('metadata')->nullable();
+            $table->date('payment_date')->nullable();
+            $table->timestamps();
+
+            // Indexes
+            $table->index(['repair_order_id', 'status']);
+            $table->index('transaction_id');
+        });
+
+        // Repair Parts Table - Track Parts Used in Repairs
+        Schema::create('repair_parts', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+            $table->foreignId('product_id')->nullable()->constrained()->onDelete('set null');
+            $table->string('part_name');
+            $table->string('part_number')->nullable();
+            $table->text('description')->nullable();
+            $table->decimal('cost_price', 12, 2)->nullable();
+            $table->decimal('selling_price', 12, 2);
+            $table->integer('quantity')->default(1);
+            $table->decimal('total', 12, 2);
+            $table->enum('status', ['ordered', 'installed', 'returned'])->default('ordered');
+            $table->text('notes')->nullable();
+            $table->timestamps();
+
+            // Indexes
+            $table->index(['repair_order_id', 'product_id']);
+        });
+
+        // Repair Checklists Table - Standardize Repair Processes
+        Schema::create('repair_checklists', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('repair_service_id')->constrained()->onDelete('cascade');
+            $table->foreignId('device_type_id')->constrained('repair_service_device_types')->onDelete('cascade');
+            $table->string('name');
+            $table->text('description')->nullable();
+            $table->integer('order')->default(0);
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+
+            // Indexes
+            $table->index(['repair_service_id', 'device_type_id']);
+        });
+
+        // Repair Checklist Items Table
+        Schema::create('repair_checklist_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('checklist_id')->constrained('repair_checklists')->onDelete('cascade');
+            $table->string('name');
+            $table->text('description')->nullable();
+            $table->boolean('is_required')->default(true);
+            $table->integer('order')->default(0);
+            $table->timestamps();
+        });
+
+        // Repair Order Checklists Table - Track Completion
+        Schema::create('repair_order_checklists', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+            $table->foreignId('checklist_item_id')->constrained('repair_checklist_items')->onDelete('cascade');
+            $table->boolean('is_completed')->default(false);
+            $table->foreignId('completed_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->timestamp('completed_at')->nullable();
+            $table->text('notes')->nullable();
+            $table->timestamps();
+
+            // Indexes
+            $table->index(['repair_order_id', 'is_completed']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('repair_order_checklists');
+        Schema::dropIfExists('repair_checklist_items');
+        Schema::dropIfExists('repair_checklists');
+        Schema::dropIfExists('repair_parts');
+        Schema::dropIfExists('repair_order_payments');
+        Schema::dropIfExists('repair_order_status_history');
+        Schema::dropIfExists('repair_orders');
+        Schema::dropIfExists('repair_service_pricings');
+        Schema::dropIfExists('repair_service_device_types');
+        Schema::dropIfExists('repair_services');
+    }
+};

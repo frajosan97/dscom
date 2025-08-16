@@ -1,0 +1,211 @@
+/**
+ * =============================================
+ * AUTH LAYOUT STYLES
+ * =============================================
+ * Styles for authentication pages (login, register, etc.)
+ */
+
+:root {
+    /* Auth-specific variables */
+    --auth-bg-gradient: linear-gradient(135deg, #e6effd 0%, #e8cac8 100%);
+    --auth-card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    --auth-text-color: #334155;
+    --auth-border-color: #e2e8f0;
+}
+
+.guest-layout-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--bg-gradient);
+    padding: var(--space-xl) var(--space-md);
+    position: relative;
+}
+
+.guest-logo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: var(--space-lg);
+}
+
+.hospital-title {
+    color: var(--primary-color);
+    font-size: 2rem;
+    font-weight: 700;
+    margin-top: var(--space-md);
+    background: var(--text-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.application-logo {
+    height: 6rem;
+    width: 6rem;
+    fill: var(--primary-color);
+}
+
+.guest-content-container {
+    width: 100%;
+    max-width: 500px;
+    padding: var(--space-lg);
+    display: flex;
+    justify-content: center;
+}
+
+.login-card {
+    width: 100%;
+    border: none;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--auth-card-shadow);
+    transition: transform 0.3s ease;
+    background: white;
+}
+
+.login-card:hover {
+    transform: translateY(-5px);
+}
+
+.login-card-header {
+    background: var(--primary-color);
+    color: white;
+    padding: var(--space-xl);
+    text-align: center;
+    animation: pulse 6s infinite ease-in-out;
+}
+
+.login-card-header h2 {
+    font-weight: 700;
+    margin-bottom: var(--space-sm);
+}
+
+.login-card-header p {
+    opacity: 0.9;
+    margin-bottom: 0;
+}
+
+.login-card .card-body {
+    padding: var(--space-xl);
+}
+
+.login-form-label {
+    font-weight: 600;
+    color: var(--auth-text-color);
+    margin-bottom: var(--space-sm);
+}
+
+.login-form-control {
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-lg);
+    border: 1px solid var(--auth-border-color);
+    transition: all 0.3s ease;
+}
+
+.login-form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(0, 80, 136, 0.25);
+}
+
+.login-remember-me {
+    margin-top: var(--space-md);
+}
+
+.login-remember-me .form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.login-forgot-password {
+    text-decoration: none;
+    color: var(--primary-color);
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.login-forgot-password:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+.login-button {
+    background: var(--primary-color);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-xl);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.login-button:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.login-button:disabled {
+    opacity: 0.7;
+    transform: none;
+    box-shadow: none;
+}
+
+.login-divider {
+    display: flex;
+    align-items: center;
+    margin: var(--space-lg) 0;
+    color: #94a3b8;
+}
+
+.login-divider::before,
+.login-divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid var(--auth-border-color);
+}
+
+.login-divider span {
+    padding: 0 var(--space-md);
+}
+
+.alternative-login-btn {
+    width: 100%;
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    font-weight: 500;
+    border: 1px solid var(--auth-border-color);
+    color: var(--auth-text-color);
+    transition: all 0.3s ease;
+}
+
+.alternative-login-btn:hover {
+    background-color: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.alternative-login-btn i {
+    margin-right: var(--space-sm);
+}
+
+.guest-footer {
+    margin-top: var(--space-xl);
+    text-align: center;
+    color: #64748b;
+    font-size: var(--text-sm);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
