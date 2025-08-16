@@ -1,7 +1,7 @@
 import { Button, Container, Form, Navbar, Dropdown, Badge, InputGroup, FormControl, Col } from "react-bootstrap";
 import { Search, Bell, Grid, ChevronDown, Maximize2, LogOut, User as UserIcon, Lock, Users, Phone } from "react-feather";
+import { router, usePage } from "@inertiajs/react";
 import ApplicationLogo from "./ApplicationLogo";
-import { Link, usePage } from "@inertiajs/react";
 
 export default function TopHead() {
     const { auth, systemMode } = usePage().props;
@@ -50,7 +50,7 @@ export default function TopHead() {
                         <>
                             <QuickActionsDropdown />
                             <NotificationsDropdown />
-                            <UserProfileDropdown email="admin@example.com" name="Admin User" />
+                            <UserProfileDropdown user={auth?.user} />
                         </>
                     ) : (
                         <ContactSupport />
@@ -126,7 +126,7 @@ const NotificationsDropdown = () => (
     </Dropdown>
 );
 
-const UserProfileDropdown = ({ email, name }) => (
+const UserProfileDropdown = ({ user }) => (
     <Dropdown align="end" className="ms-2 contact-info ">
         <Dropdown.Toggle variant="transparent" className="erp-user-dropdown border-0 px-2 py-1">
             <div className="d-flex align-items-center">
@@ -134,14 +134,16 @@ const UserProfileDropdown = ({ email, name }) => (
                     <UserIcon size={16} />
                 </div>
                 <div className="d-none d-lg-inline small fw-medium text-start">
-                    <div className="small text-muted">{name}</div>
-                    <div className="fw-semibold">{email}</div>
+                    <div className="small text-muted">{user?.first_name}</div>
+                    <div className="fw-semibold text-truncate" style={{ maxWidth: "100px" }}>{user?.email}</div>
                 </div>
                 <ChevronDown size={16} className="ms-1" />
             </div>
         </Dropdown.Toggle>
         <Dropdown.Menu className="dropdown-menu-end shadow border-0 mt-2">
-            <Dropdown.Item className="d-flex align-items-center py-2">
+            <Dropdown.Item className="d-flex align-items-center py-2"
+                href={route('employee.show', user?.id)}
+            >
                 <UserIcon size={16} className="me-2 text-muted" />
                 My Profile
             </Dropdown.Item>
@@ -154,7 +156,9 @@ const UserProfileDropdown = ({ email, name }) => (
                 Team Members
             </Dropdown.Item>
             <Dropdown.Divider />
-            <Dropdown.Item className="d-flex align-items-center py-2 text-danger">
+            <Dropdown.Item className="d-flex align-items-center py-2 text-danger"
+                onClick={() => router.post(route('logout'))}
+            >
                 <LogOut size={16} className="me-2" />
                 Logout
             </Dropdown.Item>
