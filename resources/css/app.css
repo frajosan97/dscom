@@ -4,6 +4,7 @@
 :root {
     /* Colors */
     --main-bg: #f8fafc;
+    --main-bg-2: #f1f1f1;
     --primary-color: #005088;
     --primary-hover: #0090d4;
     --primary-light: #e6effd;
@@ -143,6 +144,7 @@ a {
 
 .erp-main {
     min-height: 100vh;
+    /* background-color: var(--main-bg-2) !important; */
 }
 
 /* Branding */
@@ -670,5 +672,20 @@ a {
         .card-header {
             padding: 1rem !important;
         }
+    }
+}
+
+.users-tabs {
+    transition: all 0.5s ease;
+    border-bottom: 2px solid #e2e8f0 !important;
+
+    .nav-link {
+        border: none !important;
+    }
+
+    .nav-link.active {
+        border-bottom: 2px solid var(--primary-color) !important;
+        color: var(--primary-color) !important;
+        background: none !important;
     }
 }

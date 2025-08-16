@@ -47,9 +47,13 @@ class EmployeeController extends Controller
                         return $row->phone ?? 'N/A';
                     })
                     ->addColumn('role', function ($row) {
-                        return $row->roles->first()?->name ?
-                            ucfirst($row->roles->first()->name) :
-                            '<span class="text-muted">No role</span>';
+                        return $row->roles->first()?->name ? ucfirst($row->roles->first()->name) : '<span class="text-muted">No role</span>';
+                    })
+                    ->addColumn('ending_date', function ($row) {
+                        return "";
+                    })
+                    ->addColumn('download_assets', function ($row) {
+                        return "";
                     })
                     ->addColumn('status', function ($row) {
                         return view('partials.employee.status', compact('row'))->render();
@@ -80,8 +84,6 @@ class EmployeeController extends Controller
         try {
             $validated = $request->validated();
             $plainPassword = Str::random(12);
-
-            Log::info($validated);
 
             $userData = array_diff_key($validated, ['role' => '']);
 
@@ -164,6 +166,7 @@ class EmployeeController extends Controller
     {
         try {
             $validated = $request->validated();
+
             $updateData = array_diff_key($validated, ['roles' => '', 'permissions' => '']);
 
             if ($request->filled('password')) {
@@ -175,9 +178,9 @@ class EmployeeController extends Controller
                 'is_active' => $validated['is_active'] ?? true
             ]);
 
-            // if (!empty($request->roles) && Auth::user()->hasRole('admin')) {
-            $employee->syncRoles($request->roles);
-            // }
+            if (!empty($request->role) && $request->filled('role')) {
+                $employee->syncRoles($request->role);
+            }
 
             if (!empty($request->permissions) && $request->filled('permissions')) {
                 $employee->syncPermissions($request->permissions);

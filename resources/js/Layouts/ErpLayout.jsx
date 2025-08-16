@@ -21,7 +21,7 @@ export default function ErpLayout({ children }) {
 
             <ErpHeader />
 
-            <Container fluid className="erp-main py-4">
+            <Container fluid className="erp-main py-3">
                 {children}
             </Container>
 

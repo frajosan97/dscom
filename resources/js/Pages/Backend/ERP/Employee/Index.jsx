@@ -1,10 +1,17 @@
-import { Head, Link } from "@inertiajs/react";
-import { useEffect, useCallback } from "react";
-import { Card, ButtonGroup, Table, Button } from "react-bootstrap";
+import { Head } from "@inertiajs/react";
+import { useEffect, useCallback, useState } from "react";
+import { Card, Table, Tabs, Tab } from "react-bootstrap";
+import { FaClipboardCheck, FaUserPlus, FaUsers } from "react-icons/fa";
 import ErpLayout from "@/Layouts/ErpLayout";
-import { People, Plus } from "react-bootstrap-icons";
+import CreateEmployee from "@/Components/Partials/Employee/CreateEmployee";
+import StaffReview from "@/Components/Partials/Employee/StaffReview";
+import EditEmployee from "@/Components/Partials/Employee/EditEmployee";
 
 export default function EmployeeList() {
+    const [activeTab, setActiveTab] = useState("users");
+    const [editData, setEditData] = useState(null);
+    const [isEditTabEnabled, setIsEditTabEnabled] = useState(false);
+
     const initializeDataTable = useCallback(() => {
         if ($.fn.DataTable.isDataTable("#employeeTable")) {
             $("#employeeTable").DataTable().destroy();
@@ -19,13 +26,11 @@ export default function EmployeeList() {
             },
             columns: [
                 {
-                    data: null,
+                    data: "DT_RowIndex",
+                    name: "DT_RowIndex",
                     title: "No",
                     className: "text-center",
-                    width: "5%",
-                    render: function (data, type, row, meta) {
-                        return meta.row + meta.settings._iDisplayStart + 1;
-                    },
+                    width: "1%",
                     orderable: false,
                     searchable: false
                 },
@@ -34,55 +39,80 @@ export default function EmployeeList() {
                     title: "Photo",
                     className: "text-center",
                     width: "5%",
-                    orderable: false,
-                    searchable: false
                 },
                 {
                     data: "name",
                     title: "Name",
-                    width: "20%"
+                    className: "text-start",
+                    width: "15%"
                 },
                 {
                     data: "phone",
                     title: "Phone",
+                    className: "text-start",
                     width: "15%"
                 },
                 {
                     data: "role",
                     title: "Role",
+                    className: "text-start",
                     width: "15%",
-                    render: function (data) {
-                        return data ? data.charAt(0).toUpperCase() + data.slice(1) : '';
-                    }
+                },
+                {
+                    data: "ending_date",
+                    title: "Ending Date",
+                    className: "text-start",
+                    width: "15%",
+                },
+                {
+                    data: "download_assets",
+                    title: "Download Assets",
+                    className: "text-start",
+                    width: "15%",
                 },
                 {
                     data: "status",
                     title: "Status",
                     className: "text-center",
-                    width: "12%",
-                    orderable: false,
-                    searchable: false
+                    width: "10%",
                 },
                 {
                     data: "action",
                     title: "Actions",
                     className: "text-center",
-                    width: "15%",
+                    width: "10%",
                     orderable: false,
-                    searchable: false
+                    searchable: false,
                 }
             ],
-            responsive: true,
-            autoWidth: false,
-            language: {
-                emptyTable: "No employees found",
-                processing: '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i>'
+            drawCallback: function () {
+                // Handle edit button click
+                $(".edit-btn")
+                    .off("click")
+                    .on("click", function () {
+                        const employee = $(this).data("employee");
+                        setEditData(employee);
+                        setIsEditTabEnabled(true);
+                        setActiveTab("user-update");
+                    });
+
+                // Handle delete button click
+                $(".delete-btn")
+                    .off("click")
+                    .on("click", function () {
+                        const id = $(this).data("id");
+                        deleteEmployee(id);
+                    });
             },
-            initComplete: function () {
-                $(".dataTables_wrapper").css("padding", "0");
-            }
         });
     }, []);
+
+    const deleteEmployee = (id) => {
+        if (confirm("Are you sure you want to delete this employee?")) {
+            // Implement actual delete functionality here
+            console.log("Deleting employee with ID:", id);
+        }
+    };
 
     useEffect(() => {
         initializeDataTable();
@@ -95,41 +125,74 @@ export default function EmployeeList() {
 
     return (
         <ErpLayout>
-            <Head title="Users" />
+            <Head title="User Management" />
 
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="m-0 p-0">
-                    <People size={24} />
-                    Users
-                </h5>
-                <ButtonGroup className="gap-2">
-                    <Button
-                        variant="success"
-                        size="sm"
-                        className="rounded-0"
-                        type="button"
-                        as={Link}
-                        href={route("employee.create")}
-                    >
-                        New User
-                        <Plus size={24} />
-                    </Button>
-                </ButtonGroup>
-            </div>
+            <Tabs
+                activeKey={activeTab}
+                onSelect={(k) => {
+                    setActiveTab(k);
+                    // Reset edit state if switching away from edit tab
+                    if (k !== "user-update") {
+                        setIsEditTabEnabled(false);
+                        setEditData(null);
+                    }
+                }}
+                className="users-tabs mb-3"
+                id="user-management-tabs"
+            >
+                <Tab eventKey="users" title={<><FaUsers size={16} className="me-1" /> Users</>}>
+                    <Card className="border-0 rounded-0 shadow-sm">
+                        <Card.Body className="p-0">
+                            <Table
+                                size="sm"
+                                bordered
+                                hover
+                                responsive
+                                id="employeeTable"
+                                className="w-100 mb-0"
+                            />
+                        </Card.Body>
+                    </Card>
+                </Tab>
 
-            <hr className="dashed-hr mb-3" />
+                <Tab eventKey="new-user" title={<><FaUserPlus size={16} className="me-1" /> New User</>}>
+                    <Card className="border-0 rounded-0 shadow-sm">
+                        <Card.Body>
+                            <CreateEmployee />
+                        </Card.Body>
+                    </Card>
+                </Tab>
 
-            <Card className="border-0 rounded-0 shadow-sm">
-                <Card.Body className="p-0">
-                    <Table
-                        bordered
-                        hover
-                        responsive
-                        id="employeeTable"
-                        className="w-100 mb-0"
-                    />
-                </Card.Body>
-            </Card>
+                <Tab
+                    eventKey="user-update"
+                    title={<><FaClipboardCheck size={16} className="me-1" /> User Update</>}
+                    disabled={!isEditTabEnabled}
+                >
+                    <Card className="border-0 rounded-0 shadow-sm">
+                        <Card.Body>
+                            {editData ? (
+                                <EditEmployee employee={editData} />
+                            ) : (
+                                <div className="text-center py-4">
+                                    <p>Please select a user to edit</p>
+                                </div>
+                            )}
+                        </Card.Body>
+                    </Card>
+                </Tab>
+
+                <Tab
+                    eventKey="staff-review"
+                    title={<><FaClipboardCheck size={16} className="me-1" /> Staff Review</>}
+                    disabled
+                >
+                    <Card className="border-0 rounded-0 shadow-sm">
+                        <Card.Body>
+                            <StaffReview />
+                        </Card.Body>
+                    </Card>
+                </Tab>
+            </Tabs>
         </ErpLayout>
     );
 }
