@@ -297,7 +297,7 @@ export default function ProductCreate({ attributes = [] }) {
                     </div>
                 </div>
 
-                <hr className="dashed-hr" />
+                <hr className="dashed-hr mb-3" />
 
                 <Form onSubmit={handleSubmit}>
                     <Row className="g-4">
