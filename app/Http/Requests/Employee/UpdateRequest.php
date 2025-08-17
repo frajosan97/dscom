@@ -41,7 +41,6 @@ class UpdateRequest extends FormRequest
             'last_name' => $this->extractLastName(),
             'email' => $this->getValidatedEmail(),
             'phone' => $this->getValidatedPhone(),
-            'password' => $this->generatePassword(),
         ]);
     }
 
@@ -100,14 +99,6 @@ class UpdateRequest extends FormRequest
     }
 
     /**
-     * Generate random password
-     */
-    protected function generatePassword(): string
-    {
-        return Hash::make(Str::random(10));
-    }
-
-    /**
      * Get custom messages for validator errors.
      */
     public function messages()
@@ -128,7 +119,6 @@ class UpdateRequest extends FormRequest
             'last_name' => $this->extractLastName(),
             'email' => $this->getValidatedEmail(),
             'phone' => $this->getValidatedPhone(),
-            'password' => $this->generatePassword(),
         ]);
     }
 }
