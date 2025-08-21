@@ -16,9 +16,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export default function Dashboard({ dashboardData }) {
     const { auth } = usePage().props;
-
-    console.log(dashboardData);
-
+    
     // Destructure data from backend
     const {
         summaryMetrics,
