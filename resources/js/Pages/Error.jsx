@@ -1,7 +1,7 @@
-import React from 'react';
-import { Head } from '@inertiajs/react';
-import ErpLayout from '@/Layouts/ErpLayout';
-import { Alert, Container } from 'react-bootstrap';
+import React from "react";
+import { Head } from "@inertiajs/react";
+import ErpLayout from "@/Layouts/ErpLayout";
+import { Alert, Container } from "react-bootstrap";
 
 export default function Error({ message }) {
     return (

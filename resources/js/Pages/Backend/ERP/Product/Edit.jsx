@@ -1,64 +1,80 @@
-import { Container, Row, Col, Card, Form, Button, Tab, Nav, Badge } from 'react-bootstrap';
-import { Trash, Image as ImageIcon, BoxSeam, InfoCircle, CashCoin } from 'react-bootstrap-icons';
-import { Head, router, useForm } from '@inertiajs/react';
-import { useState } from 'react';
-import { toast } from 'react-toastify';
-import xios from '@/Utils/axios';
-import FileUpload from '@/Components/Settings/FileUpload';
-import ErpLayout from '@/Layouts/ErpLayout';
-import BasicInfoTab from '@/Components/Partials/Product/BasicInfo';
-import PricingTab from '@/Components/Partials/Product/PricingInfo';
-import PublishCard from '@/Components/Partials/Product/Publish';
-import ProductTypeCard from '@/Components/Partials/Product/ProductType';
-import ShippingCard from '@/Components/Partials/Product/Shipping';
-import AttributesCard from '@/Components/Partials/Product/Attributes';
-import SEOCard from '@/Components/Partials/Product/SEO';
-import SpecificationsCard from '@/Components/Partials/Product/Specifications';
-import InventoryTab from '@/Components/Partials/Product/InventoryInfo';
-import MediaTab from '@/Components/Partials/Product/Media';
-import useFilterOptions from '@/Hooks/useData';
-import Swal from 'sweetalert2';
+import {
+    Container,
+    Row,
+    Col,
+    Card,
+    Form,
+    Button,
+    Tab,
+    Nav,
+    Badge,
+} from "react-bootstrap";
+import {
+    Trash,
+    Image as ImageIcon,
+    BoxSeam,
+    InfoCircle,
+    CashCoin,
+} from "react-bootstrap-icons";
+import { Head, router, useForm } from "@inertiajs/react";
+import { useState } from "react";
+import { toast } from "react-toastify";
+import xios from "@/Utils/axios";
+import FileUpload from "@/Components/Settings/FileUpload";
+import ErpLayout from "@/Layouts/ErpLayout";
+import BasicInfoTab from "@/Components/Partials/Product/BasicInfo";
+import PricingTab from "@/Components/Partials/Product/PricingInfo";
+import PublishCard from "@/Components/Partials/Product/Publish";
+import ProductTypeCard from "@/Components/Partials/Product/ProductType";
+import ShippingCard from "@/Components/Partials/Product/Shipping";
+import AttributesCard from "@/Components/Partials/Product/Attributes";
+import SEOCard from "@/Components/Partials/Product/SEO";
+import SpecificationsCard from "@/Components/Partials/Product/Specifications";
+import InventoryTab from "@/Components/Partials/Product/InventoryInfo";
+import MediaTab from "@/Components/Partials/Product/Media";
+import useFilterOptions from "@/Hooks/useData";
+import Swal from "sweetalert2";
 
 export default function ProductEdit({ product, attributes = [] }) {
     const { categories, brands, branches, taxes } = useFilterOptions();
 
     const { data, setData, errors } = useForm({
-        branch_id: product.branch_id || '',
-        name: product.name || '',
-        slug: product.slug || '',
-        short_description: product.short_description || '',
-        description: product.description || '',
-        meta_title: product.meta_title || '',
-        meta_description: product.meta_description || '',
-        category_id: product.category_id || '',
-        brand_id: product.brand_id || '',
+        branch_id: product.branch_id || "",
+        name: product.name || "",
+        slug: product.slug || "",
+        short_description: product.short_description || "",
+        description: product.description || "",
+        meta_title: product.meta_title || "",
+        meta_description: product.meta_description || "",
+        category_id: product.category_id || "",
+        brand_id: product.brand_id || "",
         price: product.price || 0,
         agent_price: product.agent_price || 0,
         wholesaler_price: product.wholesaler_price || 0,
         compare_price: product.compare_price || 0,
         cost_per_item: product.cost_per_item || 0,
-        tax_id: product.tax_id || '',
+        tax_id: product.tax_id || "",
         tax_amount: product.tax_amount || 0,
-        sku: product.sku || '',
-        barcode: product.barcode || '',
+        sku: product.sku || "",
+        barcode: product.barcode || "",
         quantity: product.quantity || 0,
         low_stock_threshold: product.low_stock_threshold || 0,
-        stock_status: product.stock_status || 'in_stock',
+        stock_status: product.stock_status || "in_stock",
         track_inventory: product.track_inventory || false,
         allow_backorders: product.allow_backorders || false,
         is_digital: product.is_digital || false,
         requires_shipping: product.requires_shipping || true,
         weight: product.weight || 0,
-        weight_unit: product.weight_unit || 'kg',
+        weight_unit: product.weight_unit || "kg",
         length: product.length || 0,
         width: product.width || 0,
         height: product.height || 0,
-        dimension_unit: product.dimension_unit || 'cm',
+        dimension_unit: product.dimension_unit || "cm",
         is_featured: product.is_featured || false,
         is_active: product.is_active || true,
         is_bestseller: product.is_bestseller || false,
         is_new: product.is_new || false,
-        new_until: product.new_until || '',
+        new_until: product.new_until || "",
         has_variants: product.has_variants || false,
         tags: product.tags || [],
         specifications: product.specifications || {},
@@ -67,16 +83,18 @@ export default function ProductEdit({ product, attributes = [] }) {
         images: product.images || [],
         variants: product.variants || [],
         selected_attributes: product.attributes || [],
-        selected_attribute_values: product.attribute_values || []
+        selected_attribute_values: product.attribute_values || [],
     });
 
     const [selectedTags, setSelectedTags] = useState(
-        product.tags ? product.tags.map(tag => ({ value: tag, label: tag })) : []
+        product.tags
+            ? product.tags.map((tag) => ({ value: tag, label: tag }))
+            : []
     );
-    const [specificationKey, setSpecificationKey] = useState('');
-    const [specificationValue, setSpecificationValue] = useState('');
+    const [specificationKey, setSpecificationKey] = useState("");
+    const [specificationValue, setSpecificationValue] = useState("");
     const [processing, setProcessing] = useState(false);
-    const [activeTab, setActiveTab] = useState('basic');
+    const [activeTab, setActiveTab] = useState("basic");
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -85,13 +103,13 @@ export default function ProductEdit({ product, attributes = [] }) {
         try {
             // swal confirm
             const result = await Swal.fire({
-                title: 'Are you sure?',
+                title: "Are you sure?",
                 text: "You won't be able to revert this!",
-                icon: 'warning',
+                icon: "warning",
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, create it!'
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Yes, create it!",
             });
 
             if (!result.isConfirmed) {
@@ -103,16 +121,21 @@ export default function ProductEdit({ product, attributes = [] }) {
             const formData = new FormData();
 
             // Append all basic fields
-            Object.keys(data).forEach(key => {
-                if (key === 'images' || key === 'variants' || key === 'selected_attributes' ||
-                    key === 'selected_attribute_values' || key === 'related_products') {
+            Object.keys(data).forEach((key) => {
+                if (
+                    key === "images" ||
+                    key === "variants" ||
+                    key === "selected_attributes" ||
+                    key === "selected_attribute_values" ||
+                    key === "related_products"
+                ) {
                     return; // Handle these separately
                 }
 
-                if (key === 'specifications') {
+                if (key === "specifications") {
                     formData.append(key, JSON.stringify(data[key]));
                 } else {
-                    formData.append(key, data[key] === null ? '' : data[key]);
+                    formData.append(key, data[key] === null ? "" : data[key]);
                 }
             });
 
@@ -120,17 +143,23 @@ export default function ProductEdit({ product, attributes = [] }) {
             data.images.forEach((file, index) => {
                 if (file instanceof File) {
                     formData.append(`images[${index}]`, file);
-                } else if (typeof file === 'object') {
+                } else if (typeof file === "object") {
                     // This is an existing image object
                     formData.append(`existing_images[${index}][id]`, file.id);
-                    formData.append(`existing_images[${index}][is_default]`, file.is_default);
+                    formData.append(
+                        `existing_images[${index}][is_default]`,
+                        file.is_default
+                    );
                 }
             });
 
             // Handle variants
             data.variants.forEach((variant, index) => {
-                Object.keys(variant).forEach(key => {
-                    formData.append(`variants[${index}][${key}]`, variant[key] === null ? '' : variant[key]);
+                Object.keys(variant).forEach((key) => {
+                    formData.append(
+                        `variants[${index}][${key}]`,
+                        variant[key] === null ? "" : variant[key]
+                    );
                 });
             });
 
@@ -142,24 +171,33 @@ export default function ProductEdit({ product, attributes = [] }) {
 
             // Handle attribute values
             data.selected_attribute_values.forEach((attributeValue, index) => {
-                formData.append(`attribute_values[${index}][id]`, attributeValue.value);
-                formData.append(`attribute_values[${index}][value]`, attributeValue.label);
+                formData.append(
+                    `attribute_values[${index}][id]`,
+                    attributeValue.value
+                );
+                formData.append(
+                    `attribute_values[${index}][value]`,
+                    attributeValue.label
+                );
             });
 
             // Handle related products
             data.related_products.forEach((product, index) => {
-                formData.append(`related_products[${index}]`, product.id || product);
+                formData.append(
+                    `related_products[${index}]`,
+                    product.id || product
+                );
             });
 
-            formData.append('_method', 'put');
+            formData.append("_method", "put");
 
             const response = await xios.post(
                 route("product.update", { product: product?.id }),
                 formData,
                 {
                     headers: {
-                        'Content-Type': 'multipart/form-data',
-                    }
+                        "Content-Type": "multipart/form-data",
+                    },
                 }
             );
 
@@ -172,35 +210,44 @@ export default function ProductEdit({ product, attributes = [] }) {
             setProcessing(false);
             if (error.response?.data?.errors) {
                 const errorMessages = error.response.data.errors;
-                Object.values(errorMessages).forEach(messages => {
-                    messages.forEach(message => {
+                Object.values(errorMessages).forEach((messages) => {
+                    messages.forEach((message) => {
                         toast.error(message);
                     });
                 });
             } else {
-                toast.error(error.response?.data?.error || "An error occurred while updating the product");
+                toast.error(
+                    error.response?.data?.error ||
+                        "An error occurred while updating the product"
+                );
             }
         }
     };
 
     const handleTagChange = (selectedOptions) => {
         setSelectedTags(selectedOptions);
-        setData('tags', selectedOptions.map(option => option.value));
+        setData(
+            "tags",
+            selectedOptions.map((option) => option.value)
+        );
     };
 
     const addSpecification = () => {
         if (specificationKey && specificationValue) {
-            const newSpecs = { ...data.specifications, [specificationKey]: specificationValue };
-            setData('specifications', newSpecs);
-            setSpecificationKey('');
-            setSpecificationValue('');
+            const newSpecs = {
+                ...data.specifications,
+                [specificationKey]: specificationValue,
+            };
+            setData("specifications", newSpecs);
+            setSpecificationKey("");
+            setSpecificationValue("");
         }
     };
 
     const removeSpecification = (key) => {
         const newSpecs = { ...data.specifications };
         delete newSpecs[key];
-        setData('specifications', newSpecs);
+        setData("specifications", newSpecs);
     };
 
     const renderStatusBadge = () => {
@@ -209,19 +256,39 @@ export default function ProductEdit({ product, attributes = [] }) {
         }
 
         const badges = [];
-        if (data.is_featured) badges.push(<Badge key="featured" bg="info" className="me-1">Featured</Badge>);
-        if (data.is_bestseller) badges.push(<Badge key="bestseller" bg="warning" className="me-1">Bestseller</Badge>);
-        if (data.is_new) badges.push(<Badge key="new" bg="success" className="me-1">New</Badge>);
-        if (data.compare_price > data.price) badges.push(<Badge key="sale" bg="danger" className="me-1">Sale</Badge>);
+        if (data.is_featured)
+            badges.push(
+                <Badge key="featured" bg="info" className="me-1">
+                    Featured
+                </Badge>
+            );
+        if (data.is_bestseller)
+            badges.push(
+                <Badge key="bestseller" bg="warning" className="me-1">
+                    Bestseller
+                </Badge>
+            );
+        if (data.is_new)
+            badges.push(
+                <Badge key="new" bg="success" className="me-1">
+                    New
+                </Badge>
+            );
+        if (data.compare_price > data.price)
+            badges.push(
+                <Badge key="sale" bg="danger" className="me-1">
+                    Sale
+                </Badge>
+            );
 
         return badges.length ? badges : <Badge bg="primary">Active</Badge>;
     };
 
     const renderStockStatus = () => {
-        if (data.stock_status === 'out_of_stock') {
+        if (data.stock_status === "out_of_stock") {
             return <Badge bg="danger">Out of Stock</Badge>;
         }
-        if (data.stock_status === 'low_stock') {
+        if (data.stock_status === "low_stock") {
             return <Badge bg="warning">Low Stock</Badge>;
         }
         return <Badge bg="success">In Stock</Badge>;
@@ -234,7 +301,9 @@ export default function ProductEdit({ product, attributes = [] }) {
                     <ImageIcon size={48} className="text-muted mb-2" />
                     <p className="text-muted">No images uploaded</p>
                     <FileUpload
-                        onChange={(files) => setData('images', [...data.images, ...files])}
+                        onChange={(files) =>
+                            setData("images", [...data.images, ...files])
+                        }
                         accept="image/*"
                         multiple
                     />
@@ -249,8 +318,14 @@ export default function ProductEdit({ product, attributes = [] }) {
                         <Card className="h-100">
                             <Card.Img
                                 variant="top"
-                                src={typeof image === 'string' ? image : image.image_path ? `/storage/${image.image_path}` : URL.createObjectURL(image)}
-                                style={{ height: '120px', objectFit: 'cover' }}
+                                src={
+                                    typeof image === "string"
+                                        ? image
+                                        : image.image_path
+                                        ? `/storage/${image.image_path}`
+                                        : URL.createObjectURL(image)
+                                }
+                                style={{ height: "120px", objectFit: "cover" }}
                             />
                             <Card.Body className="p-2">
                                 <div className="d-flex justify-content-between">
@@ -259,15 +334,27 @@ export default function ProductEdit({ product, attributes = [] }) {
                                         name="defaultImage"
                                         label="Default"
                                         checked={image.is_default}
-                                        onChange={() => setData('images', data.images.map((img, i) => ({
-                                            ...img,
-                                            is_default: i === index
-                                        })))}
+                                        onChange={() =>
+                                            setData(
+                                                "images",
+                                                data.images.map((img, i) => ({
+                                                    ...img,
+                                                    is_default: i === index,
+                                                }))
+                                            )
+                                        }
                                     />
                                     <Button
                                         variant="outline-danger"
                                         size="sm"
-                                        onClick={() => setData('images', data.images.filter((_, i) => i !== index))}
+                                        onClick={() =>
+                                            setData(
+                                                "images",
+                                                data.images.filter(
+                                                    (_, i) => i !== index
+                                                )
+                                            )
+                                        }
                                     >
                                         <Trash size={14} />
                                     </Button>
@@ -279,7 +366,9 @@ export default function ProductEdit({ product, attributes = [] }) {
                 <Col md={12}>
                     <div className="border p-2">
                         <FileUpload
-                            onChange={(files) => setData('images', [...data.images, ...files])}
+                            onChange={(files) =>
+                                setData("images", [...data.images, ...files])
+                            }
                             accept="image/*"
                             multiple
                             buttonText="Add Images"
@@ -301,8 +390,11 @@ export default function ProductEdit({ product, attributes = [] }) {
                     <h2 className="mb-0 d-inline-block">Edit Product</h2>
                     <div>
                         {renderStatusBadge()}
-                        <Badge bg={data.is_digital ? 'info' : 'primary'} className="ms-2">
-                            {data.is_digital ? 'Digital' : 'Physical'}
+                        <Badge
+                            bg={data.is_digital ? "info" : "primary"}
+                            className="ms-2"
+                        >
+                            {data.is_digital ? "Digital" : "Physical"}
                         </Badge>
                     </div>
                 </div>
@@ -314,26 +406,33 @@ export default function ProductEdit({ product, attributes = [] }) {
                         <Col lg={8}>
                             <Card className="mb-4">
                                 <Card.Header className="bg-white">
-                                    <Tab.Container activeKey={activeTab} onSelect={setActiveTab}>
+                                    <Tab.Container
+                                        activeKey={activeTab}
+                                        onSelect={setActiveTab}
+                                    >
                                         <Nav variant="tabs" className="mb-0">
                                             <Nav.Item>
                                                 <Nav.Link eventKey="basic">
-                                                    <InfoCircle className="me-1" /> Basic Info
+                                                    <InfoCircle className="me-1" />{" "}
+                                                    Basic Info
                                                 </Nav.Link>
                                             </Nav.Item>
                                             <Nav.Item>
                                                 <Nav.Link eventKey="pricing">
-                                                    <CashCoin className="me-1" /> Pricing
+                                                    <CashCoin className="me-1" />{" "}
+                                                    Pricing
                                                 </Nav.Link>
                                             </Nav.Item>
                                             <Nav.Item>
                                                 <Nav.Link eventKey="inventory">
-                                                    <BoxSeam className="me-1" /> Inventory
+                                                    <BoxSeam className="me-1" />{" "}
+                                                    Inventory
                                                 </Nav.Link>
                                             </Nav.Item>
                                             <Nav.Item>
                                                 <Nav.Link eventKey="media">
-                                                    <ImageIcon className="me-1" /> Media
+                                                    <ImageIcon className="me-1" />{" "}
+                                                    Media
                                                 </Nav.Link>
                                             </Nav.Item>
                                         </Nav>
@@ -388,10 +487,7 @@ export default function ProductEdit({ product, attributes = [] }) {
                                 renderStatusBadge={renderStatusBadge}
                             />
 
-                            <ProductTypeCard
-                                data={data}
-                                setData={setData}
-                            />
+                            <ProductTypeCard data={data} setData={setData} />
 
                             <ShippingCard
                                 data={data}

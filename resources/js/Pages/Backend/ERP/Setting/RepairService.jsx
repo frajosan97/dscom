@@ -1,6 +1,15 @@
 import { Head } from "@inertiajs/react";
 import { useCallback, useEffect, useState } from "react";
-import { Container, Row, Col, Button, Card, ButtonGroup, Table, Badge } from "react-bootstrap";
+import {
+    Container,
+    Row,
+    Col,
+    Button,
+    Card,
+    ButtonGroup,
+    Table,
+    Badge,
+} from "react-bootstrap";
 import { PlusCircle } from "react-bootstrap-icons";
 import { toast } from "react-toastify";
 import ErpLayout from "@/Layouts/ErpLayout";
@@ -29,7 +38,13 @@ export default function RepairServices() {
             },
             columns: [
                 { data: "name", title: "Service Name" },
-                { data: "base_price", title: "Base Price", render: function (data) { return formatCurrency(data) || '0'; } },
+                {
+                    data: "base_price",
+                    title: "Base Price",
+                    render: function (data) {
+                        return formatCurrency(data) || "0";
+                    },
+                },
                 { data: "orders_count", title: "Orders" },
                 { data: "status", title: "Status" },
                 { data: "action", title: "Actions" },
@@ -103,12 +118,19 @@ export default function RepairServices() {
         try {
             await xios.delete(route("repair-service.destroy", id));
             $("#repairServicesTable").DataTable().ajax.reload(null, false);
-            Swal.fire("Deleted!", "Repair service has been deleted.", "success");
+            Swal.fire(
+                "Deleted!",
+                "Repair service has been deleted.",
+                "success"
+            );
         } catch (err) {
             let errorMessage = "Delete failed.";
             if (err.response?.status === 403) {
-                errorMessage = "You don't have permission to delete this service.";
-            } else if (err.response?.data?.message?.includes("existing orders")) {
+                errorMessage =
+                    "You don't have permission to delete this service.";
+            } else if (
+                err.response?.data?.message?.includes("existing orders")
+            ) {
                 errorMessage = "Cannot delete service with existing orders.";
             }
             Swal.fire("Error!", errorMessage, "error");
@@ -121,7 +143,10 @@ export default function RepairServices() {
 
             <Container fluid>
                 <Row className="g-3">
-                    <Col md={12} className="d-flex justify-content-between align-items-center">
+                    <Col
+                        md={12}
+                        className="d-flex justify-content-between align-items-center"
+                    >
                         <h2 className="mb-0">Repair Services</h2>
                         <ButtonGroup>
                             <Button

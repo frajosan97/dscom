@@ -1,11 +1,16 @@
 import React, { useEffect } from "react";
-import { Modal, Button, Form, Row, Col, Spinner, InputGroup, Card } from "react-bootstrap";
+import {
+    Modal,
+    Button,
+    Form,
+    Row,
+    Col,
+    Spinner,
+    InputGroup,
+    Card,
+} from "react-bootstrap";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import Swal from "sweetalert2";
-import withReactContent from "sweetalert2-react-content";
-
-const SweetAlert = withReactContent(Swal);
 
 const validationSchema = Yup.object().shape({
     name: Yup.string()
@@ -53,8 +58,12 @@ export default function SliderModal({
             // Parse JSON fields before submission
             const parsedValues = {
                 ...values,
-                breakpoints: values.breakpoints ? JSON.parse(values.breakpoints) : null,
-                custom_settings: values.custom_settings ? JSON.parse(values.custom_settings) : null,
+                breakpoints: values.breakpoints
+                    ? JSON.parse(values.breakpoints)
+                    : null,
+                custom_settings: values.custom_settings
+                    ? JSON.parse(values.custom_settings)
+                    : null,
             };
             handleSubmit(parsedValues);
         },
@@ -64,13 +73,22 @@ export default function SliderModal({
         if (formData) {
             formik.setValues({
                 ...formData,
-                breakpoints: formData.breakpoints ? JSON.stringify(formData.breakpoints, null, 2) : "",
-                custom_settings: formData.custom_settings ? JSON.stringify(formData.custom_settings, null, 2) : "",
-                is_active: formData.is_active !== undefined ? formData.is_active : true,
-                autoplay: formData.autoplay !== undefined ? formData.autoplay : true,
+                breakpoints: formData.breakpoints
+                    ? JSON.stringify(formData.breakpoints, null, 2)
+                    : "",
+                custom_settings: formData.custom_settings
+                    ? JSON.stringify(formData.custom_settings, null, 2)
+                    : "",
+                is_active:
+                    formData.is_active !== undefined
+                        ? formData.is_active
+                        : true,
+                autoplay:
+                    formData.autoplay !== undefined ? formData.autoplay : true,
                 arrows: formData.arrows !== undefined ? formData.arrows : true,
                 dots: formData.dots !== undefined ? formData.dots : false,
-                infinite: formData.infinite !== undefined ? formData.infinite : true,
+                infinite:
+                    formData.infinite !== undefined ? formData.infinite : true,
             });
         }
     }, [formData]);
@@ -100,7 +118,8 @@ export default function SliderModal({
                         <Col md={12}>
                             <Form.Group className="mb-3">
                                 <Form.Label>
-                                    Slider Name <span className="text-danger">*</span>
+                                    Slider Name{" "}
+                                    <span className="text-danger">*</span>
                                 </Form.Label>
                                 <InputGroup>
                                     <InputGroup.Text>
@@ -112,7 +131,10 @@ export default function SliderModal({
                                         value={formik.values.name}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.name && !!formik.errors.name}
+                                        isInvalid={
+                                            formik.touched.name &&
+                                            !!formik.errors.name
+                                        }
                                         disabled={isSubmitting}
                                         required
                                     />
@@ -138,7 +160,10 @@ export default function SliderModal({
                                         value={formik.values.autoplay_speed}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.autoplay_speed && !!formik.errors.autoplay_speed}
+                                        isInvalid={
+                                            formik.touched.autoplay_speed &&
+                                            !!formik.errors.autoplay_speed
+                                        }
                                         disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
@@ -162,7 +187,10 @@ export default function SliderModal({
                                         value={formik.values.slides_to_show}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.slides_to_show && !!formik.errors.slides_to_show}
+                                        isInvalid={
+                                            formik.touched.slides_to_show &&
+                                            !!formik.errors.slides_to_show
+                                        }
                                         disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
@@ -186,7 +214,10 @@ export default function SliderModal({
                                         value={formik.values.slides_to_scroll}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.slides_to_scroll && !!formik.errors.slides_to_scroll}
+                                        isInvalid={
+                                            formik.touched.slides_to_scroll &&
+                                            !!formik.errors.slides_to_scroll
+                                        }
                                         disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
@@ -217,7 +248,7 @@ export default function SliderModal({
                                                 type="switch"
                                                 id="arrows"
                                                 name="arrows"
-                                                label="Navigation Arrows"
+                                                label="Arrows"
                                                 checked={formik.values.arrows}
                                                 onChange={formik.handleChange}
                                                 disabled={isSubmitting}
@@ -251,56 +282,14 @@ export default function SliderModal({
                                                 id="is_active"
                                                 name="is_active"
                                                 label="Active"
-                                                checked={formik.values.is_active}
+                                                checked={
+                                                    formik.values.is_active
+                                                }
                                                 onChange={formik.handleChange}
                                                 disabled={isSubmitting}
                                             />
                                         </Col>
                                     </Row>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-
-                        <Col md={12}>
-                            <Card className="border-0 shadow-sm">
-                                <Card.Body>
-                                    <Card.Title>Advanced Settings</Card.Title>
-
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Breakpoints (JSON)</Form.Label>
-                                        <Form.Control
-                                            as="textarea"
-                                            rows={3}
-                                            name="breakpoints"
-                                            value={formik.values.breakpoints || ''}
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            isInvalid={formik.touched.breakpoints && !!formik.errors.breakpoints}
-                                            disabled={isSubmitting}
-                                            placeholder='Example: {"768": {"slidesToShow": 2}, "1024": {"slidesToShow": 3}}'
-                                        />
-                                        <Form.Control.Feedback type="invalid">
-                                            {formik.errors.breakpoints}
-                                        </Form.Control.Feedback>
-                                    </Form.Group>
-
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Custom Settings (JSON)</Form.Label>
-                                        <Form.Control
-                                            as="textarea"
-                                            rows={3}
-                                            name="custom_settings"
-                                            value={formik.values.custom_settings || ''}
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            isInvalid={formik.touched.custom_settings && !!formik.errors.custom_settings}
-                                            disabled={isSubmitting}
-                                            placeholder='Any additional settings in JSON format'
-                                        />
-                                        <Form.Control.Feedback type="invalid">
-                                            {formik.errors.custom_settings}
-                                        </Form.Control.Feedback>
-                                    </Form.Group>
                                 </Card.Body>
                             </Card>
                         </Col>
@@ -332,7 +321,9 @@ export default function SliderModal({
                                     aria-hidden="true"
                                 />
                                 <span className="ms-2">
-                                    {formData.id ? "Updating..." : "Creating..."}
+                                    {formData.id
+                                        ? "Updating..."
+                                        : "Creating..."}
                                 </span>
                             </>
                         ) : formData.id ? (

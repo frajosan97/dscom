@@ -1,25 +1,33 @@
-import React from 'react';
-import { Modal, Form, Button, Row, Col, Badge } from 'react-bootstrap';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import xios from '@/Utils/axios';
+import React from "react";
+import { Modal, Form, Button, Row, Col, Badge } from "react-bootstrap";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import xios from "@/Utils/axios";
 
-export default function WarehouseModal({ show, onHide, warehouse, branches, onSuccess }) {
+export default function WarehouseModal({
+    show,
+    onHide,
+    warehouse,
+    branches,
+    onSuccess,
+}) {
     const isEditMode = !!warehouse;
 
     // Form validation schema
     const validationSchema = Yup.object().shape({
-        name: Yup.string().required('Name is required'),
-        code: Yup.string().required('Code is required'),
+        name: Yup.string().required("Name is required"),
+        code: Yup.string().required("Code is required"),
         branch_id: Yup.string().nullable(),
-        address: Yup.string().required('Address is required'),
-        city: Yup.string().required('City is required'),
-        state: Yup.string().required('State is required'),
-        country: Yup.string().required('Country is required'),
-        postal_code: Yup.string().required('Postal code is required'),
-        contact_person: Yup.string().required('Contact person is required'),
-        contact_phone: Yup.string().required('Contact phone is required'),
-        contact_email: Yup.string().email('Invalid email format').required('Contact email is required'),
+        address: Yup.string().required("Address is required"),
+        city: Yup.string().required("City is required"),
+        state: Yup.string().required("State is required"),
+        country: Yup.string().required("Country is required"),
+        postal_code: Yup.string().required("Postal code is required"),
+        contact_person: Yup.string().required("Contact person is required"),
+        contact_phone: Yup.string().required("Contact phone is required"),
+        contact_email: Yup.string()
+            .email("Invalid email format")
+            .required("Contact email is required"),
         is_active: Yup.boolean(),
         is_primary: Yup.boolean(),
     });
@@ -28,34 +36,34 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
     const formik = useFormik({
         enableReinitialize: true,
         initialValues: {
-            name: warehouse?.name || '',
-            code: warehouse?.code || '',
-            branch_id: warehouse?.branch_id || '',
-            address: warehouse?.address || '',
-            city: warehouse?.city || '',
-            state: warehouse?.state || '',
-            country: warehouse?.country || 'Nigeria',
-            postal_code: warehouse?.postal_code || '',
-            latitude: warehouse?.latitude || '',
-            longitude: warehouse?.longitude || '',
-            contact_person: warehouse?.contact_person || '',
-            contact_phone: warehouse?.contact_phone || '',
-            contact_email: warehouse?.contact_email || '',
-            contact_position: warehouse?.contact_position || '',
-            opening_time: warehouse?.opening_time || '08:00',
-            closing_time: warehouse?.closing_time || '18:00',
+            name: warehouse?.name || "",
+            code: warehouse?.code || "",
+            branch_id: warehouse?.branch_id || "",
+            address: warehouse?.address || "",
+            city: warehouse?.city || "",
+            state: warehouse?.state || "",
+            country: warehouse?.country || "Nigeria",
+            postal_code: warehouse?.postal_code || "",
+            latitude: warehouse?.latitude || "",
+            longitude: warehouse?.longitude || "",
+            contact_person: warehouse?.contact_person || "",
+            contact_phone: warehouse?.contact_phone || "",
+            contact_email: warehouse?.contact_email || "",
+            contact_position: warehouse?.contact_position || "",
+            opening_time: warehouse?.opening_time || "08:00",
+            closing_time: warehouse?.closing_time || "18:00",
             working_days: warehouse?.working_days || [],
             is_primary: warehouse?.is_primary || false,
             is_active: warehouse?.is_active ?? true,
-            notes: warehouse?.notes || '',
-            _method: isEditMode ? 'PUT' : 'POST',
+            notes: warehouse?.notes || "",
+            _method: isEditMode ? "PUT" : "POST",
         },
         validationSchema,
         onSubmit: async (values, { setSubmitting, setErrors }) => {
             try {
                 const postRoute = isEditMode
-                    ? route('warehouse.update', warehouse.id)
-                    : route('warehouse.store');
+                    ? route("warehouse.update", warehouse.id)
+                    : route("warehouse.store");
 
                 const response = await xios.post(postRoute, values);
 
@@ -67,7 +75,7 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                 if (error.response?.data?.errors) {
                     setErrors(error.response.data.errors);
                 } else {
-                    console.error('Error submitting form:', error);
+                    console.error("Error submitting form:", error);
                 }
             } finally {
                 setSubmitting(false);
@@ -77,28 +85,30 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
 
     // Days of week for working days selection
     const daysOfWeek = [
-        { id: 'monday', name: 'Monday' },
-        { id: 'tuesday', name: 'Tuesday' },
-        { id: 'wednesday', name: 'Wednesday' },
-        { id: 'thursday', name: 'Thursday' },
-        { id: 'friday', name: 'Friday' },
-        { id: 'saturday', name: 'Saturday' },
-        { id: 'sunday', name: 'Sunday' },
+        { id: "monday", name: "Monday" },
+        { id: "tuesday", name: "Tuesday" },
+        { id: "wednesday", name: "Wednesday" },
+        { id: "thursday", name: "Thursday" },
+        { id: "friday", name: "Friday" },
+        { id: "saturday", name: "Saturday" },
+        { id: "sunday", name: "Sunday" },
     ];
 
     // Handle working days toggle
     const handleDayToggle = (dayId) => {
         const currentDays = formik.values.working_days || [];
         const newDays = currentDays.includes(dayId)
-            ? currentDays.filter(id => id !== dayId)
+            ? currentDays.filter((id) => id !== dayId)
             : [...currentDays, dayId];
-        formik.setFieldValue('working_days', newDays);
+        formik.setFieldValue("working_days", newDays);
     };
 
     return (
         <Modal show={show} onHide={onHide} size="lg" centered backdrop="static">
             <Modal.Header closeButton>
-                <Modal.Title>{isEditMode ? 'Edit Warehouse' : 'Create New Warehouse'}</Modal.Title>
+                <Modal.Title>
+                    {isEditMode ? "Edit Warehouse" : "Create New Warehouse"}
+                </Modal.Title>
             </Modal.Header>
             <Form onSubmit={formik.handleSubmit}>
                 <Modal.Body>
@@ -112,7 +122,10 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                                     value={formik.values.name}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.name && !!formik.errors.name}
+                                    isInvalid={
+                                        formik.touched.name &&
+                                        !!formik.errors.name
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.name}
@@ -128,7 +141,10 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                                     value={formik.values.code}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.code && !!formik.errors.code}
+                                    isInvalid={
+                                        formik.touched.code &&
+                                        !!formik.errors.code
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.code}
@@ -146,11 +162,17 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                                     value={formik.values.branch_id}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.branch_id && !!formik.errors.branch_id}
+                                    isInvalid={
+                                        formik.touched.branch_id &&
+                                        !!formik.errors.branch_id
+                                    }
                                 >
                                     <option value="">Select Branch</option>
-                                    {branches.map(branch => (
-                                        <option key={branch.id} value={branch.id}>
+                                    {branches.map((branch) => (
+                                        <option
+                                            key={branch.id}
+                                            value={branch.id}
+                                        >
                                             {branch.name}
                                         </option>
                                     ))}
@@ -183,7 +205,10 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                             value={formik.values.address}
                             onChange={formik.handleChange}
                             onBlur={formik.handleBlur}
-                            isInvalid={formik.touched.address && !!formik.errors.address}
+                            isInvalid={
+                                formik.touched.address &&
+                                !!formik.errors.address
+                            }
                         />
                         <Form.Control.Feedback type="invalid">
                             {formik.errors.address}
@@ -200,7 +225,10 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                                     value={formik.values.city}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.city && !!formik.errors.city}
+                                    isInvalid={
+                                        formik.touched.city &&
+                                        !!formik.errors.city
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.city}
@@ -216,7 +244,10 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                                     value={formik.values.state}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.state && !!formik.errors.state}
+                                    isInvalid={
+                                        formik.touched.state &&
+                                        !!formik.errors.state
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.state}
@@ -232,7 +263,10 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                                     value={formik.values.postal_code}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.postal_code && !!formik.errors.postal_code}
+                                    isInvalid={
+                                        formik.touched.postal_code &&
+                                        !!formik.errors.postal_code
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.postal_code}
@@ -251,11 +285,16 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                                     value={formik.values.country}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.country && !!formik.errors.country}
+                                    isInvalid={
+                                        formik.touched.country &&
+                                        !!formik.errors.country
+                                    }
                                 >
                                     <option value="Nigeria">Nigeria</option>
                                     <option value="Ghana">Ghana</option>
-                                    <option value="South Africa">South Africa</option>
+                                    <option value="South Africa">
+                                        South Africa
+                                    </option>
                                     <option value="Kenya">Kenya</option>
                                     <option value="Other">Other</option>
                                 </Form.Control>
@@ -316,7 +355,10 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                                     value={formik.values.contact_person}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.contact_person && !!formik.errors.contact_person}
+                                    isInvalid={
+                                        formik.touched.contact_person &&
+                                        !!formik.errors.contact_person
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.contact_person}
@@ -332,7 +374,10 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                                     value={formik.values.contact_phone}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.contact_phone && !!formik.errors.contact_phone}
+                                    isInvalid={
+                                        formik.touched.contact_phone &&
+                                        !!formik.errors.contact_phone
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.contact_phone}
@@ -348,7 +393,10 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                                     value={formik.values.contact_email}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.contact_email && !!formik.errors.contact_email}
+                                    isInvalid={
+                                        formik.touched.contact_email &&
+                                        !!formik.errors.contact_email
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.contact_email}
@@ -396,10 +444,16 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                     <Form.Group controlId="working_days" className="mb-3">
                         <Form.Label>Working Days</Form.Label>
                         <div className="d-flex flex-wrap gap-2">
-                            {daysOfWeek.map(day => (
+                            {daysOfWeek.map((day) => (
                                 <Button
                                     key={day.id}
-                                    variant={formik.values.working_days?.includes(day.id) ? 'primary' : 'outline-secondary'}
+                                    variant={
+                                        formik.values.working_days?.includes(
+                                            day.id
+                                        )
+                                            ? "primary"
+                                            : "outline-secondary"
+                                    }
                                     onClick={() => handleDayToggle(day.id)}
                                     size="sm"
                                 >
@@ -424,8 +478,12 @@ export default function WarehouseModal({ show, onHide, warehouse, branches, onSu
                     <Button variant="secondary" onClick={onHide}>
                         Cancel
                     </Button>
-                    <Button variant="primary" type="submit" disabled={formik.isSubmitting}>
-                        {formik.isSubmitting ? 'Saving...' : 'Save Changes'}
+                    <Button
+                        variant="primary"
+                        type="submit"
+                        disabled={formik.isSubmitting}
+                    >
+                        {formik.isSubmitting ? "Saving..." : "Save Changes"}
                     </Button>
                 </Modal.Footer>
             </Form>

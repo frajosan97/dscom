@@ -1,7 +1,14 @@
 import { Card, FloatingLabel, Form } from "react-bootstrap";
-import Select from 'react-select';
+import Select from "react-select";
 
-export default function SEOCard({ data, setData, errors, selectedTags, handleTagChange, processing }) {
+export default function SEOCard({
+    data,
+    setData,
+    errors,
+    selectedTags,
+    handleTagChange,
+    processing,
+}) {
     return (
         <Card className="mb-4">
             <Card.Header className="bg-white">
@@ -13,7 +20,9 @@ export default function SEOCard({ data, setData, errors, selectedTags, handleTag
                         <Form.Control
                             type="text"
                             value={data.meta_title}
-                            onChange={(e) => setData('meta_title', e.target.value)}
+                            onChange={(e) =>
+                                setData("meta_title", e.target.value)
+                            }
                             isInvalid={!!errors.meta_title}
                         />
                         <Form.Control.Feedback type="invalid">
@@ -23,12 +32,17 @@ export default function SEOCard({ data, setData, errors, selectedTags, handleTag
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                    <FloatingLabel controlId="metaDescription" label="Meta Description">
+                    <FloatingLabel
+                        controlId="metaDescription"
+                        label="Meta Description"
+                    >
                         <Form.Control
                             as="textarea"
-                            style={{ height: '100px' }}
+                            style={{ height: "100px" }}
                             value={data.meta_description}
-                            onChange={(e) => setData('meta_description', e.target.value)}
+                            onChange={(e) =>
+                                setData("meta_description", e.target.value)
+                            }
                             isInvalid={!!errors.meta_description}
                         />
                         <Form.Control.Feedback type="invalid">
@@ -53,5 +67,5 @@ export default function SEOCard({ data, setData, errors, selectedTags, handleTag
                 </Form.Group>
             </Card.Body>
         </Card>
-    )
+    );
 }

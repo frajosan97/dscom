@@ -36,9 +36,10 @@ class UsersTableSeeder extends Seeder
             'country' => 'drc',
             'postal_code' => '00100',
             'branch_id' => 1,
-            'customer_id' => 'CUST-ADMIN-001',
-            'loyalty_points' => 0,
-            'customer_type' => 'retail',
+            'ending_date' => now()->addYears(1),
+            // 'customer_id' => 'CUST-ADMIN-001',
+            // 'loyalty_points' => 0,
+            // 'customer_type' => 'retail',
             'is_active' => true,
             'is_verified' => true,
         ]);

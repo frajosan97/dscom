@@ -1,93 +1,99 @@
-import React, { useEffect } from "react";
-import { Modal, Button, Form, Row, Col, Spinner, InputGroup, Image } from "react-bootstrap";
+import React, { useEffect, useMemo } from "react";
+import {
+    Modal,
+    Button,
+    Form,
+    Row,
+    Col,
+    Spinner,
+    InputGroup,
+} from "react-bootstrap";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import axios from "axios";
-import Swal from "sweetalert2";
-import withReactContent from "sweetalert2-react-content";
-
-const SweetAlert = withReactContent(Swal);
 
 const validationSchema = Yup.object().shape({
     title: Yup.string().max(255, "Title must not exceed 255 characters"),
     subtitle: Yup.string().max(255, "Subtitle must not exceed 255 characters"),
-    image: Yup.mixed().required("Desktop image is required"),
+    image: Yup.mixed()
+        .nullable()
+        .test("is-required", "Desktop image is required", function (value) {
+            return this.parent.id || value;
+        }),
     start_at: Yup.date().nullable(),
-    end_at: Yup.date().nullable().min(Yup.ref('start_at'), "End date must be after start date"),
+    end_at: Yup.date()
+        .nullable()
+        .min(Yup.ref("start_at"), "End date must be after start date"),
 });
 
 export default function SliderItemModal({
     showModal,
     setShowModal,
     formData,
-    handleInputChange,
-    handleFileChange,
     handleSubmit,
     isSubmitting,
-    sliderId,
 }) {
-    const formik = useFormik({
-        initialValues: {
+    const initialValues = useMemo(
+        () => ({
             id: "",
-            slider_id: sliderId,
+            slider_id: "",
             title: "",
             subtitle: "",
             description: "",
             image: null,
             mobile_image: null,
-            video_url: "",
             button_text: "",
             button_url: "",
             secondary_button_text: "",
             secondary_button_url: "",
             order: 0,
             is_active: true,
-            content_position: JSON.stringify({ x: "center", y: "center" }, null, 2),
             text_color: "#ffffff",
-            overlay_color: "#000000",
-            overlay_opacity: 30,
             start_at: "",
             end_at: "",
-            custom_fields: null,
-        },
+        }),
+        []
+    );
+
+    const formik = useFormik({
+        initialValues,
         validationSchema,
         enableReinitialize: true,
         onSubmit: (values) => {
-            // Parse JSON fields before submission
-            const parsedValues = {
-                ...values,
-                content_position: JSON.parse(values.content_position),
-                custom_fields: values.custom_fields ? JSON.parse(values.custom_fields) : null,
-            };
-            handleSubmit(parsedValues);
+            handleSubmit(values);
         },
     });
 
     useEffect(() => {
-        if (formData) {
+        if (formData && showModal) {
             formik.setValues({
+                ...initialValues,
                 ...formData,
-                content_position: formData.content_position
-                    ? JSON.stringify(formData.content_position, null, 2)
-                    : JSON.stringify({ x: "center", y: "center" }, null, 2),
-                custom_fields: formData.custom_fields
-                    ? JSON.stringify(formData.custom_fields, null, 2)
-                    : null,
-                is_active: formData.is_active !== undefined ? formData.is_active : true,
+                is_active:
+                    formData.is_active !== undefined
+                        ? formData.is_active
+                        : true,
             });
         }
-    }, [formData]);
+    }, [formData, showModal]);
+
+    const handleFileChange = (e, fieldName) => {
+        formik.setFieldValue(fieldName, e.target.files[0]);
+    };
+
+    const handleModalClose = () => {
+        if (!isSubmitting) {
+            setShowModal(false);
+            setTimeout(() => {
+                formik.resetForm();
+            }, 300); // Delay reset to allow modal animation to complete
+        }
+    };
 
     return (
         <Modal
             centered
             show={showModal}
-            onHide={() => {
-                if (!isSubmitting) {
-                    setShowModal(false);
-                    formik.resetForm();
-                }
-            }}
+            onHide={handleModalClose}
             backdrop={isSubmitting ? "static" : true}
             keyboard={!isSubmitting}
             size="lg"
@@ -95,11 +101,14 @@ export default function SliderItemModal({
             <Form onSubmit={formik.handleSubmit} noValidate>
                 <Modal.Header closeButton={!isSubmitting}>
                     <Modal.Title>
-                        {formData.id ? "Edit Slide Item" : "Create Slide Item"}
+                        {formik.values.id
+                            ? "Edit Slide Item"
+                            : "Create Slide Item"}
                     </Modal.Title>
                 </Modal.Header>
+
                 <Modal.Body>
-                    <Row className="g-3 mb-3">
+                    <Row className="g-3">
                         <Col md={12}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Title</Form.Label>
@@ -113,7 +122,10 @@ export default function SliderItemModal({
                                         value={formik.values.title}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.title && !!formik.errors.title}
+                                        isInvalid={
+                                            formik.touched.title &&
+                                            !!formik.errors.title
+                                        }
                                         disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
@@ -136,7 +148,10 @@ export default function SliderItemModal({
                                         value={formik.values.subtitle}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.subtitle && !!formik.errors.subtitle}
+                                        isInvalid={
+                                            formik.touched.subtitle &&
+                                            !!formik.errors.subtitle
+                                        }
                                         disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
@@ -146,7 +161,7 @@ export default function SliderItemModal({
                             </Form.Group>
                         </Col>
 
-                        <Col md={12}>
+                        {/* <Col md={12}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Description</Form.Label>
                                 <Form.Control
@@ -156,43 +171,54 @@ export default function SliderItemModal({
                                     value={formik.values.description}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.description && !!formik.errors.description}
+                                    isInvalid={
+                                        formik.touched.description &&
+                                        !!formik.errors.description
+                                    }
                                     disabled={isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.description}
                                 </Form.Control.Feedback>
                             </Form.Group>
-                        </Col>
+                        </Col> */}
 
                         <Col md={6}>
                             <Form.Group className="mb-3">
-                                <Form.Label>Desktop Image <span className="text-danger">*</span></Form.Label>
+                                <Form.Label>
+                                    Desktop Image{" "}
+                                    {!formik.values.id && (
+                                        <span className="text-danger">*</span>
+                                    )}
+                                </Form.Label>
                                 <Form.Control
                                     type="file"
                                     name="image"
                                     accept="image/*"
-                                    onChange={(e) => {
-                                        formik.setFieldValue("image", e.target.files[0]);
-                                        handleFileChange(e, "image");
-                                    }}
+                                    onChange={(e) =>
+                                        handleFileChange(e, "image")
+                                    }
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.image && !!formik.errors.image}
+                                    isInvalid={
+                                        formik.touched.image &&
+                                        !!formik.errors.image
+                                    }
                                     disabled={isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.image}
                                 </Form.Control.Feedback>
-                                {formik.values.image && typeof formik.values.image === 'string' && (
-                                    <div className="mt-2">
-                                        <img
-                                            src={formik.values.image}
-                                            alt="Current Image"
-                                            className="img-thumbnail"
-                                            width={100}
-                                        />
-                                    </div>
-                                )}
+                                {formik.values.image &&
+                                    typeof formik.values.image === "string" && (
+                                        <div className="mt-2">
+                                            <img
+                                                src={`/${formik.values.image}`}
+                                                alt="Current"
+                                                className="img-thumbnail"
+                                                width={100}
+                                            />
+                                        </div>
+                                    )}
                             </Form.Group>
                         </Col>
 
@@ -203,63 +229,35 @@ export default function SliderItemModal({
                                     type="file"
                                     name="mobile_image"
                                     accept="image/*"
-                                    onChange={(e) => {
-                                        formik.setFieldValue("mobile_image", e.target.files[0]);
-                                        handleFileChange(e, "mobile_image");
-                                    }}
+                                    onChange={(e) =>
+                                        handleFileChange(e, "mobile_image")
+                                    }
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.mobile_image && !!formik.errors.mobile_image}
+                                    isInvalid={
+                                        formik.touched.mobile_image &&
+                                        !!formik.errors.mobile_image
+                                    }
                                     disabled={isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.mobile_image}
                                 </Form.Control.Feedback>
-                                {(formik.values.mobile_image || formData?.mobile_image_url) && (
-                                    <div className="mt-2">
-                                        <Image
-                                            src={
-                                                typeof formik.values.mobile_image === 'string'
-                                                    ? formik.values.mobile_image
-                                                    : formik.values.mobile_image
-                                                        ? URL.createObjectURL(formik.values.mobile_image)
-                                                        : formData?.mobile_image_url
-                                            }
-                                            alt="Mobile Preview"
-                                            thumbnail
-                                            style={{ maxHeight: '150px' }}
-                                        />
-                                    </div>
-                                )}
+                                {formik.values.mobile_image &&
+                                    typeof formik.values.mobile_image ===
+                                        "string" && (
+                                        <div className="mt-2">
+                                            <img
+                                                src={`/${formik.values.mobile_image}`}
+                                                alt="Mobile Preview"
+                                                className="img-thumbnail"
+                                                style={{ maxHeight: "150px" }}
+                                            />
+                                        </div>
+                                    )}
                             </Form.Group>
                         </Col>
 
-                        <Col md={12}>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Video URL</Form.Label>
-                                <InputGroup>
-                                    <InputGroup.Text>
-                                        <i className="bi bi-play-btn"></i>
-                                    </InputGroup.Text>
-                                    <Form.Control
-                                        type="url"
-                                        name="video_url"
-                                        value={formik.values.video_url}
-                                        onChange={formik.handleChange}
-                                        onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.video_url && !!formik.errors.video_url}
-                                        disabled={isSubmitting}
-                                        placeholder="https://example.com/video.mp4"
-                                    />
-                                    <Form.Control.Feedback type="invalid">
-                                        {formik.errors.video_url}
-                                    </Form.Control.Feedback>
-                                </InputGroup>
-                            </Form.Group>
-                        </Col>
-                    </Row>
-
-                    <Row className="g-3 mb-3">
-                        <Col md={6}>
+                        <Col md={3}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Primary Button Text</Form.Label>
                                 <InputGroup>
@@ -272,7 +270,10 @@ export default function SliderItemModal({
                                         value={formik.values.button_text}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.button_text && !!formik.errors.button_text}
+                                        isInvalid={
+                                            formik.touched.button_text &&
+                                            !!formik.errors.button_text
+                                        }
                                         disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
@@ -282,7 +283,7 @@ export default function SliderItemModal({
                             </Form.Group>
                         </Col>
 
-                        <Col md={6}>
+                        <Col md={3}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Primary Button URL</Form.Label>
                                 <InputGroup>
@@ -295,7 +296,10 @@ export default function SliderItemModal({
                                         value={formik.values.button_url}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.button_url && !!formik.errors.button_url}
+                                        isInvalid={
+                                            formik.touched.button_url &&
+                                            !!formik.errors.button_url
+                                        }
                                         disabled={isSubmitting}
                                         placeholder="https://example.com"
                                     />
@@ -306,7 +310,7 @@ export default function SliderItemModal({
                             </Form.Group>
                         </Col>
 
-                        <Col md={6}>
+                        <Col md={3}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Secondary Button Text</Form.Label>
                                 <InputGroup>
@@ -316,10 +320,17 @@ export default function SliderItemModal({
                                     <Form.Control
                                         type="text"
                                         name="secondary_button_text"
-                                        value={formik.values.secondary_button_text}
+                                        value={
+                                            formik.values.secondary_button_text
+                                        }
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.secondary_button_text && !!formik.errors.secondary_button_text}
+                                        isInvalid={
+                                            formik.touched
+                                                .secondary_button_text &&
+                                            !!formik.errors
+                                                .secondary_button_text
+                                        }
                                         disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
@@ -329,7 +340,7 @@ export default function SliderItemModal({
                             </Form.Group>
                         </Col>
 
-                        <Col md={6}>
+                        <Col md={3}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Secondary Button URL</Form.Label>
                                 <InputGroup>
@@ -339,10 +350,16 @@ export default function SliderItemModal({
                                     <Form.Control
                                         type="url"
                                         name="secondary_button_url"
-                                        value={formik.values.secondary_button_url}
+                                        value={
+                                            formik.values.secondary_button_url
+                                        }
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.secondary_button_url && !!formik.errors.secondary_button_url}
+                                        isInvalid={
+                                            formik.touched
+                                                .secondary_button_url &&
+                                            !!formik.errors.secondary_button_url
+                                        }
                                         disabled={isSubmitting}
                                         placeholder="https://example.com"
                                     />
@@ -352,10 +369,8 @@ export default function SliderItemModal({
                                 </InputGroup>
                             </Form.Group>
                         </Col>
-                    </Row>
 
-                    <Row className="g-3 mb-3">
-                        <Col md={4}>
+                        <Col md={3}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Order</Form.Label>
                                 <InputGroup>
@@ -369,7 +384,10 @@ export default function SliderItemModal({
                                         value={formik.values.order}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.order && !!formik.errors.order}
+                                        isInvalid={
+                                            formik.touched.order &&
+                                            !!formik.errors.order
+                                        }
                                         disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
@@ -379,7 +397,7 @@ export default function SliderItemModal({
                             </Form.Group>
                         </Col>
 
-                        <Col md={4}>
+                        <Col md={3}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Text Color</Form.Label>
                                 <div className="d-flex align-items-center gap-2">
@@ -389,8 +407,15 @@ export default function SliderItemModal({
                                         value={formik.values.text_color}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.text_color && !!formik.errors.text_color}
-                                        style={{ width: '60px', height: '38px', padding: '3px' }}
+                                        isInvalid={
+                                            formik.touched.text_color &&
+                                            !!formik.errors.text_color
+                                        }
+                                        style={{
+                                            width: "60px",
+                                            height: "38px",
+                                            padding: "3px",
+                                        }}
                                         disabled={isSubmitting}
                                     />
                                     <Form.Control
@@ -399,7 +424,10 @@ export default function SliderItemModal({
                                         value={formik.values.text_color}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.text_color && !!formik.errors.text_color}
+                                        isInvalid={
+                                            formik.touched.text_color &&
+                                            !!formik.errors.text_color
+                                        }
                                         disabled={isSubmitting}
                                     />
                                 </div>
@@ -409,44 +437,45 @@ export default function SliderItemModal({
                             </Form.Group>
                         </Col>
 
-                        <Col md={4}>
+                        <Col md={3}>
                             <Form.Group className="mb-3">
-                                <Form.Label>Overlay Opacity</Form.Label>
-                                <div className="d-flex align-items-center gap-2">
-                                    <Form.Range
-                                        name="overlay_opacity"
-                                        min="0"
-                                        max="100"
-                                        value={formik.values.overlay_opacity}
-                                        onChange={formik.handleChange}
-                                        onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.overlay_opacity && !!formik.errors.overlay_opacity}
-                                        disabled={isSubmitting}
-                                    />
-                                    <span className="text-muted">{formik.values.overlay_opacity}%</span>
-                                </div>
+                                <Form.Label>Start Date/Time</Form.Label>
+                                <Form.Control
+                                    type="datetime-local"
+                                    name="start_at"
+                                    value={formik.values.start_at}
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
+                                    isInvalid={
+                                        formik.touched.start_at &&
+                                        !!formik.errors.start_at
+                                    }
+                                    disabled={isSubmitting}
+                                />
                                 <Form.Control.Feedback type="invalid">
-                                    {formik.errors.overlay_opacity}
+                                    {formik.errors.start_at}
                                 </Form.Control.Feedback>
                             </Form.Group>
                         </Col>
 
-                        <Col md={12}>
+                        <Col md={3}>
                             <Form.Group className="mb-3">
-                                <Form.Label>Content Position (JSON)</Form.Label>
+                                <Form.Label>End Date/Time</Form.Label>
                                 <Form.Control
-                                    as="textarea"
-                                    rows={2}
-                                    name="content_position"
-                                    value={formik.values.content_position}
+                                    type="datetime-local"
+                                    name="end_at"
+                                    value={formik.values.end_at}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.content_position && !!formik.errors.content_position}
-                                    // disabled={isSubmitting}
-                                    placeholder='{"x": "center", "y": "center"}'
+                                    isInvalid={
+                                        formik.touched.end_at &&
+                                        !!formik.errors.end_at
+                                    }
+                                    min={formik.values.start_at}
+                                    disabled={isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
-                                    {formik.errors.content_position}
+                                    {formik.errors.end_at}
                                 </Form.Control.Feedback>
                             </Form.Group>
                         </Col>
@@ -465,79 +494,18 @@ export default function SliderItemModal({
                             </Form.Group>
                         </Col>
                     </Row>
-
-                    <Row className="g-3">
-                        <Col md={6}>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Start Date/Time</Form.Label>
-                                <Form.Control
-                                    type="datetime-local"
-                                    name="start_at"
-                                    value={formik.values.start_at}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.start_at && !!formik.errors.start_at}
-                                    disabled={isSubmitting}
-                                />
-                                <Form.Control.Feedback type="invalid">
-                                    {formik.errors.start_at}
-                                </Form.Control.Feedback>
-                            </Form.Group>
-                        </Col>
-
-                        <Col md={6}>
-                            <Form.Group className="mb-3">
-                                <Form.Label>End Date/Time</Form.Label>
-                                <Form.Control
-                                    type="datetime-local"
-                                    name="end_at"
-                                    value={formik.values.end_at}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.end_at && !!formik.errors.end_at}
-                                    min={formik.values.start_at}
-                                    disabled={isSubmitting}
-                                />
-                                <Form.Control.Feedback type="invalid">
-                                    {formik.errors.end_at}
-                                </Form.Control.Feedback>
-                            </Form.Group>
-                        </Col>
-
-                        <Col md={12}>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Custom Fields (JSON)</Form.Label>
-                                <Form.Control
-                                    as="textarea"
-                                    rows={3}
-                                    name="custom_fields"
-                                    value={formik.values.custom_fields || ''}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.custom_fields && !!formik.errors.custom_fields}
-                                    // disabled={isSubmitting}
-                                    placeholder='Any additional custom data in JSON format'
-                                />
-                                <Form.Control.Feedback type="invalid">
-                                    {formik.errors.custom_fields}
-                                </Form.Control.Feedback>
-                            </Form.Group>
-                        </Col>
-                    </Row>
                 </Modal.Body>
+
                 <Modal.Footer>
                     <Button
-                        variant="outline-danger"
-                        onClick={() => {
-                            setShowModal(false);
-                            formik.resetForm();
-                        }}
+                        variant="outline-secondary"
+                        onClick={handleModalClose}
                         disabled={isSubmitting}
                     >
                         Cancel
                     </Button>
                     <Button
-                        variant="outline-light"
+                        variant="primary"
                         type="submit"
                         disabled={isSubmitting || !formik.isValid}
                     >
@@ -549,12 +517,13 @@ export default function SliderItemModal({
                                     size="sm"
                                     role="status"
                                     aria-hidden="true"
+                                    className="me-2"
                                 />
-                                <span className="ms-2">
-                                    {formData.id ? "Updating..." : "Creating..."}
-                                </span>
+                                {formik.values.id
+                                    ? "Updating..."
+                                    : "Creating..."}
                             </>
-                        ) : formData.id ? (
+                        ) : formik.values.id ? (
                             "Update"
                         ) : (
                             "Create"

@@ -1,10 +1,19 @@
-import { Head, router } from '@inertiajs/react';
-import { Container, Row, Col, Card, Button, ButtonGroup, Table, Form } from 'react-bootstrap';
-import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'react-toastify';
+import { Head, router } from "@inertiajs/react";
+import {
+    Container,
+    Row,
+    Col,
+    Card,
+    Button,
+    ButtonGroup,
+    Table,
+    Form,
+} from "react-bootstrap";
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "react-toastify";
 import ErpLayout from "@/Layouts/ErpLayout";
 import useData from "@/Hooks/useData";
-import Filters from '@/Components/Settings/Filters';
+import Filters from "@/Components/Settings/Filters";
 
 export default function SalesListing() {
     const { customers, paymentMethods, branches } = useData();
@@ -39,7 +48,7 @@ export default function SalesListing() {
             placeholder: "All Customers",
             options: customers.map((c) => ({
                 value: c.id,
-                label: `${c.name} (${c.phone})`
+                label: `${c.name} (${c.phone})`,
             })),
         },
         {
@@ -48,7 +57,7 @@ export default function SalesListing() {
             placeholder: "All Payment Methods",
             options: paymentMethods.map((p) => ({
                 value: p.id,
-                label: p.name
+                label: p.name,
             })),
         },
         {
@@ -57,7 +66,7 @@ export default function SalesListing() {
             placeholder: "All Statuses",
             options: statusOptions.map((s) => ({
                 value: s.value,
-                label: s.label
+                label: s.label,
             })),
         },
         {
@@ -96,30 +105,38 @@ export default function SalesListing() {
                 data: function (d) {
                     return {
                         ...d,
-                        ...filters
+                        ...filters,
                     };
                 },
             },
             columns: [
                 { data: "order_number", title: "Order #" },
-                { data: "customer", title: "Customer", className: "text-capitalize" },
-                { data: "total", title: "Amount", className: "text-end fw-semibold" },
+                {
+                    data: "customer",
+                    title: "Customer",
+                    className: "text-capitalize",
+                },
+                {
+                    data: "total",
+                    title: "Amount",
+                    className: "text-end fw-semibold",
+                },
                 {
                     data: "created_at",
                     title: "Date",
                     render: function (data) {
                         return new Date(data).toLocaleDateString();
-                    }
+                    },
                 },
                 { data: "status", title: "Status" },
                 { data: "payment", title: "Payment" },
                 { data: "action", title: "Actions" },
             ],
-            order: [[3, 'desc']],
+            order: [[3, "desc"]],
             drawCallback: function () {
-                $('#salesTable tbody').off('click', 'tr');
-                $('#salesTable tbody').on('click', 'tr', function (e) {
-                    if (!$(e.target).closest('td:last-child').length) {
+                $("#salesTable tbody").off("click", "tr");
+                $("#salesTable tbody").on("click", "tr", function (e) {
+                    if (!$(e.target).closest("td:last-child").length) {
                         const rowData = table.row(this).data();
                         if (rowData) {
                             window.location.href = `/sales/${rowData.id}`;
@@ -128,8 +145,8 @@ export default function SalesListing() {
                 });
             },
             createdRow: function (row, data, dataIndex) {
-                $(row).find('td:not(:last-child)').css('cursor', 'pointer');
-            }
+                $(row).find("td:not(:last-child)").css("cursor", "pointer");
+            },
         });
 
         return dataTable;
@@ -147,9 +164,9 @@ export default function SalesListing() {
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
-        setFilters(prev => ({
+        setFilters((prev) => ({
             ...prev,
-            [name]: value
+            [name]: value,
         }));
     };
 
@@ -170,13 +187,18 @@ export default function SalesListing() {
 
             <Container fluid>
                 <Row className="g-3">
-                    <Col md={12} className="d-flex justify-content-between align-items-center">
+                    <Col
+                        md={12}
+                        className="d-flex justify-content-between align-items-center"
+                    >
                         <h2 className="mb-0">Sales</h2>
                         <ButtonGroup className="gap-2">
                             <Button
                                 variant="primary"
                                 className="rounded"
-                                onClick={() => router.get(route('sales.create'))}
+                                onClick={() =>
+                                    router.get(route("sales.create"))
+                                }
                             >
                                 <i className="bi bi-plus-circle me-2"></i>
                                 New Sale
@@ -192,7 +214,7 @@ export default function SalesListing() {
                     </Col>
 
                     <Col md={12}>
-                        <hr className='dashed-hr mb-3' />
+                        <hr className="dashed-hr mb-3" />
 
                         <Filters
                             filters={filters}

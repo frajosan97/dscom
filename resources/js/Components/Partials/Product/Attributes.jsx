@@ -1,5 +1,5 @@
 import { Card, Form } from "react-bootstrap";
-import Select from 'react-select';
+import Select from "react-select";
 
 export default function AttributesCard({ data, setData, attributes }) {
     return (
@@ -12,21 +12,23 @@ export default function AttributesCard({ data, setData, attributes }) {
                     <Form.Label>Product Attributes</Form.Label>
                     <Select
                         isMulti
-                        options={attributes?.map(attr => ({
+                        options={attributes?.map((attr) => ({
                             value: attr.id,
                             label: attr.name,
-                            options: attr.values.map(val => ({
+                            options: attr.values.map((val) => ({
                                 value: val.id,
-                                label: val.value
-                            }))
+                                label: val.value,
+                            })),
                         }))}
                         value={data.selected_attributes}
-                        onChange={(selected) => setData('selected_attributes', selected)}
+                        onChange={(selected) =>
+                            setData("selected_attributes", selected)
+                        }
                         className="basic-multi-select"
                         classNamePrefix="select"
                     />
                 </Form.Group>
             </Card.Body>
         </Card>
-    )
+    );
 }

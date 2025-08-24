@@ -1,6 +1,11 @@
 import React from "react";
 import { Container, Row, Col } from "react-bootstrap";
-import { FaPhone, FaWhatsapp, FaEnvelope, FaMapMarkerAlt } from "react-icons/fa";
+import {
+    FaPhone,
+    FaWhatsapp,
+    FaEnvelope,
+    FaMapMarkerAlt,
+} from "react-icons/fa";
 import "../../../css/ContactInfo.css";
 
 export default function ContactInfoBar() {
@@ -10,21 +15,21 @@ export default function ContactInfoBar() {
             title: "Call Us",
             info: "+243 (894) 779-059",
             link: "tel:+243894779059",
-            color: "primary"
+            color: "primary",
         },
         {
             icon: <FaWhatsapp size={24} />,
             title: "WhatsApp",
             info: "+243 (827) 306-680",
             link: "https://wa.me/243827306680",
-            color: "success"
+            color: "success",
         },
         {
             icon: <FaEnvelope size={24} />,
             title: "Email Us",
             info: "info@dscomtechnologies.com",
             link: "mailto:info@dscomtechnologies.com",
-            color: "danger"
+            color: "danger",
         },
         {
             icon: <FaMapMarkerAlt size={24} />,
@@ -37,7 +42,7 @@ export default function ContactInfoBar() {
                 </>
             ),
             link: "https://maps.google.com?q=123+Tech+Ave",
-            color: "warning"
+            color: "warning",
         },
     ];
 
@@ -57,8 +62,12 @@ export default function ContactInfoBar() {
                                     {contact.icon}
                                 </div>
                                 <div>
-                                    <h5 className="mb-1 fw-bold">{contact.title}</h5>
-                                    <p className="mb-0 text-muted">{contact.info}</p>
+                                    <h5 className="mb-1 fw-bold">
+                                        {contact.title}
+                                    </h5>
+                                    <p className="mb-0 text-muted">
+                                        {contact.info}
+                                    </p>
                                 </div>
                             </a>
                         </Col>

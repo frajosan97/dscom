@@ -14,7 +14,7 @@ export default function Categories() {
     const renderSubmenu = (children) => (
         <div className="submenu">
             <ListGroup variant="flush">
-                {children.map(child => (
+                {children.map((child) => (
                     <ListGroup.Item
                         key={child.id}
                         className="submenu-item"
@@ -23,7 +23,12 @@ export default function Categories() {
                     >
                         <span className="me-2">{child.icon || "📁"}</span>
                         {child.name}
-                        <Badge bg="light" text="dark" pill className="float-end">
+                        <Badge
+                            bg="light"
+                            text="dark"
+                            pill
+                            className="float-end"
+                        >
                             {child.products_count}
                         </Badge>
                     </ListGroup.Item>
@@ -35,7 +40,7 @@ export default function Categories() {
     return (
         <div className="categories-container">
             <ListGroup variant="flush" className="main-menu text-capitalize">
-                {categories.map(category => (
+                {categories.map((category) => (
                     <div
                         key={category.id}
                         className="category-wrapper"
@@ -49,17 +54,25 @@ export default function Categories() {
                             href={route("category.show", category.slug)}
                         >
                             <span>
-                                <span className="me-2">{category.icon || "📁"}</span>
+                                <span className="me-2">
+                                    {category.icon || "📁"}
+                                </span>
                                 {category.name}
                             </span>
-                            <Badge bg="light" text="dark" pill className="float-end">
+                            <Badge
+                                bg="light"
+                                text="dark"
+                                pill
+                                className="float-end"
+                            >
                                 {category.products_count}
                             </Badge>
                         </ListGroup.Item>
 
-                        {Array.isArray(category.children) && category.children.length > 0 && activeCategory === category.id && (
-                            renderSubmenu(category.children)
-                        )}
+                        {Array.isArray(category.children) &&
+                            category.children.length > 0 &&
+                            activeCategory === category.id &&
+                            renderSubmenu(category.children)}
                     </div>
                 ))}
             </ListGroup>

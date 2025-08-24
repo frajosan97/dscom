@@ -1,27 +1,48 @@
-import { Head, router, usePage } from '@inertiajs/react';
-import AppLayout from '@/Layouts/AppLayout';
-import { Card, Container, Row, Col, Button, Image, Form, Table, Alert, Badge, Spinner } from 'react-bootstrap';
-import { Trash, Plus, Minus, ArrowLeft, CreditCard, Truck, CheckCircle, XCircle } from 'react-feather';
-import { useCart } from '@/context/CartContext';
-import { useState } from 'react';
-import { Link } from '@inertiajs/react';
-import xios from '@/Utils/axios';
+import { Head, router, usePage } from "@inertiajs/react";
+import AppLayout from "@/Layouts/AppLayout";
+import {
+    Card,
+    Container,
+    Row,
+    Col,
+    Button,
+    Image,
+    Form,
+    Table,
+    Alert,
+    Badge,
+    Spinner,
+} from "react-bootstrap";
+import {
+    Trash,
+    Plus,
+    Minus,
+    ArrowLeft,
+    CreditCard,
+    Truck,
+    CheckCircle,
+    XCircle,
+} from "react-feather";
+import { useCart } from "@/context/CartContext";
+import { useState } from "react";
+import { Link } from "@inertiajs/react";
+import xios from "@/Utils/axios";
 
 export default function Cart() {
     const { auth } = usePage().props;
     const {
         cartItems = [],
-        addToCart = () => { },
-        removeFromCart = () => { },
-        updateQuantity = () => { },
-        clearCart = () => { },
+        addToCart = () => {},
+        removeFromCart = () => {},
+        updateQuantity = () => {},
+        clearCart = () => {},
         cartTotal = 0,
         itemCount = 0,
     } = useCart();
 
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [checkoutStatus, setCheckoutStatus] = useState(null);
-    const [couponCode, setCouponCode] = useState('');
+    const [couponCode, setCouponCode] = useState("");
     const [discount, setDiscount] = useState(0);
     const [orderNumber, setOrderNumber] = useState(0);
 
@@ -31,7 +52,7 @@ export default function Cart() {
 
         try {
             if (auth?.user) {
-                const response = await xios.post(route('cart.checkout'), {
+                const response = await xios.post(route("cart.checkout"), {
                     cartItems,
                     cartTotal,
                     itemCount,
@@ -41,30 +62,30 @@ export default function Cart() {
                 if (response.status === 200) {
                     setOrderNumber(response.data.orderNumber);
                     setIsCheckingOut(false);
-                    setCheckoutStatus('success');
+                    setCheckoutStatus("success");
                     clearCart();
                 }
             } else {
-                router.get(route('login'));
+                router.get(route("login"));
             }
         } catch (error) {
             setIsCheckingOut(false);
-            setCheckoutStatus('error');
+            setCheckoutStatus("error");
         }
     };
 
     const applyCoupon = () => {
         // Simple coupon logic - in production, validate against backend
-        if (couponCode.toUpperCase() === 'SAVE10') {
+        if (couponCode.toUpperCase() === "SAVE10") {
             setDiscount(cartTotal * 0.1); // 10% discount
             setCheckoutStatus(null);
         } else if (couponCode) {
-            setCheckoutStatus('invalid_coupon');
+            setCheckoutStatus("invalid_coupon");
         }
     };
 
     const removeCoupon = () => {
-        setCouponCode('');
+        setCouponCode("");
         setDiscount(0);
         setCheckoutStatus(null);
     };
@@ -76,20 +97,28 @@ export default function Cart() {
             <Head title="Your Shopping Cart" />
 
             <Container className="py-4">
-                {checkoutStatus === 'success' ? (
+                {checkoutStatus === "success" ? (
                     // Success order
                     <Card className="border-0 shadow-sm py-5">
                         <Card.Body className="text-center py-5">
-                            <CheckCircle size={48} className="text-success mb-3" />
+                            <CheckCircle
+                                size={48}
+                                className="text-success mb-3"
+                            />
                             <h3>Order Placed Successfully!</h3>
                             <p className="text-muted mb-4">
-                                Thank you for your purchase. Your order number is #{orderNumber}.
+                                Thank you for your purchase. Your order number
+                                is #{orderNumber}.
                             </p>
                             <div className="d-flex justify-content-center gap-3">
                                 <Button as={Link} href="/" variant="primary">
                                     Continue Shopping
                                 </Button>
-                                <Button as={Link} href="/orders" variant="outline-primary">
+                                <Button
+                                    as={Link}
+                                    href="/orders"
+                                    variant="outline-primary"
+                                >
                                     View Orders
                                 </Button>
                             </div>
@@ -102,7 +131,8 @@ export default function Cart() {
                             <Truck size={48} className="text-muted mb-3" />
                             <h4>Your cart is empty</h4>
                             <p className="text-muted mb-4">
-                                Looks like you haven't added any items to your cart yet
+                                Looks like you haven't added any items to your
+                                cart yet
                             </p>
                             <Button as={Link} href="/" variant="primary">
                                 Continue Shopping
@@ -113,7 +143,8 @@ export default function Cart() {
                     <>
                         <div className="d-flex justify-content-between align-items-center mb-4">
                             <h2 className="mb-0">
-                                Your Cart ({itemCount} {itemCount === 1 ? 'item' : 'items'})
+                                Your Cart ({itemCount}{" "}
+                                {itemCount === 1 ? "item" : "items"})
                             </h2>
                             <Button
                                 variant="outline-danger"
@@ -132,46 +163,74 @@ export default function Cart() {
                                             <thead className="bg-light">
                                                 <tr>
                                                     <th>Product</th>
-                                                    <th className="text-end">Price</th>
+                                                    <th className="text-end">
+                                                        Price
+                                                    </th>
                                                     <th>Quantity</th>
-                                                    <th className="text-end">Total</th>
+                                                    <th className="text-end">
+                                                        Total
+                                                    </th>
                                                     <th></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {cartItems.map((item) => (
-                                                    <tr key={`${item.id}-${item.variant}`}>
+                                                    <tr
+                                                        key={`${item.id}-${item.variant}`}
+                                                    >
                                                         <td>
                                                             <div className="d-flex align-items-center">
                                                                 <Image
-                                                                    src={item.image || '/images/placeholder-product.png'}
-                                                                    alt={item.name}
+                                                                    src={
+                                                                        item.image ||
+                                                                        "/images/placeholder-product.png"
+                                                                    }
+                                                                    alt={
+                                                                        item.name
+                                                                    }
                                                                     width={80}
                                                                     height={80}
                                                                     className="me-3 rounded border object-fit-cover"
-                                                                    style={{ minWidth: '80px' }}
+                                                                    style={{
+                                                                        minWidth:
+                                                                            "80px",
+                                                                    }}
                                                                 />
                                                                 <div>
-                                                                    <h6 className="mb-1">{item.name}</h6>
+                                                                    <h6 className="mb-1">
+                                                                        {
+                                                                            item.name
+                                                                        }
+                                                                    </h6>
                                                                     {item.color && (
                                                                         <div className="d-flex align-items-center mb-1">
-                                                                            <span className="text-muted me-2">Color:</span>
+                                                                            <span className="text-muted me-2">
+                                                                                Color:
+                                                                            </span>
                                                                             <span
                                                                                 className="d-inline-block rounded-circle"
                                                                                 style={{
-                                                                                    width: '16px',
-                                                                                    height: '16px',
-                                                                                    backgroundColor: item.color,
-                                                                                    border: '1px solid #dee2e6'
+                                                                                    width: "16px",
+                                                                                    height: "16px",
+                                                                                    backgroundColor:
+                                                                                        item.color,
+                                                                                    border: "1px solid #dee2e6",
                                                                                 }}
                                                                             />
                                                                         </div>
                                                                     )}
                                                                     {item.size && (
                                                                         <div className="d-flex align-items-center">
-                                                                            <span className="text-muted me-2">Size:</span>
-                                                                            <Badge bg="light" text="dark">
-                                                                                {item.size}
+                                                                            <span className="text-muted me-2">
+                                                                                Size:
+                                                                            </span>
+                                                                            <Badge
+                                                                                bg="light"
+                                                                                text="dark"
+                                                                            >
+                                                                                {
+                                                                                    item.size
+                                                                                }
                                                                             </Badge>
                                                                         </div>
                                                                     )}
@@ -187,44 +246,99 @@ export default function Cart() {
                                                                     variant="outline-secondary"
                                                                     size="sm"
                                                                     className="px-2 py-0"
-                                                                    onClick={() => updateQuantity(item.id, item.quantity - 1, item.variant)}
-                                                                    disabled={item.quantity <= 1}
+                                                                    onClick={() =>
+                                                                        updateQuantity(
+                                                                            item.id,
+                                                                            item.quantity -
+                                                                                1,
+                                                                            item.variant
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        item.quantity <=
+                                                                        1
+                                                                    }
                                                                 >
-                                                                    <Minus size={14} />
+                                                                    <Minus
+                                                                        size={
+                                                                            14
+                                                                        }
+                                                                    />
                                                                 </Button>
                                                                 <Form.Control
                                                                     type="number"
                                                                     min="1"
-                                                                    value={item.quantity}
-                                                                    onChange={(e) => {
-                                                                        const newQty = parseInt(e.target.value);
-                                                                        if (!isNaN(newQty) && newQty > 0) {
-                                                                            updateQuantity(item.id, newQty, item.variant);
+                                                                    value={
+                                                                        item.quantity
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) => {
+                                                                        const newQty =
+                                                                            parseInt(
+                                                                                e
+                                                                                    .target
+                                                                                    .value
+                                                                            );
+                                                                        if (
+                                                                            !isNaN(
+                                                                                newQty
+                                                                            ) &&
+                                                                            newQty >
+                                                                                0
+                                                                        ) {
+                                                                            updateQuantity(
+                                                                                item.id,
+                                                                                newQty,
+                                                                                item.variant
+                                                                            );
                                                                         }
                                                                     }}
                                                                     className="mx-2 text-center"
-                                                                    style={{ width: '60px' }}
+                                                                    style={{
+                                                                        width: "60px",
+                                                                    }}
                                                                 />
                                                                 <Button
                                                                     variant="outline-secondary"
                                                                     size="sm"
                                                                     className="px-2 py-0"
-                                                                    onClick={() => updateQuantity(item.id, item.quantity + 1, item.variant)}
+                                                                    onClick={() =>
+                                                                        updateQuantity(
+                                                                            item.id,
+                                                                            item.quantity +
+                                                                                1,
+                                                                            item.variant
+                                                                        )
+                                                                    }
                                                                 >
-                                                                    <Plus size={14} />
+                                                                    <Plus
+                                                                        size={
+                                                                            14
+                                                                        }
+                                                                    />
                                                                 </Button>
                                                             </div>
                                                         </td>
                                                         <td className="align-middle text-end fw-bold">
-                                                            ${(item.price * item.quantity)}
+                                                            $
+                                                            {item.price *
+                                                                item.quantity}
                                                         </td>
                                                         <td className="align-middle text-end">
                                                             <Button
                                                                 variant="link"
                                                                 className="text-danger p-0"
-                                                                onClick={() => removeFromCart(item.id, item.variant)}
+                                                                onClick={() =>
+                                                                    removeFromCart(
+                                                                        item.id,
+                                                                        item.variant
+                                                                    )
+                                                                }
                                                             >
-                                                                <Trash size={18} />
+                                                                <Trash
+                                                                    size={18}
+                                                                />
                                                             </Button>
                                                         </td>
                                                     </tr>
@@ -235,8 +349,13 @@ export default function Cart() {
                                 </Card>
 
                                 <div className="d-flex justify-content-between mb-4">
-                                    <Button as={Link} href="/" variant="outline-primary">
-                                        <ArrowLeft size={16} className="me-1" /> Continue Shopping
+                                    <Button
+                                        as={Link}
+                                        href="/"
+                                        variant="outline-primary"
+                                    >
+                                        <ArrowLeft size={16} className="me-1" />{" "}
+                                        Continue Shopping
                                     </Button>
                                     <Button
                                         variant="outline-secondary"
@@ -261,7 +380,9 @@ export default function Cart() {
                                             <div className="d-flex justify-content-between mb-2">
                                                 <span>Shipping:</span>
                                                 <span>
-                                                    {cartTotal > 50 ? 'Free' : '$5.99'}
+                                                    {cartTotal > 50
+                                                        ? "Free"
+                                                        : "$5.99"}
                                                 </span>
                                             </div>
 
@@ -272,26 +393,50 @@ export default function Cart() {
                                                             type="text"
                                                             placeholder="Coupon code"
                                                             value={couponCode}
-                                                            onChange={(e) => setCouponCode(e.target.value)}
+                                                            onChange={(e) =>
+                                                                setCouponCode(
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
                                                         />
                                                         <Button
-                                                            variant={discount > 0 ? 'success' : 'outline-secondary'}
-                                                            onClick={discount > 0 ? removeCoupon : applyCoupon}
+                                                            variant={
+                                                                discount > 0
+                                                                    ? "success"
+                                                                    : "outline-secondary"
+                                                            }
+                                                            onClick={
+                                                                discount > 0
+                                                                    ? removeCoupon
+                                                                    : applyCoupon
+                                                            }
                                                         >
-                                                            {discount > 0 ? 'Applied' : 'Apply'}
+                                                            {discount > 0
+                                                                ? "Applied"
+                                                                : "Apply"}
                                                         </Button>
                                                     </div>
                                                 </Form.Group>
-                                                {checkoutStatus === 'invalid_coupon' && (
-                                                    <Alert variant="danger" className="mt-2 py-1 small">
-                                                        <XCircle size={14} className="me-1" />
+                                                {checkoutStatus ===
+                                                    "invalid_coupon" && (
+                                                    <Alert
+                                                        variant="danger"
+                                                        className="mt-2 py-1 small"
+                                                    >
+                                                        <XCircle
+                                                            size={14}
+                                                            className="me-1"
+                                                        />
                                                         Invalid coupon code
                                                     </Alert>
                                                 )}
                                                 {discount > 0 && (
                                                     <div className="d-flex justify-content-between mt-2">
                                                         <span>Discount:</span>
-                                                        <span className="text-success">-${discount}</span>
+                                                        <span className="text-success">
+                                                            -${discount}
+                                                        </span>
                                                     </div>
                                                 )}
                                             </div>
@@ -303,13 +448,16 @@ export default function Cart() {
                                             </div>
                                         </div>
 
-                                        <Alert variant="info" className="d-flex align-items-center small">
+                                        <Alert
+                                            variant="info"
+                                            className="d-flex align-items-center small"
+                                        >
                                             <Truck size={16} className="me-2" />
-                                            {cartTotal > 50 ? (
-                                                'You qualify for free shipping!'
-                                            ) : (
-                                                `Spend $${(50 - cartTotal)} more for free shipping`
-                                            )}
+                                            {cartTotal > 50
+                                                ? "You qualify for free shipping!"
+                                                : `Spend $${
+                                                      50 - cartTotal
+                                                  } more for free shipping`}
                                         </Alert>
 
                                         <Button
@@ -333,14 +481,20 @@ export default function Cart() {
                                                 </>
                                             ) : (
                                                 <>
-                                                    <CreditCard size={18} className="me-2" />
+                                                    <CreditCard
+                                                        size={18}
+                                                        className="me-2"
+                                                    />
                                                     Proceed to Checkout
                                                 </>
                                             )}
                                         </Button>
 
                                         <div className="text-center small text-muted">
-                                            or <Link href="/">continue shopping</Link>
+                                            or{" "}
+                                            <Link href="/">
+                                                continue shopping
+                                            </Link>
                                         </div>
                                     </Card.Body>
                                 </Card>

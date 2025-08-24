@@ -1,12 +1,22 @@
 import React from "react";
-import { Badge, ListGroup, Spinner, Container, Row, Col, Stack, Alert } from "react-bootstrap";
+import {
+    Badge,
+    ListGroup,
+    Spinner,
+    Container,
+    Row,
+    Col,
+    Stack,
+    Alert,
+} from "react-bootstrap";
 import { Star } from "react-feather";
 import { Link } from "@inertiajs/react";
 import useFilterOptions from "@/Hooks/useData";
 
 export default function FeatureList() {
     const { products, isLoading } = useFilterOptions();
-    const featuredProducts = products?.filter(product => product.is_featured) || [];
+    const featuredProducts =
+        products?.filter((product) => product.is_featured) || [];
 
     const renderRatingStars = (rating) => {
         return Array.from({ length: 5 }, (_, i) => (
@@ -58,15 +68,20 @@ export default function FeatureList() {
                                     loading="lazy"
                                     width="80"
                                     height="80"
-                                    style={{ objectFit: 'cover' }}
+                                    style={{ objectFit: "cover" }}
                                     onError={(e) => {
                                         e.target.onerror = null;
-                                        e.target.src = '/images/placeholder-product.png';
+                                        e.target.src =
+                                            "/images/placeholder-product.png";
                                     }}
                                 />
                                 {product.badge && (
                                     <Badge
-                                        bg={product.badge === "New" ? "success" : "danger"}
+                                        bg={
+                                            product.badge === "New"
+                                                ? "success"
+                                                : "danger"
+                                        }
                                         className="position-absolute top-0 start-0 translate-middle"
                                         pill
                                     >
@@ -77,7 +92,9 @@ export default function FeatureList() {
                         </Col>
                         <Col>
                             <Stack gap={1}>
-                                <h6 className="mb-0 text-truncate">{product.name}</h6>
+                                <h6 className="mb-0 text-truncate">
+                                    {product.name}
+                                </h6>
                                 <div className="d-flex align-items-center">
                                     <div className="d-flex me-2">
                                         {renderRatingStars(product.rating)}

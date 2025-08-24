@@ -1,4 +1,12 @@
-import { Alert, Button, Card, Col, Form, ListGroup, Row } from "react-bootstrap";
+import {
+    Alert,
+    Button,
+    Card,
+    Col,
+    Form,
+    ListGroup,
+    Row,
+} from "react-bootstrap";
 import { Plus, X } from "react-bootstrap-icons";
 
 export default function SpecificationsCard({
@@ -8,7 +16,7 @@ export default function SpecificationsCard({
     specificationValue,
     setSpecificationValue,
     addSpecification,
-    removeSpecification
+    removeSpecification,
 }) {
     return (
         <Card className="mb-4">
@@ -18,23 +26,30 @@ export default function SpecificationsCard({
             <Card.Body>
                 {Object.keys(data.specifications).length > 0 ? (
                     <ListGroup variant="flush" className="mb-3">
-                        {Object.entries(data.specifications).map(([key, value]) => (
-                            <ListGroup.Item key={key} className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>{key}:</strong> {value}
-                                </div>
-                                <Button
-                                    variant="outline-danger"
-                                    size="sm"
-                                    onClick={() => removeSpecification(key)}
+                        {Object.entries(data.specifications).map(
+                            ([key, value]) => (
+                                <ListGroup.Item
+                                    key={key}
+                                    className="d-flex justify-content-between align-items-center"
                                 >
-                                    <X size={14} />
-                                </Button>
-                            </ListGroup.Item>
-                        ))}
+                                    <div>
+                                        <strong>{key}:</strong> {value}
+                                    </div>
+                                    <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => removeSpecification(key)}
+                                    >
+                                        <X size={14} />
+                                    </Button>
+                                </ListGroup.Item>
+                            )
+                        )}
                     </ListGroup>
                 ) : (
-                    <Alert variant="secondary">No specifications added yet.</Alert>
+                    <Alert variant="secondary">
+                        No specifications added yet.
+                    </Alert>
                 )}
 
                 <div className="mt-3">
@@ -44,7 +59,9 @@ export default function SpecificationsCard({
                                 type="text"
                                 placeholder="Key"
                                 value={specificationKey}
-                                onChange={(e) => setSpecificationKey(e.target.value)}
+                                onChange={(e) =>
+                                    setSpecificationKey(e.target.value)
+                                }
                             />
                         </Col>
                         <Col md={5}>
@@ -52,14 +69,18 @@ export default function SpecificationsCard({
                                 type="text"
                                 placeholder="Value"
                                 value={specificationValue}
-                                onChange={(e) => setSpecificationValue(e.target.value)}
+                                onChange={(e) =>
+                                    setSpecificationValue(e.target.value)
+                                }
                             />
                         </Col>
                         <Col md={2}>
                             <Button
                                 variant="primary"
                                 onClick={addSpecification}
-                                disabled={!specificationKey || !specificationValue}
+                                disabled={
+                                    !specificationKey || !specificationValue
+                                }
                             >
                                 <Plus size={18} />
                             </Button>
@@ -68,5 +89,5 @@ export default function SpecificationsCard({
                 </div>
             </Card.Body>
         </Card>
-    )
+    );
 }

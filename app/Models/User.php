@@ -45,6 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_active',
         'is_verified',
         'last_login_at',
+        'ending_date',
     ];
 
     /**
@@ -65,6 +66,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'birth_date' => 'date',
+        'ending_date' => 'date',
         'loyalty_points' => 'decimal:2',
         'balance' => 'decimal:2',
         'preferences' => 'array',
@@ -289,5 +291,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function technicians()
     {
         return $this->hasOne(Technician::class);
+    }
+
+    public function department()
+    {
+        return $this->hasOne(Department::class);
+    }
+
+    public function attendance()
+    {
+        return $this->hasOne(Attendance::class);
     }
 }

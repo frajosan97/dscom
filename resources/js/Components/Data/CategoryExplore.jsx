@@ -22,10 +22,10 @@ export default function CategoryExplore() {
                     slidesToShow: 2,
                     settings: {
                         arrows: false,
-                        dots: false
-                    }
-                }
-            ]
+                        dots: false,
+                    },
+                },
+            ],
         },
     };
 
@@ -34,7 +34,9 @@ export default function CategoryExplore() {
             <Card className="bg-transparent border-0 shadow-none">
                 <Card.Header className="bg-transparent border-0 text-center">
                     <h2 className="section-title">Explore by Categories</h2>
-                    <p className="section-subtitle">Discover products in our popular categories</p>
+                    <p className="section-subtitle">
+                        Discover products in our popular categories
+                    </p>
                 </Card.Header>
                 <Card.Body>
                     <SlickSlider {...settings}>
@@ -42,14 +44,14 @@ export default function CategoryExplore() {
                             <Card
                                 className="category-card d-flex flex-row m-2 text-decoration-none text-capitalize"
                                 as={Link}
-                                href={route('category.show', category.slug)}
+                                href={route("category.show", category.slug)}
                                 key={category.id}
                             >
                                 <CardImg
                                     src={category.image}
                                     alt={category.name}
                                     className="w-50 rounded-end-0"
-                                    style={{ objectFit: 'cover' }}
+                                    style={{ objectFit: "cover" }}
                                 />
                                 <CardBody className="w-50">
                                     <Card.Title className="category-name text-truncate">

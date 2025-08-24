@@ -6,9 +6,7 @@ export default function DesktopsList() {
         <Container fluid className="product-listing bg-white border-top py-4">
             <Card className="border-0 shadow-none">
                 <Card.Body className="pt-0 px-0">
-                    <ProductsList
-                        categoryName={'desktops'}
-                    />
+                    <ProductsList categoryName={"desktops"} />
                 </Card.Body>
             </Card>
         </Container>

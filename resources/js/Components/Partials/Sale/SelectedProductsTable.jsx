@@ -1,8 +1,13 @@
-import { formatCurrency } from '@/Utils/helpers';
-import { Table, Form, Button } from 'react-bootstrap';
-import { Trash } from 'react-bootstrap-icons';
+import { formatCurrency } from "@/Utils/helpers";
+import { Table, Form, Button } from "react-bootstrap";
+import { Trash } from "react-bootstrap-icons";
 
-export default function SelectedProductsTable({ selectedProducts, removeProduct, updateProductQuantity, updateProductPrice }) {
+export default function SelectedProductsTable({
+    selectedProducts,
+    removeProduct,
+    updateProductQuantity,
+    updateProductPrice,
+}) {
     return (
         <Table striped hover className="mb-0">
             <thead>
@@ -31,8 +36,12 @@ export default function SelectedProductsTable({ selectedProducts, removeProduct,
                                         />
                                     )}
                                     <div>
-                                        <h6 className="mb-0">{product.product_name}</h6>
-                                        <small className="text-muted">{product.code}</small>
+                                        <h6 className="mb-0">
+                                            {product.product_name}
+                                        </h6>
+                                        <small className="text-muted">
+                                            {product.code}
+                                        </small>
                                     </div>
                                 </div>
                             </td>
@@ -42,7 +51,12 @@ export default function SelectedProductsTable({ selectedProducts, removeProduct,
                                     min="0.01"
                                     step="0.01"
                                     value={product.price}
-                                    onChange={(e) => updateProductPrice(product.product_id, e.target.value)}
+                                    onChange={(e) =>
+                                        updateProductPrice(
+                                            product.product_id,
+                                            e.target.value
+                                        )
+                                    }
                                 />
                             </td>
                             <td>
@@ -50,21 +64,31 @@ export default function SelectedProductsTable({ selectedProducts, removeProduct,
                                     type="number"
                                     min="1"
                                     value={product.quantity}
-                                    onChange={(e) => updateProductQuantity(product.product_id, e.target.value)}
+                                    onChange={(e) =>
+                                        updateProductQuantity(
+                                            product.product_id,
+                                            e.target.value
+                                        )
+                                    }
                                 />
                             </td>
-                            <td>{formatCurrency(product.price * product.quantity)}</td>
+                            <td>
+                                {formatCurrency(
+                                    product.price * product.quantity
+                                )}
+                            </td>
                             <td>
                                 <Button
                                     variant="outline-danger"
                                     size="sm"
-                                    onClick={() => removeProduct(product.product_id)}
+                                    onClick={() =>
+                                        removeProduct(product.product_id)
+                                    }
                                 >
                                     <Trash size={14} />
                                 </Button>
                             </td>
                         </tr>
-
                     ))
                 ) : (
                     <tr>

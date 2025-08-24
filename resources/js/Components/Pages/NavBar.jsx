@@ -1,11 +1,11 @@
 import { Container, Navbar, Nav, Button, Dropdown } from "react-bootstrap";
 import { ChevronDown } from "react-feather";
 
-export default function NavBar({ variant = 'ecommerce', NavItems }) {
+export default function NavBar({ variant = "ecommerce", NavItems }) {
     return (
         <Navbar variant="light" expand="lg" className="sticky-top py-3">
             <Container fluid>
-                {variant === 'ecommerce' ? (
+                {variant === "ecommerce" ? (
                     <>
                         {/* Left Links Section */}
                         <div className="d-flex align-items-center">
@@ -27,7 +27,11 @@ export default function NavBar({ variant = 'ecommerce', NavItems }) {
                         <Navbar.Collapse id="basic-navbar-nav">
                             <Nav className="mx-auto">
                                 {NavItems.map((item, index) => (
-                                    <NavItem key={index} item={item} variant={variant} />
+                                    <NavItem
+                                        key={index}
+                                        item={item}
+                                        variant={variant}
+                                    />
                                 ))}
                             </Nav>
                         </Navbar.Collapse>
@@ -38,8 +42,8 @@ export default function NavBar({ variant = 'ecommerce', NavItems }) {
     );
 }
 
-function NavItem({ item, variant = 'ecommerce' }) {
-    if (variant === 'erp' && item.children) {
+function NavItem({ item, variant = "ecommerce" }) {
+    if (variant === "erp" && item.children) {
         return (
             <Dropdown as={Nav.Item}>
                 <Dropdown.Toggle as={Nav.Link} className="text-dark">
@@ -56,12 +60,9 @@ function NavItem({ item, variant = 'ecommerce' }) {
         );
     }
 
-    if (variant === 'erp') {
+    if (variant === "erp") {
         return (
-            <Dropdown.Item
-                href={item.path}
-                className="py-2 px-3"
-            >
+            <Dropdown.Item href={item.path} className="py-2 px-3">
                 <i className={`${item.icon} me-2`}></i>
                 {item.label}
             </Dropdown.Item>
@@ -71,10 +72,7 @@ function NavItem({ item, variant = 'ecommerce' }) {
     // E-commerce items
     if (item.type === "link") {
         return (
-            <Nav.Link
-                href={item.href}
-                className={item.className}
-            >
+            <Nav.Link href={item.href} className={item.className}>
                 {item.icon && <item.icon size={18} className="me-1" />}
                 {item.text}
             </Nav.Link>

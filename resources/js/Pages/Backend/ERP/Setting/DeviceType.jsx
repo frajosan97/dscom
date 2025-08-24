@@ -1,6 +1,15 @@
 import { Head } from "@inertiajs/react";
 import { useCallback, useEffect, useState } from "react";
-import { Container, Row, Col, Button, Card, ButtonGroup, Table, Badge } from "react-bootstrap";
+import {
+    Container,
+    Row,
+    Col,
+    Button,
+    Card,
+    ButtonGroup,
+    Table,
+    Badge,
+} from "react-bootstrap";
 import { PlusCircle } from "react-bootstrap-icons";
 import { toast } from "react-toastify";
 import ErpLayout from "@/Layouts/ErpLayout";
@@ -113,13 +122,23 @@ export default function DeviceTypes() {
         } catch (err) {
             let errorMessage = "Delete failed.";
             if (err.response?.status === 403) {
-                errorMessage = "You don't have permission to delete this device type.";
-            } else if (err.response?.data?.message?.includes("child categories")) {
-                errorMessage = "Cannot delete device type with child categories.";
-            } else if (err.response?.data?.message?.includes("repair services")) {
-                errorMessage = "Cannot delete device type with associated repair services.";
-            } else if (err.response?.data?.message?.includes("existing orders")) {
-                errorMessage = "Cannot delete device type with existing orders.";
+                errorMessage =
+                    "You don't have permission to delete this device type.";
+            } else if (
+                err.response?.data?.message?.includes("child categories")
+            ) {
+                errorMessage =
+                    "Cannot delete device type with child categories.";
+            } else if (
+                err.response?.data?.message?.includes("repair services")
+            ) {
+                errorMessage =
+                    "Cannot delete device type with associated repair services.";
+            } else if (
+                err.response?.data?.message?.includes("existing orders")
+            ) {
+                errorMessage =
+                    "Cannot delete device type with existing orders.";
             }
             Swal.fire("Error!", errorMessage, "error");
         }
@@ -131,7 +150,10 @@ export default function DeviceTypes() {
 
             <Container fluid>
                 <Row className="g-3">
-                    <Col md={12} className="d-flex justify-content-between align-items-center">
+                    <Col
+                        md={12}
+                        className="d-flex justify-content-between align-items-center"
+                    >
                         <h2 className="mb-0">Device Types</h2>
                         <ButtonGroup>
                             <Button

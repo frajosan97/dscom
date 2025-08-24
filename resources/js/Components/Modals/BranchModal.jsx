@@ -1,65 +1,67 @@
-import React from 'react';
-import { Modal, Form, Button, Row, Col, Badge } from 'react-bootstrap';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import xios from '@/Utils/axios';
+import React from "react";
+import { Modal, Form, Button, Row, Col, Badge } from "react-bootstrap";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import xios from "@/Utils/axios";
 
 export default function BranchModal({ show, onHide, branch, onSuccess }) {
     const isEditMode = !!branch;
 
     // Form validation schema
     const validationSchema = Yup.object().shape({
-        name: Yup.string().required('Name is required'),
-        code: Yup.string().required('Code is required'),
-        email: Yup.string().email('Invalid email format').nullable(),
-        phone: Yup.string().required('Phone is required'),
-        address: Yup.string().required('Address is required'),
-        city: Yup.string().required('City is required'),
-        state: Yup.string().required('State is required'),
-        country: Yup.string().required('Country is required'),
-        postal_code: Yup.string().required('Postal code is required'),
+        name: Yup.string().required("Name is required"),
+        code: Yup.string().required("Code is required"),
+        email: Yup.string().email("Invalid email format").nullable(),
+        phone: Yup.string().required("Phone is required"),
+        address: Yup.string().required("Address is required"),
+        city: Yup.string().required("City is required"),
+        state: Yup.string().required("State is required"),
+        country: Yup.string().required("Country is required"),
+        postal_code: Yup.string().required("Postal code is required"),
         is_active: Yup.boolean(),
         is_online: Yup.boolean(),
         has_pickup: Yup.boolean(),
         has_delivery: Yup.boolean(),
-        currency: Yup.string().required('Currency is required'),
+        currency: Yup.string().required("Currency is required"),
     });
 
     // Formik form handling
     const formik = useFormik({
         enableReinitialize: true,
         initialValues: {
-            name: branch?.name || '',
-            code: branch?.code || '',
-            email: branch?.email || '',
-            phone: branch?.phone || '',
-            manager_name: branch?.manager_name || '',
-            manager_contact: branch?.manager_contact || '',
-            address: branch?.address || '',
-            city: branch?.city || '',
-            state: branch?.state || '',
-            country: branch?.country || 'drc',
-            postal_code: branch?.postal_code || '',
-            latitude: branch?.latitude || '',
-            longitude: branch?.longitude || '',
-            opening_time: branch?.opening_time || '',
-            closing_time: branch?.closing_time || '',
+            name: branch?.name || "",
+            code: branch?.code || "",
+            email: branch?.email || "",
+            phone: branch?.phone || "",
+            manager_name: branch?.manager_name || "",
+            manager_contact: branch?.manager_contact || "",
+            address: branch?.address || "",
+            city: branch?.city || "",
+            state: branch?.state || "",
+            country: branch?.country || "drc",
+            postal_code: branch?.postal_code || "",
+            latitude: branch?.latitude || "",
+            longitude: branch?.longitude || "",
+            opening_time: branch?.opening_time || "",
+            closing_time: branch?.closing_time || "",
             working_days: branch?.working_days || [],
             is_active: branch?.is_active ?? true,
             is_online: branch?.is_online ?? false,
             has_pickup: branch?.has_pickup ?? false,
             has_delivery: branch?.has_delivery ?? false,
-            delivery_radius: branch?.delivery_radius || '',
-            delivery_fee: branch?.delivery_fee || '',
-            currency: branch?.currency || 'CDF',
-            notes: branch?.notes || '',
-            _method: isEditMode ? 'PUT' : 'POST',
+            delivery_radius: branch?.delivery_radius || "",
+            delivery_fee: branch?.delivery_fee || "",
+            currency: branch?.currency || "CDF",
+            notes: branch?.notes || "",
+            _method: isEditMode ? "PUT" : "POST",
         },
         validationSchema,
         onSubmit: async (values, { setSubmitting, setErrors }) => {
             try {
                 // post route
-                const postRoute = isEditMode ? route('branch.update', branch.id) : route('branch.store');
+                const postRoute = isEditMode
+                    ? route("branch.update", branch.id)
+                    : route("branch.store");
 
                 const response = await xios.post(postRoute, values);
 
@@ -71,7 +73,7 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
                 if (error.response?.data?.errors) {
                     setErrors(error.response.data.errors);
                 } else {
-                    console.error('Error submitting form:', error);
+                    console.error("Error submitting form:", error);
                 }
             } finally {
                 setSubmitting(false);
@@ -81,28 +83,30 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
 
     // Days of week for working days selection
     const daysOfWeek = [
-        { id: 1, name: 'Monday' },
-        { id: 2, name: 'Tuesday' },
-        { id: 3, name: 'Wednesday' },
-        { id: 4, name: 'Thursday' },
-        { id: 5, name: 'Friday' },
-        { id: 6, name: 'Saturday' },
-        { id: 7, name: 'Sunday' },
+        { id: 1, name: "Monday" },
+        { id: 2, name: "Tuesday" },
+        { id: 3, name: "Wednesday" },
+        { id: 4, name: "Thursday" },
+        { id: 5, name: "Friday" },
+        { id: 6, name: "Saturday" },
+        { id: 7, name: "Sunday" },
     ];
 
     // Handle working days toggle
     const handleDayToggle = (dayId) => {
         const currentDays = formik.values.working_days || [];
         const newDays = currentDays.includes(dayId)
-            ? currentDays.filter(id => id !== dayId)
+            ? currentDays.filter((id) => id !== dayId)
             : [...currentDays, dayId];
-        formik.setFieldValue('working_days', newDays);
+        formik.setFieldValue("working_days", newDays);
     };
 
     return (
         <Modal show={show} onHide={onHide} size="lg" centered backdrop="static">
             <Modal.Header closeButton>
-                <Modal.Title>{isEditMode ? 'Edit Branch' : 'Create New Branch'}</Modal.Title>
+                <Modal.Title>
+                    {isEditMode ? "Edit Branch" : "Create New Branch"}
+                </Modal.Title>
             </Modal.Header>
             <Form onSubmit={formik.handleSubmit}>
                 <Modal.Body>
@@ -116,7 +120,10 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
                                     value={formik.values.name}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.name && !!formik.errors.name}
+                                    isInvalid={
+                                        formik.touched.name &&
+                                        !!formik.errors.name
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.name}
@@ -132,7 +139,10 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
                                     value={formik.values.code}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.code && !!formik.errors.code}
+                                    isInvalid={
+                                        formik.touched.code &&
+                                        !!formik.errors.code
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.code}
@@ -151,7 +161,10 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
                                     value={formik.values.email}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.email && !!formik.errors.email}
+                                    isInvalid={
+                                        formik.touched.email &&
+                                        !!formik.errors.email
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.email}
@@ -167,7 +180,10 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
                                     value={formik.values.phone}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.phone && !!formik.errors.phone}
+                                    isInvalid={
+                                        formik.touched.phone &&
+                                        !!formik.errors.phone
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.phone}
@@ -210,7 +226,10 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
                             value={formik.values.address}
                             onChange={formik.handleChange}
                             onBlur={formik.handleBlur}
-                            isInvalid={formik.touched.address && !!formik.errors.address}
+                            isInvalid={
+                                formik.touched.address &&
+                                !!formik.errors.address
+                            }
                         />
                         <Form.Control.Feedback type="invalid">
                             {formik.errors.address}
@@ -227,7 +246,10 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
                                     value={formik.values.city}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.city && !!formik.errors.city}
+                                    isInvalid={
+                                        formik.touched.city &&
+                                        !!formik.errors.city
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.city}
@@ -243,7 +265,10 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
                                     value={formik.values.state}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.state && !!formik.errors.state}
+                                    isInvalid={
+                                        formik.touched.state &&
+                                        !!formik.errors.state
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.state}
@@ -259,7 +284,10 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
                                     value={formik.values.postal_code}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.postal_code && !!formik.errors.postal_code}
+                                    isInvalid={
+                                        formik.touched.postal_code &&
+                                        !!formik.errors.postal_code
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.postal_code}
@@ -327,10 +355,16 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
                     <Form.Group controlId="working_days" className="mb-3">
                         <Form.Label>Working Days</Form.Label>
                         <div className="d-flex flex-wrap gap-2">
-                            {daysOfWeek.map(day => (
+                            {daysOfWeek.map((day) => (
                                 <Button
                                     key={day.id}
-                                    variant={formik.values.working_days?.includes(day.id) ? 'primary' : 'outline-secondary'}
+                                    variant={
+                                        formik.values.working_days?.includes(
+                                            day.id
+                                        )
+                                            ? "primary"
+                                            : "outline-secondary"
+                                    }
                                     onClick={() => handleDayToggle(day.id)}
                                     size="sm"
                                 >
@@ -417,7 +451,9 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
                         <Row className="mb-3">
                             <Col md={6}>
                                 <Form.Group controlId="delivery_radius">
-                                    <Form.Label>Delivery Radius (km)</Form.Label>
+                                    <Form.Label>
+                                        Delivery Radius (km)
+                                    </Form.Label>
                                     <Form.Control
                                         type="number"
                                         min="0"
@@ -458,11 +494,15 @@ export default function BranchModal({ show, onHide, branch, onSuccess }) {
                     <Button variant="secondary" onClick={onHide}>
                         Cancel
                     </Button>
-                    <Button variant="primary" type="submit" disabled={formik.isSubmitting}>
-                        {formik.isSubmitting ? 'Saving...' : 'Save Changes'}
+                    <Button
+                        variant="primary"
+                        type="submit"
+                        disabled={formik.isSubmitting}
+                    >
+                        {formik.isSubmitting ? "Saving..." : "Save Changes"}
                     </Button>
                 </Modal.Footer>
             </Form>
         </Modal>
     );
-};
+}

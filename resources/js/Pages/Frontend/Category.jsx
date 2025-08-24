@@ -20,10 +20,10 @@ export default function Category({ category }) {
                 settings: {
                     slidesToShow: 1,
                     arrows: false,
-                    dots: false
-                }
-            }
-        ]
+                    dots: false,
+                },
+            },
+        ],
     };
 
     const settings = {
@@ -42,10 +42,10 @@ export default function Category({ category }) {
                     slidesToShow: 2,
                     settings: {
                         arrows: false,
-                        dots: false
-                    }
-                }
-            ]
+                        dots: false,
+                    },
+                },
+            ],
         },
     };
 
@@ -83,14 +83,20 @@ export default function Category({ category }) {
                 <div className="product-listing">
                     {/* foreach children */}
                     {category.children.map((child) => (
-                        <Card key={child.id} className="border-0 rounded shadow-sm mb-3">
+                        <Card
+                            key={child.id}
+                            className="border-0 rounded shadow-sm mb-3"
+                        >
                             <Card.Header className="border-0 h6 fw-semibold text-capitalize">
                                 {child.name}
                             </Card.Header>
                             <Card.Body className="p-2">
                                 <SlickSlider {...settings}>
                                     {child.products.map((item) => (
-                                        <ProductCard key={item.id} item={item} />
+                                        <ProductCard
+                                            key={item.id}
+                                            item={item}
+                                        />
                                     ))}
                                 </SlickSlider>
                             </Card.Body>

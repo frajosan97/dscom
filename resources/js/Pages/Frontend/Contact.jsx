@@ -1,7 +1,14 @@
 import AppLayout from "@/Layouts/AppLayout";
 import { Head } from "@inertiajs/react";
-import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
-import { FaPhone, FaWhatsapp, FaEnvelope, FaMapMarkerAlt, FaPaperPlane, FaClock } from 'react-icons/fa';
+import { Container, Row, Col, Form, Button, Card } from "react-bootstrap";
+import {
+    FaPhone,
+    FaWhatsapp,
+    FaEnvelope,
+    FaMapMarkerAlt,
+    FaPaperPlane,
+    FaClock,
+} from "react-icons/fa";
 import "../../../css/Contact.css";
 
 export default function Contact() {
@@ -11,28 +18,28 @@ export default function Contact() {
             title: "Call Us",
             info: "+243 (894) 779-059",
             link: "tel:+243894779059",
-            color: "primary"
+            color: "primary",
         },
         {
             icon: <FaWhatsapp size={24} />,
             title: "WhatsApp",
             info: "+243 (894) 779-059",
             link: "https://wa.me/243894779059",
-            color: "success"
+            color: "success",
         },
         {
             icon: <FaEnvelope size={24} />,
             title: "Email Us",
             info: "info@dscomtechnologies.com",
             link: "mailto:info@dscomtechnologies.com",
-            color: "danger"
+            color: "danger",
         },
     ];
 
     const businessHours = [
         { day: "Monday - Friday", hours: "9:00 AM - 6:00 PM" },
         { day: "Saturday", hours: "10:00 AM - 4:00 PM" },
-        { day: "Sunday", hours: "Closed" }
+        { day: "Sunday", hours: "Closed" },
     ];
 
     return (
@@ -45,9 +52,13 @@ export default function Contact() {
                     <Container>
                         <Row className="align-items-center">
                             <Col lg={6}>
-                                <h1 className="display-4 fw-bold mb-3">Get in Touch</h1>
+                                <h1 className="display-4 fw-bold mb-3">
+                                    Get in Touch
+                                </h1>
                                 <p className="lead mb-4">
-                                    Have questions or need assistance? We're here to help! Reach out to our friendly team through any of these channels.
+                                    Have questions or need assistance? We're
+                                    here to help! Reach out to our friendly team
+                                    through any of these channels.
                                 </p>
                             </Col>
                             <Col lg={6} className="d-none d-lg-block">
@@ -69,13 +80,21 @@ export default function Contact() {
                         <Row className="g-4">
                             {contacts.map((method, index) => (
                                 <Col md={4} key={index}>
-                                    <Card className={`contact-method-card border-0 shadow-sm h-100 bg-${method.color}-subtle`}>
+                                    <Card
+                                        className={`contact-method-card border-0 shadow-sm h-100 bg-${method.color}-subtle`}
+                                    >
                                         <Card.Body className="p-4 text-center">
-                                            <div className={`contact-method-icon mb-3 text-${method.color}`}>
+                                            <div
+                                                className={`contact-method-icon mb-3 text-${method.color}`}
+                                            >
                                                 {method.icon}
                                             </div>
-                                            <h4 className="mb-3">{method.title}</h4>
-                                            <p className="mb-3">{method.info}</p>
+                                            <h4 className="mb-3">
+                                                {method.title}
+                                            </h4>
+                                            <p className="mb-3">
+                                                {method.info}
+                                            </p>
                                             <Button
                                                 variant={method.color}
                                                 href={method.link}
@@ -99,49 +118,93 @@ export default function Contact() {
                             <Col lg={7}>
                                 <Card className="border-0 shadow-sm">
                                     <Card.Body className="p-4 p-md-5">
-                                        <h2 className="mb-4">Send Us a Message</h2>
+                                        <h2 className="mb-4">
+                                            Send Us a Message
+                                        </h2>
                                         <Form>
                                             <Row className="g-3">
                                                 <Col md={6}>
                                                     <Form.Group controlId="formName">
-                                                        <Form.Label>Your Name</Form.Label>
-                                                        <Form.Control type="text" placeholder="Enter your name" />
+                                                        <Form.Label>
+                                                            Your Name
+                                                        </Form.Label>
+                                                        <Form.Control
+                                                            type="text"
+                                                            placeholder="Enter your name"
+                                                        />
                                                     </Form.Group>
                                                 </Col>
                                                 <Col md={6}>
                                                     <Form.Group controlId="formEmail">
-                                                        <Form.Label>Email Address</Form.Label>
-                                                        <Form.Control type="email" placeholder="Enter your email" />
+                                                        <Form.Label>
+                                                            Email Address
+                                                        </Form.Label>
+                                                        <Form.Control
+                                                            type="email"
+                                                            placeholder="Enter your email"
+                                                        />
                                                     </Form.Group>
                                                 </Col>
                                                 <Col md={6}>
                                                     <Form.Group controlId="formPhone">
-                                                        <Form.Label>Phone Number</Form.Label>
-                                                        <Form.Control type="tel" placeholder="Enter your phone number" />
+                                                        <Form.Label>
+                                                            Phone Number
+                                                        </Form.Label>
+                                                        <Form.Control
+                                                            type="tel"
+                                                            placeholder="Enter your phone number"
+                                                        />
                                                     </Form.Group>
                                                 </Col>
                                                 <Col md={6}>
                                                     <Form.Group controlId="formSubject">
-                                                        <Form.Label>Subject</Form.Label>
+                                                        <Form.Label>
+                                                            Subject
+                                                        </Form.Label>
                                                         <Form.Select>
-                                                            <option>Select a subject</option>
-                                                            <option>General Inquiry</option>
-                                                            <option>Order Support</option>
-                                                            <option>Returns & Refunds</option>
-                                                            <option>Technical Support</option>
-                                                            <option>Other</option>
+                                                            <option>
+                                                                Select a subject
+                                                            </option>
+                                                            <option>
+                                                                General Inquiry
+                                                            </option>
+                                                            <option>
+                                                                Order Support
+                                                            </option>
+                                                            <option>
+                                                                Returns &
+                                                                Refunds
+                                                            </option>
+                                                            <option>
+                                                                Technical
+                                                                Support
+                                                            </option>
+                                                            <option>
+                                                                Other
+                                                            </option>
                                                         </Form.Select>
                                                     </Form.Group>
                                                 </Col>
                                                 <Col xs={12}>
                                                     <Form.Group controlId="formMessage">
-                                                        <Form.Label>Your Message</Form.Label>
-                                                        <Form.Control as="textarea" rows={5} placeholder="Type your message here..." />
+                                                        <Form.Label>
+                                                            Your Message
+                                                        </Form.Label>
+                                                        <Form.Control
+                                                            as="textarea"
+                                                            rows={5}
+                                                            placeholder="Type your message here..."
+                                                        />
                                                     </Form.Group>
                                                 </Col>
                                                 <Col xs={12}>
-                                                    <Button variant="primary" size="lg" className="rounded-pill px-4">
-                                                        <FaPaperPlane className="me-2" /> Send Message
+                                                    <Button
+                                                        variant="primary"
+                                                        size="lg"
+                                                        className="rounded-pill px-4"
+                                                    >
+                                                        <FaPaperPlane className="me-2" />{" "}
+                                                        Send Message
                                                     </Button>
                                                 </Col>
                                             </Row>
@@ -152,16 +215,21 @@ export default function Contact() {
                             <Col lg={5}>
                                 <Card className="border-0 shadow-sm h-100">
                                     <Card.Body className="p-4 p-md-5">
-                                        <h2 className="mb-4">Contact Information</h2>
+                                        <h2 className="mb-4">
+                                            Contact Information
+                                        </h2>
 
                                         <div className="mb-4">
                                             <h5 className="mb-3 d-flex align-items-center">
-                                                <FaMapMarkerAlt className="me-2 text-primary" /> Our Location
+                                                <FaMapMarkerAlt className="me-2 text-primary" />{" "}
+                                                Our Location
                                             </h5>
                                             <p className="ms-4">
-                                                Avenue Du Tchad, No.7 IMMEUBLE RENAISSANCE, Local 6
+                                                Avenue Du Tchad, No.7 IMMEUBLE
+                                                RENAISSANCE, Local 6
                                                 <br />
-                                                Ref. Opposite EQUITY BCDC HEAD OFFICE
+                                                Ref. Opposite EQUITY BCDC HEAD
+                                                OFFICE
                                             </p>
                                             <Button
                                                 variant="outline-primary"
@@ -175,15 +243,25 @@ export default function Contact() {
 
                                         <div className="mb-4">
                                             <h5 className="mb-3 d-flex align-items-center">
-                                                <FaClock className="me-2 text-primary" /> Business Hours
+                                                <FaClock className="me-2 text-primary" />{" "}
+                                                Business Hours
                                             </h5>
                                             <ul className="list-unstyled ms-4">
-                                                {businessHours.map((item, index) => (
-                                                    <li key={index} className="mb-2 d-flex justify-content-between">
-                                                        <span>{item.day}</span>
-                                                        <span className="text-muted">{item.hours}</span>
-                                                    </li>
-                                                ))}
+                                                {businessHours.map(
+                                                    (item, index) => (
+                                                        <li
+                                                            key={index}
+                                                            className="mb-2 d-flex justify-content-between"
+                                                        >
+                                                            <span>
+                                                                {item.day}
+                                                            </span>
+                                                            <span className="text-muted">
+                                                                {item.hours}
+                                                            </span>
+                                                        </li>
+                                                    )
+                                                )}
                                             </ul>
                                         </div>
                                     </Card.Body>

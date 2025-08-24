@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { Badge, Nav, Offcanvas } from "react-bootstrap";
-import { Grid, Home, Info, Mail, Truck, ShoppingCart, ChevronDown } from "react-feather";
+import {
+    Grid,
+    Home,
+    Info,
+    Mail,
+    Truck,
+    ShoppingCart,
+    ChevronDown,
+} from "react-feather";
 import Categories from "../Data/Categories";
 import NavBar from "../Pages/NavBar";
 import { useCart } from "@/Context/CartContext";
@@ -20,31 +28,33 @@ export default function EcommerceHeader() {
                     <>
                         <Grid size={18} />
                         <span className="ms-2">Categories</span>
-                        <span><ChevronDown size={16} className="ms-2" /></span>
+                        <span>
+                            <ChevronDown size={16} className="ms-2" />
+                        </span>
                     </>
-                )
+                ),
             },
             {
                 type: "link",
                 icon: Home,
                 text: "Home",
                 href: "/",
-                className: "mx-2 nav-link d-none d-lg-flex"
+                className: "mx-2 nav-link d-none d-lg-flex",
             },
             {
                 type: "link",
                 icon: Info,
                 text: "About Us",
                 href: "/about-us",
-                className: "mx-2 nav-link d-none d-lg-flex"
+                className: "mx-2 nav-link d-none d-lg-flex",
             },
             {
                 type: "link",
                 icon: Mail,
                 text: "Contact",
                 href: "/contact-us",
-                className: "mx-2 nav-link d-none d-lg-flex"
-            }
+                className: "mx-2 nav-link d-none d-lg-flex",
+            },
         ],
         rightItems: [
             {
@@ -52,7 +62,7 @@ export default function EcommerceHeader() {
                 icon: Truck,
                 text: "Track Order",
                 href: "/track-order",
-                className: "me-3 nav-link d-none d-md-flex"
+                className: "me-3 nav-link d-none d-md-flex",
             },
             {
                 type: "button",
@@ -63,13 +73,17 @@ export default function EcommerceHeader() {
                 children: (
                     <>
                         <ShoppingCart size={18} />
-                        <Badge pill bg="danger" className="position-absolute top-0 start-100 translate-middle">
+                        <Badge
+                            pill
+                            bg="danger"
+                            className="position-absolute top-0 start-100 translate-middle"
+                        >
                             {itemCount}
                         </Badge>
                     </>
-                )
-            }
-        ]
+                ),
+            },
+        ],
     };
 
     return (
@@ -83,7 +97,10 @@ export default function EcommerceHeader() {
                 placement="start"
                 className="categories-menu"
             >
-                <Offcanvas.Header closeButton className="bg-gradient border-bottom">
+                <Offcanvas.Header
+                    closeButton
+                    className="bg-gradient border-bottom"
+                >
                     <Offcanvas.Title className="d-flex align-items-center">
                         <Grid size={20} className="me-2" />
                         All Categories

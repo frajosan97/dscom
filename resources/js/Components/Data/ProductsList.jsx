@@ -4,7 +4,11 @@ import ProductCard from "../Settings/ProductCard";
 import { Spinner, Alert } from "react-bootstrap";
 import useFilterOptions from "@/Hooks/useData";
 
-export default function ProductsList({ categoryName = null, brandId = null, withBanner = false }) {
+export default function ProductsList({
+    categoryName = null,
+    brandId = null,
+    withBanner = false,
+}) {
     const { products, isLoading, error: filterError } = useFilterOptions();
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [localError, setLocalError] = useState(null);
@@ -16,14 +20,16 @@ export default function ProductsList({ categoryName = null, brandId = null, with
 
                 // Filter by category if provided
                 if (categoryName) {
-                    result = result.filter(item =>
-                        item.category?.slug.toLowerCase() === categoryName.toLowerCase()
+                    result = result.filter(
+                        (item) =>
+                            item.category?.slug.toLowerCase() ===
+                            categoryName.toLowerCase()
                     );
                 }
 
                 // Filter by brand if provided
                 if (brandId) {
-                    result = result.filter(item => item.brand_id == brandId);
+                    result = result.filter((item) => item.brand_id == brandId);
                 }
 
                 setFilteredProducts(result);
@@ -51,7 +57,8 @@ export default function ProductsList({ categoryName = null, brandId = null, with
         );
     }
 
-    const displayProducts = brandId || categoryName ? filteredProducts : products;
+    const displayProducts =
+        brandId || categoryName ? filteredProducts : products;
 
     const settings = {
         slidesToShow: withBanner ? 4 : 5,
@@ -69,10 +76,10 @@ export default function ProductsList({ categoryName = null, brandId = null, with
                     slidesToShow: 2,
                     settings: {
                         arrows: false,
-                        dots: false
-                    }
-                }
-            ]
+                        dots: false,
+                    },
+                },
+            ],
         },
     };
 
@@ -87,8 +94,10 @@ export default function ProductsList({ categoryName = null, brandId = null, with
             ) : (
                 <Alert variant="info" className="text-center">
                     {categoryName
-                        ? `No products found${brandId ? ' for this brand' : ''} in ${categoryName}`
-                        : 'No products available'}
+                        ? `No products found${
+                              brandId ? " for this brand" : ""
+                          } in ${categoryName}`
+                        : "No products available"}
                 </Alert>
             )}
         </>

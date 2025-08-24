@@ -1,6 +1,22 @@
 import { usePage } from "@inertiajs/react";
-import { Container, Row, Col, Stack, Image, Form, Button } from "react-bootstrap";
-import { Mail, CreditCard, Facebook, Instagram, Twitter, Linkedin, Youtube } from "react-feather";
+import {
+    Container,
+    Row,
+    Col,
+    Stack,
+    Image,
+    Form,
+    Button,
+} from "react-bootstrap";
+import {
+    Mail,
+    CreditCard,
+    Facebook,
+    Instagram,
+    Twitter,
+    Linkedin,
+    Youtube,
+} from "react-feather";
 import "../../../css/Footer.css";
 
 export default function Footer() {
@@ -9,18 +25,17 @@ export default function Footer() {
 
     return (
         <footer className="footer-container">
-            {systemMode !== 'erp' && (
-                < Container fluid className="footer-main-content">
+            {systemMode !== "erp" && (
+                <Container fluid className="footer-main-content">
                     <Row>
                         {/* About Column */}
                         <Col lg={3} md={6} className="footer-column">
                             <div className="footer-logo">
-                                <Image
-                                    src="/storage/images/logos/logo-2.png"
-                                />
+                                <Image src="/storage/images/logos/logo-2.png" />
                             </div>
                             <p className="footer-about">
-                                Your premier destination for the latest fashion, electronics, and lifestyle products.
+                                Your premier destination for the latest fashion,
+                                electronics, and lifestyle products.
                             </p>
                             <div className="social-links">
                                 <a href="#" className="social-link facebook">
@@ -45,11 +60,36 @@ export default function Footer() {
                         <Col lg={3} md={6} className="footer-column">
                             <h4 className="footer-heading">Shop</h4>
                             <ul className="footer-links">
-                                <li><a href="#"><span className="link-icon">→</span> New Arrivals</a></li>
-                                <li><a href="#"><span className="link-icon">→</span> Best Sellers</a></li>
-                                <li><a href="#"><span className="link-icon">→</span> Sale Items</a></li>
-                                <li><a href="#"><span className="link-icon">→</span> Gift Cards</a></li>
-                                <li><a href="#"><span className="link-icon">→</span> Lookbook</a></li>
+                                <li>
+                                    <a href="#">
+                                        <span className="link-icon">→</span> New
+                                        Arrivals
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <span className="link-icon">→</span>{" "}
+                                        Best Sellers
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <span className="link-icon">→</span>{" "}
+                                        Sale Items
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <span className="link-icon">→</span>{" "}
+                                        Gift Cards
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <span className="link-icon">→</span>{" "}
+                                        Lookbook
+                                    </a>
+                                </li>
                             </ul>
                         </Col>
 
@@ -57,11 +97,36 @@ export default function Footer() {
                         <Col lg={3} md={6} className="footer-column">
                             <h4 className="footer-heading">Help</h4>
                             <ul className="footer-links">
-                                <li><a href="#"><span className="link-icon">→</span> Contact Us</a></li>
-                                <li><a href="#"><span className="link-icon">→</span> FAQs</a></li>
-                                <li><a href="#"><span className="link-icon">→</span> Shipping Info</a></li>
-                                <li><a href="#"><span className="link-icon">→</span> Returns & Exchanges</a></li>
-                                <li><a href="#"><span className="link-icon">→</span> Size Guide</a></li>
+                                <li>
+                                    <a href="#">
+                                        <span className="link-icon">→</span>{" "}
+                                        Contact Us
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <span className="link-icon">→</span>{" "}
+                                        FAQs
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <span className="link-icon">→</span>{" "}
+                                        Shipping Info
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <span className="link-icon">→</span>{" "}
+                                        Returns & Exchanges
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <span className="link-icon">→</span>{" "}
+                                        Size Guide
+                                    </a>
+                                </li>
                             </ul>
                         </Col>
 
@@ -75,14 +140,24 @@ export default function Footer() {
                                     placeholder="Your email address"
                                     className="newsletter-input"
                                 />
-                                <Button variant="primary" className="newsletter-button">
-                                    Subscribe <Mail size={16} className="ms-2" />
+                                <Button
+                                    variant="primary"
+                                    className="newsletter-button"
+                                >
+                                    Subscribe{" "}
+                                    <Mail size={16} className="ms-2" />
                                 </Button>
                             </Form>
                             <div className="payment-methods">
-                                <CreditCard size={20} className="payment-icon" />
+                                <CreditCard
+                                    size={20}
+                                    className="payment-icon"
+                                />
                                 <span>Secure payments:</span>
-                                <img src="/storage/images/icons/payments.png" alt="payments" />
+                                <img
+                                    src="/storage/images/icons/payments.png"
+                                    alt="payments"
+                                />
                             </div>
                         </Col>
                     </Row>
@@ -94,11 +169,14 @@ export default function Footer() {
                 <Container fluid>
                     <Row>
                         <Col md={12} className="copyright-col text-center">
-                            <p>© {new Date().getFullYear()} DSCom Technologies. All rights reserved.</p>
+                            <p>
+                                © {new Date().getFullYear()} DSCom Technologies.
+                                All rights reserved.
+                            </p>
                         </Col>
                     </Row>
                 </Container>
             </div>
-        </footer >
+        </footer>
     );
 }

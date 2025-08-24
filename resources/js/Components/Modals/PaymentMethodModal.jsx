@@ -1,42 +1,49 @@
-import React from 'react';
-import { Modal, Form, Button, Row, Col } from 'react-bootstrap';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import xios from '@/Utils/axios';
+import React from "react";
+import { Modal, Form, Button, Row, Col } from "react-bootstrap";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import xios from "@/Utils/axios";
 
-export default function PaymentMethodModal({ show, onHide, method, onSuccess }) {
+export default function PaymentMethodModal({
+    show,
+    onHide,
+    method,
+    onSuccess,
+}) {
     const isEditMode = !!method;
 
     const validationSchema = Yup.object().shape({
-        name: Yup.string().required('Name is required'),
-        code: Yup.string().required('Code is required'),
+        name: Yup.string().required("Name is required"),
+        code: Yup.string().required("Code is required"),
         description: Yup.string().nullable(),
         is_active: Yup.boolean(),
         is_default: Yup.boolean(),
         requires_approval: Yup.boolean(),
-        processing_fee: Yup.number().min(0, 'Fee cannot be negative'),
-        fee_type: Yup.string().oneOf(['fixed', 'percentage']).required('Fee type is required'),
+        processing_fee: Yup.number().min(0, "Fee cannot be negative"),
+        fee_type: Yup.string()
+            .oneOf(["fixed", "percentage"])
+            .required("Fee type is required"),
     });
 
     const formik = useFormik({
         enableReinitialize: true,
         initialValues: {
-            name: method?.name || '',
-            code: method?.code || '',
-            description: method?.description || '',
+            name: method?.name || "",
+            code: method?.code || "",
+            description: method?.description || "",
             is_active: method?.is_active ?? true,
             is_default: method?.is_default ?? false,
             requires_approval: method?.requires_approval ?? false,
             processing_fee: method?.processing_fee || 0,
-            fee_type: method?.fee_type || 'fixed',
-            _method: isEditMode ? 'PUT' : 'POST',
+            fee_type: method?.fee_type || "fixed",
+            _method: isEditMode ? "PUT" : "POST",
         },
         validationSchema,
         onSubmit: async (values, { setSubmitting, setErrors }) => {
             try {
                 const postRoute = isEditMode
-                    ? route('payment-method.update', method.id)
-                    : route('payment-method.store');
+                    ? route("payment-method.update", method.id)
+                    : route("payment-method.store");
 
                 const response = await xios.post(postRoute, values);
 
@@ -44,13 +51,12 @@ export default function PaymentMethodModal({ show, onHide, method, onSuccess }) 
                     onSuccess(response.data.message);
                     onHide();
                 }
-
             } catch (error) {
                 console.log(error);
                 if (error.response?.data?.errors) {
                     setErrors(error.response.data.errors);
                 } else {
-                    console.error('Error submitting form:', error);
+                    console.error("Error submitting form:", error);
                 }
             } finally {
                 setSubmitting(false);
@@ -61,7 +67,11 @@ export default function PaymentMethodModal({ show, onHide, method, onSuccess }) 
     return (
         <Modal show={show} onHide={onHide} size="lg" centered backdrop="static">
             <Modal.Header closeButton>
-                <Modal.Title>{isEditMode ? 'Edit Payment Method' : 'Create New Payment Method'}</Modal.Title>
+                <Modal.Title>
+                    {isEditMode
+                        ? "Edit Payment Method"
+                        : "Create New Payment Method"}
+                </Modal.Title>
             </Modal.Header>
             <Form onSubmit={formik.handleSubmit}>
                 <Modal.Body>
@@ -75,7 +85,10 @@ export default function PaymentMethodModal({ show, onHide, method, onSuccess }) 
                                     value={formik.values.name}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.name && !!formik.errors.name}
+                                    isInvalid={
+                                        formik.touched.name &&
+                                        !!formik.errors.name
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.name}
@@ -91,7 +104,10 @@ export default function PaymentMethodModal({ show, onHide, method, onSuccess }) 
                                     value={formik.values.code}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.code && !!formik.errors.code}
+                                    isInvalid={
+                                        formik.touched.code &&
+                                        !!formik.errors.code
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.code}
@@ -122,7 +138,10 @@ export default function PaymentMethodModal({ show, onHide, method, onSuccess }) 
                                     name="processing_fee"
                                     value={formik.values.processing_fee}
                                     onChange={formik.handleChange}
-                                    isInvalid={formik.touched.processing_fee && !!formik.errors.processing_fee}
+                                    isInvalid={
+                                        formik.touched.processing_fee &&
+                                        !!formik.errors.processing_fee
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.processing_fee}
@@ -136,10 +155,15 @@ export default function PaymentMethodModal({ show, onHide, method, onSuccess }) 
                                     name="fee_type"
                                     value={formik.values.fee_type}
                                     onChange={formik.handleChange}
-                                    isInvalid={formik.touched.fee_type && !!formik.errors.fee_type}
+                                    isInvalid={
+                                        formik.touched.fee_type &&
+                                        !!formik.errors.fee_type
+                                    }
                                 >
                                     <option value="fixed">Fixed Amount</option>
-                                    <option value="percentage">Percentage</option>
+                                    <option value="percentage">
+                                        Percentage
+                                    </option>
                                 </Form.Select>
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.fee_type}
@@ -185,8 +209,12 @@ export default function PaymentMethodModal({ show, onHide, method, onSuccess }) 
                     <Button variant="secondary" onClick={onHide}>
                         Cancel
                     </Button>
-                    <Button variant="primary" type="submit" disabled={formik.isSubmitting}>
-                        {formik.isSubmitting ? 'Saving...' : 'Save Changes'}
+                    <Button
+                        variant="primary"
+                        type="submit"
+                        disabled={formik.isSubmitting}
+                    >
+                        {formik.isSubmitting ? "Saving..." : "Save Changes"}
                     </Button>
                 </Modal.Footer>
             </Form>

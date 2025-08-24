@@ -13,7 +13,9 @@ export default function ProductTypeCard({ data, setData }) {
                         id="isDigital"
                         label="Digital Product"
                         checked={data.is_digital}
-                        onChange={(e) => setData('is_digital', e.target.checked)}
+                        onChange={(e) =>
+                            setData("is_digital", e.target.checked)
+                        }
                     />
                 </Form.Group>
 
@@ -24,7 +26,9 @@ export default function ProductTypeCard({ data, setData }) {
                             id="requiresShipping"
                             label="Requires Shipping"
                             checked={data.requires_shipping}
-                            onChange={(e) => setData('requires_shipping', e.target.checked)}
+                            onChange={(e) =>
+                                setData("requires_shipping", e.target.checked)
+                            }
                         />
                     </Form.Group>
                 )}
@@ -35,10 +39,12 @@ export default function ProductTypeCard({ data, setData }) {
                         id="hasVariants"
                         label="Product Has Variants"
                         checked={data.has_variants}
-                        onChange={(e) => setData('has_variants', e.target.checked)}
+                        onChange={(e) =>
+                            setData("has_variants", e.target.checked)
+                        }
                     />
                 </Form.Group>
             </Card.Body>
         </Card>
-    )
+    );
 }

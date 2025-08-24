@@ -1,16 +1,16 @@
-import { useState } from 'react';
+import { useState } from "react";
 import { Card, Container, Tab, Tabs } from "react-bootstrap";
 import useFilterOptions from "@/Hooks/useData";
 import ProductsList from "./ProductsList";
 
 export default function TabProductList() {
     const { brands } = useFilterOptions();
-    const [activeTab, setActiveTab] = useState('all');
+    const [activeTab, setActiveTab] = useState("all");
     const [refreshKey, setRefreshKey] = useState(0);
 
     const handleTabSelect = (key) => {
         setActiveTab(key);
-        setRefreshKey(prev => prev + 1); // Increment key to force refresh
+        setRefreshKey((prev) => prev + 1); // Increment key to force refresh
     };
 
     return (
@@ -30,7 +30,7 @@ export default function TabProductList() {
                         <Card.Body>
                             <ProductsList
                                 key={`all-${refreshKey}`} // Add key to force remount
-                                categoryName={'phones'}
+                                categoryName={"phones"}
                             />
                         </Card.Body>
                     </Card>
@@ -41,7 +41,7 @@ export default function TabProductList() {
                             <Card.Body>
                                 <ProductsList
                                     key={`${brand.id}-${refreshKey}`} // Add key to force remount
-                                    categoryName={'phones'}
+                                    categoryName={"phones"}
                                     brandId={brand.id}
                                 />
                             </Card.Body>

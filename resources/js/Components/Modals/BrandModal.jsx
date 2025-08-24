@@ -1,5 +1,13 @@
 import React, { useEffect } from "react";
-import { Modal, Button, Form, Row, Col, Spinner, InputGroup } from "react-bootstrap";
+import {
+    Modal,
+    Button,
+    Form,
+    Row,
+    Col,
+    Spinner,
+    InputGroup,
+} from "react-bootstrap";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 
@@ -35,8 +43,12 @@ export default function BrandModal({
             facebook_url: formData?.facebook_url || "",
             instagram_url: formData?.instagram_url || "",
             twitter_url: formData?.twitter_url || "",
-            is_active: formData?.is_active !== undefined ? formData.is_active : true,
-            is_featured: formData?.is_featured !== undefined ? formData.is_featured : false,
+            is_active:
+                formData?.is_active !== undefined ? formData.is_active : true,
+            is_featured:
+                formData?.is_featured !== undefined
+                    ? formData.is_featured
+                    : false,
             order: formData?.order || 0,
         },
         validationSchema,
@@ -51,8 +63,14 @@ export default function BrandModal({
             formik.setValues({
                 ...formik.values,
                 ...formData,
-                is_active: formData.is_active !== undefined ? formData.is_active : true,
-                is_featured: formData.is_featured !== undefined ? formData.is_featured : false,
+                is_active:
+                    formData.is_active !== undefined
+                        ? formData.is_active
+                        : true,
+                is_featured:
+                    formData.is_featured !== undefined
+                        ? formData.is_featured
+                        : false,
             });
         }
     }, [formData]);
@@ -82,7 +100,8 @@ export default function BrandModal({
                         <Col md={6}>
                             <Form.Group className="mb-3">
                                 <Form.Label>
-                                    Brand Name <span className="text-danger">*</span>
+                                    Brand Name{" "}
+                                    <span className="text-danger">*</span>
                                 </Form.Label>
                                 <InputGroup>
                                     <InputGroup.Text>
@@ -94,7 +113,10 @@ export default function BrandModal({
                                         value={formik.values.name}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.name && !!formik.errors.name}
+                                        isInvalid={
+                                            formik.touched.name &&
+                                            !!formik.errors.name
+                                        }
                                         disabled={isSubmitting}
                                         required
                                     />
@@ -118,7 +140,10 @@ export default function BrandModal({
                                         value={formik.values.slug}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.slug && !!formik.errors.slug}
+                                        isInvalid={
+                                            formik.touched.slug &&
+                                            !!formik.errors.slug
+                                        }
                                         disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
@@ -138,7 +163,10 @@ export default function BrandModal({
                                     value={formik.values.description}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.description && !!formik.errors.description}
+                                    isInvalid={
+                                        formik.touched.description &&
+                                        !!formik.errors.description
+                                    }
                                     disabled={isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
@@ -154,21 +182,25 @@ export default function BrandModal({
                                     type="file"
                                     accept="image/*"
                                     onChange={(e) => {
-                                        formik.setFieldValue("logo", e.target.files[0]);
+                                        formik.setFieldValue(
+                                            "logo",
+                                            e.target.files[0]
+                                        );
                                         handleFileChange(e);
                                     }}
                                     disabled={isSubmitting}
                                 />
-                                {formik.values.logo && typeof formik.values.logo === 'string' && (
-                                    <div className="mt-2">
-                                        <img
-                                            src={formik.values.logo}
-                                            alt="Current logo"
-                                            className="img-thumbnail"
-                                            width={100}
-                                        />
-                                    </div>
-                                )}
+                                {formik.values.logo &&
+                                    typeof formik.values.logo === "string" && (
+                                        <div className="mt-2">
+                                            <img
+                                                src={formik.values.logo}
+                                                alt="Current logo"
+                                                className="img-thumbnail"
+                                                width={100}
+                                            />
+                                        </div>
+                                    )}
                             </Form.Group>
                         </Col>
 
@@ -181,7 +213,10 @@ export default function BrandModal({
                                     value={formik.values.order}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.order && !!formik.errors.order}
+                                    isInvalid={
+                                        formik.touched.order &&
+                                        !!formik.errors.order
+                                    }
                                     disabled={isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
@@ -203,8 +238,11 @@ export default function BrandModal({
                                         value={formik.values.website_url}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.website_url && !!formik.errors.website_url}
-                                    // disabled={isSubmitting}
+                                        isInvalid={
+                                            formik.touched.website_url &&
+                                            !!formik.errors.website_url
+                                        }
+                                        // disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
                                         {formik.errors.website_url}
@@ -226,8 +264,11 @@ export default function BrandModal({
                                         value={formik.values.facebook_url}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.facebook_url && !!formik.errors.facebook_url}
-                                    // disabled={isSubmitting}
+                                        isInvalid={
+                                            formik.touched.facebook_url &&
+                                            !!formik.errors.facebook_url
+                                        }
+                                        // disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
                                         {formik.errors.facebook_url}
@@ -249,8 +290,11 @@ export default function BrandModal({
                                         value={formik.values.instagram_url}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.instagram_url && !!formik.errors.instagram_url}
-                                    // disabled={isSubmitting}
+                                        isInvalid={
+                                            formik.touched.instagram_url &&
+                                            !!formik.errors.instagram_url
+                                        }
+                                        // disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
                                         {formik.errors.instagram_url}
@@ -272,8 +316,11 @@ export default function BrandModal({
                                         value={formik.values.twitter_url}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.twitter_url && !!formik.errors.twitter_url}
-                                    // disabled={isSubmitting}
+                                        isInvalid={
+                                            formik.touched.twitter_url &&
+                                            !!formik.errors.twitter_url
+                                        }
+                                        // disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
                                         {formik.errors.twitter_url}
@@ -291,8 +338,11 @@ export default function BrandModal({
                                     value={formik.values.meta_title}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.meta_title && !!formik.errors.meta_title}
-                                // disabled={isSubmitting}
+                                    isInvalid={
+                                        formik.touched.meta_title &&
+                                        !!formik.errors.meta_title
+                                    }
+                                    // disabled={isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.meta_title}
@@ -310,8 +360,11 @@ export default function BrandModal({
                                     value={formik.values.meta_description}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.meta_description && !!formik.errors.meta_description}
-                                // disabled={isSubmitting}
+                                    isInvalid={
+                                        formik.touched.meta_description &&
+                                        !!formik.errors.meta_description
+                                    }
+                                    // disabled={isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.meta_description}
@@ -374,7 +427,9 @@ export default function BrandModal({
                                     aria-hidden="true"
                                 />
                                 <span className="ms-2">
-                                    {formData.id ? "Updating..." : "Creating..."}
+                                    {formData.id
+                                        ? "Updating..."
+                                        : "Creating..."}
                                 </span>
                             </>
                         ) : formData.id ? (

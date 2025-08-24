@@ -1,5 +1,5 @@
-import { ListGroup } from 'react-bootstrap';
-import { format } from 'date-fns';
+import { ListGroup } from "react-bootstrap";
+import { format } from "date-fns";
 
 export default function OrderTimeline({ history }) {
     if (!history || history.length === 0) {
@@ -14,17 +14,29 @@ export default function OrderTimeline({ history }) {
     return (
         <ListGroup variant="flush">
             {history.map((item, index) => (
-                <ListGroup.Item key={index} className="border-start-0 border-end-0">
+                <ListGroup.Item
+                    key={index}
+                    className="border-start-0 border-end-0"
+                >
                     <div className="d-flex justify-content-between">
                         <div>
                             <strong>{item.status}</strong>
-                            {item.note && <div className="text-muted small mt-1">{item.note}</div>}
+                            {item.note && (
+                                <div className="text-muted small mt-1">
+                                    {item.note}
+                                </div>
+                            )}
                         </div>
                         <div className="text-muted small">
-                            {format(new Date(item.created_at), 'MMM dd, yyyy HH:mm')}
+                            {format(
+                                new Date(item.created_at),
+                                "MMM dd, yyyy HH:mm"
+                            )}
                         </div>
                     </div>
-                    {index < history.length - 1 && <div className="vr position-absolute h-100 ms-3"></div>}
+                    {index < history.length - 1 && (
+                        <div className="vr position-absolute h-100 ms-3"></div>
+                    )}
                 </ListGroup.Item>
             ))}
         </ListGroup>

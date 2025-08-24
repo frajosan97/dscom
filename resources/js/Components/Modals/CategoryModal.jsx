@@ -1,11 +1,16 @@
 import React, { useEffect } from "react";
-import { Modal, Button, Form, Row, Col, Spinner, InputGroup, Image } from "react-bootstrap";
+import {
+    Modal,
+    Button,
+    Form,
+    Row,
+    Col,
+    Spinner,
+    InputGroup,
+    Image,
+} from "react-bootstrap";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import Swal from "sweetalert2";
-import withReactContent from "sweetalert2-react-content";
-
-const SweetAlert = withReactContent(Swal);
 
 const validationSchema = Yup.object().shape({
     name: Yup.string()
@@ -54,8 +59,14 @@ export default function CategoryModal({
             formik.setValues({
                 ...formik.values,
                 ...formData,
-                is_active: formData.is_active !== undefined ? formData.is_active : true,
-                is_featured: formData.is_featured !== undefined ? formData.is_featured : false,
+                is_active:
+                    formData.is_active !== undefined
+                        ? formData.is_active
+                        : true,
+                is_featured:
+                    formData.is_featured !== undefined
+                        ? formData.is_featured
+                        : false,
             });
         }
     }, [formData]);
@@ -85,7 +96,8 @@ export default function CategoryModal({
                         <Col md={8}>
                             <Form.Group className="mb-3">
                                 <Form.Label>
-                                    Category Name <span className="text-danger">*</span>
+                                    Category Name{" "}
+                                    <span className="text-danger">*</span>
                                 </Form.Label>
                                 <InputGroup>
                                     <InputGroup.Text>
@@ -97,7 +109,10 @@ export default function CategoryModal({
                                         value={formik.values.name}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.name && !!formik.errors.name}
+                                        isInvalid={
+                                            formik.touched.name &&
+                                            !!formik.errors.name
+                                        }
                                         disabled={isSubmitting}
                                         required
                                     />
@@ -119,7 +134,10 @@ export default function CategoryModal({
                                         value={formik.values.icon}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        isInvalid={formik.touched.icon && !!formik.errors.icon}
+                                        isInvalid={
+                                            formik.touched.icon &&
+                                            !!formik.errors.icon
+                                        }
                                         disabled={isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
@@ -140,7 +158,10 @@ export default function CategoryModal({
                                     value={formik.values.description}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.description && !!formik.errors.description}
+                                    isInvalid={
+                                        formik.touched.description &&
+                                        !!formik.errors.description
+                                    }
                                     disabled={isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
@@ -157,15 +178,25 @@ export default function CategoryModal({
                                             value={formik.values.parent_id}
                                             onChange={formik.handleChange}
                                             onBlur={formik.handleBlur}
-                                            isInvalid={formik.touched.parent_id && !!formik.errors.parent_id}
+                                            isInvalid={
+                                                formik.touched.parent_id &&
+                                                !!formik.errors.parent_id
+                                            }
                                             disabled={isSubmitting}
                                         >
-                                            <option value="">None (Top Level)</option>
-                                            {parentCategories.map(category => (
-                                                <option key={category.id} value={category.id}>
-                                                    {category.name}
-                                                </option>
-                                            ))}
+                                            <option value="">
+                                                None (Top Level)
+                                            </option>
+                                            {parentCategories.map(
+                                                (category) => (
+                                                    <option
+                                                        key={category.id}
+                                                        value={category.id}
+                                                    >
+                                                        {category.name}
+                                                    </option>
+                                                )
+                                            )}
                                         </Form.Select>
                                         <Form.Control.Feedback type="invalid">
                                             {formik.errors.parent_id}
@@ -181,7 +212,10 @@ export default function CategoryModal({
                                             value={formik.values.order}
                                             onChange={formik.handleChange}
                                             onBlur={formik.handleBlur}
-                                            isInvalid={formik.touched.order && !!formik.errors.order}
+                                            isInvalid={
+                                                formik.touched.order &&
+                                                !!formik.errors.order
+                                            }
                                             disabled={isSubmitting}
                                         />
                                         <Form.Control.Feedback type="invalid">
@@ -199,32 +233,42 @@ export default function CategoryModal({
                                     type="file"
                                     accept="image/*"
                                     onChange={(e) => {
-                                        formik.setFieldValue("image", e.target.files[0]);
+                                        formik.setFieldValue(
+                                            "image",
+                                            e.target.files[0]
+                                        );
                                         handleFileChange(e);
                                     }}
                                     disabled={isSubmitting}
                                 />
-                                {(formik.values.image || formData?.image_url) && (
+                                {(formik.values.image ||
+                                    formData?.image_url) && (
                                     <div className="mt-3 text-center">
                                         <Image
                                             src={
-                                                typeof formik.values.image === 'string' 
-                                                    ? formik.values.image 
-                                                    : formik.values.image 
-                                                        ? URL.createObjectURL(formik.values.image) 
-                                                        : formData?.image_url
+                                                typeof formik.values.image ===
+                                                "string"
+                                                    ? formik.values.image
+                                                    : formik.values.image
+                                                    ? URL.createObjectURL(
+                                                          formik.values.image
+                                                      )
+                                                    : formData?.image_url
                                             }
                                             alt="Image Preview"
                                             fluid
                                             thumbnail
-                                            style={{ maxHeight: '150px' }}
+                                            style={{ maxHeight: "150px" }}
                                         />
                                         <Button
                                             variant="link"
                                             size="sm"
                                             className="text-danger mt-2"
                                             onClick={() => {
-                                                formik.setFieldValue("image", null);
+                                                formik.setFieldValue(
+                                                    "image",
+                                                    null
+                                                );
                                             }}
                                             disabled={isSubmitting}
                                         >
@@ -266,7 +310,10 @@ export default function CategoryModal({
                                     value={formik.values.meta_title}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.meta_title && !!formik.errors.meta_title}
+                                    isInvalid={
+                                        formik.touched.meta_title &&
+                                        !!formik.errors.meta_title
+                                    }
                                     disabled={isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
@@ -283,7 +330,10 @@ export default function CategoryModal({
                                     value={formik.values.meta_description}
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    isInvalid={formik.touched.meta_description && !!formik.errors.meta_description}
+                                    isInvalid={
+                                        formik.touched.meta_description &&
+                                        !!formik.errors.meta_description
+                                    }
                                     disabled={isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
@@ -319,7 +369,9 @@ export default function CategoryModal({
                                     aria-hidden="true"
                                 />
                                 <span className="ms-2">
-                                    {formData.id ? "Updating..." : "Creating..."}
+                                    {formData.id
+                                        ? "Updating..."
+                                        : "Creating..."}
                                 </span>
                             </>
                         ) : formData.id ? (

@@ -1,5 +1,26 @@
-import { Button, Container, Form, Navbar, Dropdown, Badge, InputGroup, FormControl, Col } from "react-bootstrap";
-import { Search, Bell, Grid, ChevronDown, Maximize2, LogOut, User as UserIcon, Lock, Users, Phone } from "react-feather";
+import {
+    Button,
+    Container,
+    Form,
+    Navbar,
+    Dropdown,
+    Badge,
+    InputGroup,
+    FormControl,
+    Col,
+} from "react-bootstrap";
+import {
+    Search,
+    Bell,
+    Grid,
+    ChevronDown,
+    Maximize2,
+    LogOut,
+    User as UserIcon,
+    Lock,
+    Users,
+    Phone,
+} from "react-feather";
 import { router, usePage } from "@inertiajs/react";
 import ApplicationLogo from "./ApplicationLogo";
 
@@ -7,7 +28,11 @@ export default function TopHead() {
     const { auth, systemMode } = usePage().props;
 
     return (
-        <Navbar variant="light" expand="lg" className="top-header border-bottom py-2">
+        <Navbar
+            variant="light"
+            expand="lg"
+            className="top-header border-bottom py-2"
+        >
             <Container fluid>
                 {/* Left Section - Logo & Collapse Button */}
                 <div className="d-flex align-items-center">
@@ -15,13 +40,13 @@ export default function TopHead() {
                         <ApplicationLogo className="erp-logo" />
                     </Navbar.Brand>
 
-                    <Button
+                    {/* <Button
                         variant="link"
                         className="p-1 me-2 text-muted hover-primary"
                         title="Fullscreen"
                     >
                         <Maximize2 size={18} />
-                    </Button>
+                    </Button> */}
                 </div>
 
                 {/* Search Column */}
@@ -37,7 +62,10 @@ export default function TopHead() {
                                 aria-label="Search"
                                 className="search-input"
                             />
-                            <Button variant="transparent" className="search-button rounded-end">
+                            <Button
+                                variant="transparent"
+                                className="search-button rounded-end"
+                            >
                                 <Search size={18} />
                             </Button>
                         </InputGroup>
@@ -46,10 +74,10 @@ export default function TopHead() {
 
                 {/* Right Section - Actions */}
                 <div className="d-flex align-items-center ms-auto">
-                    {systemMode === 'erp' ? (
+                    {systemMode === "erp" ? (
                         <>
-                            <QuickActionsDropdown />
-                            <NotificationsDropdown />
+                            {/* <QuickActionsDropdown /> */}
+                            {/* <NotificationsDropdown /> */}
                             <UserProfileDropdown user={auth?.user} />
                         </>
                     ) : (
@@ -63,12 +91,20 @@ export default function TopHead() {
 
 const QuickActionsDropdown = () => (
     <Dropdown align="end" className="mx-1">
-        <Dropdown.Toggle variant="link" className="p-1 text-muted hover-primary">
+        <Dropdown.Toggle
+            variant="link"
+            className="p-1 text-muted hover-primary"
+        >
             <Grid size={20} />
         </Dropdown.Toggle>
         <Dropdown.Menu className="dropdown-menu-end shadow border-0 mt-2">
-            <Dropdown.Header className="small text-muted">Quick Actions</Dropdown.Header>
-            <Dropdown.Item className="d-flex align-items-center py-2" href={route('sales.create')}>
+            <Dropdown.Header className="small text-muted">
+                Quick Actions
+            </Dropdown.Header>
+            <Dropdown.Item
+                className="d-flex align-items-center py-2"
+                href={route("sales.create")}
+            >
                 <span className="me-2">➕</span> New Sale
             </Dropdown.Item>
             <Dropdown.Item className="d-flex align-items-center py-2">
@@ -84,21 +120,29 @@ const QuickActionsDropdown = () => (
 
 const NotificationsDropdown = () => (
     <Dropdown align="end" className="mx-1">
-        <Dropdown.Toggle variant="link" className="p-1 text-muted hover-primary position-relative">
+        <Dropdown.Toggle
+            variant="link"
+            className="p-1 text-muted hover-primary position-relative"
+        >
             <Bell size={20} />
             <Badge
                 pill
                 bg="danger"
                 className="position-absolute top-0 start-100 translate-middle"
-                style={{ fontSize: '10px', padding: '3px 5px' }}
+                style={{ fontSize: "10px", padding: "3px 5px" }}
             >
                 3
             </Badge>
         </Dropdown.Toggle>
-        <Dropdown.Menu className="dropdown-menu-end shadow border-0 mt-2" style={{ minWidth: '320px' }}>
+        <Dropdown.Menu
+            className="dropdown-menu-end shadow border-0 mt-2"
+            style={{ minWidth: "320px" }}
+        >
             <Dropdown.Header className="d-flex justify-content-between align-items-center">
                 <span className="small text-muted">Notifications</span>
-                <Button variant="link" size="sm" className="p-0 text-primary">Mark all as read</Button>
+                <Button variant="link" size="sm" className="p-0 text-primary">
+                    Mark all as read
+                </Button>
             </Dropdown.Header>
             <Dropdown.Item className="py-2 border-bottom">
                 <div className="d-flex">
@@ -128,36 +172,45 @@ const NotificationsDropdown = () => (
 
 const UserProfileDropdown = ({ user }) => (
     <Dropdown align="end" className="ms-2 contact-info ">
-        <Dropdown.Toggle variant="transparent" className="erp-user-dropdown border-0 px-2 py-1">
+        <Dropdown.Toggle
+            variant="transparent"
+            className="erp-user-dropdown border-0 px-2 py-1"
+        >
             <div className="d-flex align-items-center">
-                <div className="erp-avatar bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-2" style={{ width: '32px', height: '32px' }}>
+                <div
+                    className="erp-avatar bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-2"
+                    style={{ width: "32px", height: "32px" }}
+                >
                     <UserIcon size={16} />
                 </div>
                 <div className="d-none d-lg-inline small fw-medium text-start">
                     <div className="small text-muted">{user?.first_name}</div>
-                    <div className="fw-semibold text-truncate" style={{ maxWidth: "100px" }}>{user?.email}</div>
+                    <div
+                        className="fw-semibold text-truncate"
+                        style={{ maxWidth: "100px" }}
+                    >
+                        {user?.email}
+                    </div>
                 </div>
                 <ChevronDown size={16} className="ms-1" />
             </div>
         </Dropdown.Toggle>
-        <Dropdown.Menu className="dropdown-menu-end shadow border-0 mt-2">
-            <Dropdown.Item className="d-flex align-items-center py-2"
-                href={route('employee.show', user?.id)}
-            >
+        <Dropdown.Menu className="dropdown-menu-end shadow-sm border-0 mt-2 w-100">
+            <Dropdown.Item className="d-flex align-items-center py-2">
                 <UserIcon size={16} className="me-2 text-muted" />
                 My Profile
             </Dropdown.Item>
-            <Dropdown.Item className="d-flex align-items-center py-2">
+            {/* <Dropdown.Item className="d-flex align-items-center py-2">
                 <Lock size={16} className="me-2 text-muted" />
                 Account Settings
             </Dropdown.Item>
             <Dropdown.Item className="d-flex align-items-center py-2">
                 <Users size={16} className="me-2 text-muted" />
                 Team Members
-            </Dropdown.Item>
-            <Dropdown.Divider />
-            <Dropdown.Item className="d-flex align-items-center py-2 text-danger"
-                onClick={() => router.post(route('logout'))}
+            </Dropdown.Item> */}
+            <Dropdown.Item
+                className="d-flex align-items-center py-2 text-danger"
+                onClick={() => router.post(route("logout"))}
             >
                 <LogOut size={16} className="me-2" />
                 Logout
@@ -167,7 +220,10 @@ const UserProfileDropdown = ({ user }) => (
 );
 
 const ContactSupport = () => (
-    <a href="tel:+243894779059" className="d-none d-lg-flex align-items-center contact-info text-decoration-none">
+    <a
+        href="tel:+243894779059"
+        className="d-none d-lg-flex align-items-center contact-info text-decoration-none"
+    >
         <div className="contact-icon">
             <Phone size={18} />
         </div>

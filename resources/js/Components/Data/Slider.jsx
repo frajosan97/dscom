@@ -17,15 +17,20 @@ export default function Slider({ sliderName = "hero" }) {
         const fetchSlider = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get(route("api.slider", sliderName), {
-                    signal: controller.signal,
-                });
+                const response = await axios.get(
+                    route("api.slider", sliderName),
+                    {
+                        signal: controller.signal,
+                    }
+                );
 
                 setSlider(response.data);
                 setError(null);
             } catch (err) {
                 if (!axios.isCancel(err)) {
-                    setError(err?.response?.data?.message || "Failed to load slider.");
+                    setError(
+                        err?.response?.data?.message || "Failed to load slider."
+                    );
                     setSlider(null);
                 }
             } finally {
@@ -39,7 +44,10 @@ export default function Slider({ sliderName = "hero" }) {
     }, [sliderName]);
 
     const renderStatusContainer = (content) => (
-        <div className="d-flex justify-content-center align-items-center" style={{ height: "300px", width: "100%" }}>
+        <div
+            className="d-flex justify-content-center align-items-center"
+            style={{ height: "300px", width: "100%" }}
+        >
             <div className="text-center">{content}</div>
         </div>
     );
@@ -76,42 +84,66 @@ export default function Slider({ sliderName = "hero" }) {
                     breakpoint: 768,
                     settings: {
                         arrows: false,
-                        dots: false
-                    }
-                }
-            ]
+                        dots: false,
+                    },
+                },
+            ],
         },
     };
 
     return (
         <SlickSlider key={slider.id || sliderName} {...settings}>
             {slider.items.map((item) => {
-                const buttonVariant = item.textContrast === "dark" ? "dark" : "light";
+                const buttonVariant =
+                    item.textContrast === "dark" ? "dark" : "light";
 
                 return (
-                    <div key={item.id} className="slider-item" style={{ background: item.bgGradient }}>
+                    <div
+                        key={item.id}
+                        className="slider-item"
+                        style={{ background: item.bgGradient }}
+                    >
                         <div
-                            className={`slider-content d-flex flex-column flex-md-row align-items-center justify-content-center h-100 p-5 ${item.imagePosition === "right" ? "flex-md-row-reverse" : ""
-                                }`}
+                            className={`slider-content d-flex flex-column flex-md-row align-items-center justify-content-center h-100 p-5 ${
+                                item.imagePosition === "right"
+                                    ? "flex-md-row-reverse"
+                                    : ""
+                            }`}
                         >
                             <div className="slider-text text-center text-md-start mb-4 mb-md-0">
                                 {item.title && (
-                                    <h1 className="slider-title display-5 fw-bold">{item.title}</h1>
+                                    <h1 className="slider-title display-5 fw-bold">
+                                        {item.title}
+                                    </h1>
                                 )}
                                 {item.subtitle && (
-                                    <h2 className="slider-subtitle h4 text-muted mb-3">{item.subtitle}</h2>
+                                    <h2 className="slider-subtitle h4 text-muted mb-3">
+                                        {item.subtitle}
+                                    </h2>
                                 )}
                                 {item.description && (
-                                    <p className="slider-description lead mb-4">{item.description}</p>
+                                    <p className="slider-description lead mb-4">
+                                        {item.description}
+                                    </p>
                                 )}
                                 <div className="button-group">
                                     {item.button_text && (
-                                        <Button variant={buttonVariant} className="slider-button btn-lg">
-                                            {item.button_text} <ArrowRight className="ms-2" size={20} />
+                                        <Button
+                                            variant={buttonVariant}
+                                            className="slider-button btn-lg"
+                                        >
+                                            {item.button_text}{" "}
+                                            <ArrowRight
+                                                className="ms-2"
+                                                size={20}
+                                            />
                                         </Button>
                                     )}
                                     {item.secondary_button_text && (
-                                        <Button variant={buttonVariant} className="slider-button btn-lg ms-2">
+                                        <Button
+                                            variant={buttonVariant}
+                                            className="slider-button btn-lg ms-2"
+                                        >
                                             {item.secondary_button_text}
                                         </Button>
                                     )}

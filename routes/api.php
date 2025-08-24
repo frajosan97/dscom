@@ -13,8 +13,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('/data')->group(function () {
     Route::get('/order-tracking/{id}', [ApiController::class, 'orderTrack'])->name('order.track');
     Route::get('/slider/{slider}', [ApiController::class, 'slider'])->name('api.slider');
+    Route::get('/customer-search', [ApiController::class, 'customerSearch'])->name('api.customer.search');
 
     // Use filter apis
+    Route::get('/roles', [ApiController::class, 'roles'])->name('api.roles');
     Route::get('/categories', [ApiController::class, 'categories'])->name('api.categories');
     Route::get('/brands', [ApiController::class, 'brands'])->name('api.brands');
     Route::get('/branches', [ApiController::class, 'branches'])->name('api.branches');

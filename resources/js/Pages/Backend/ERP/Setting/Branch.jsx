@@ -1,12 +1,13 @@
 import { Head } from "@inertiajs/react";
 import { useCallback, useEffect, useState } from "react";
-import { Container, Row, Col, Button, Card, ButtonGroup, Table } from "react-bootstrap";
-import { PlusCircle } from "react-bootstrap-icons";
+import { Button, Card, ButtonGroup, Table } from "react-bootstrap";
 import { toast } from "react-toastify";
+import { FiPlusSquare } from "react-icons/fi";
 import ErpLayout from "@/Layouts/ErpLayout";
-import BranchModal from "@/Components/Modals/BranchModal";
 import Swal from "sweetalert2";
 import xios from "@/Utils/axios";
+
+import BranchModal from "@/Components/Modals/BranchModal";
 
 export default function Branches() {
     const [showModal, setShowModal] = useState(false);
@@ -105,7 +106,8 @@ export default function Branches() {
         } catch (err) {
             let errorMessage = "Delete failed.";
             if (err.response?.status === 403) {
-                errorMessage = "You don't have permission to delete this branch.";
+                errorMessage =
+                    "You don't have permission to delete this branch.";
             }
             Swal.fire("Error!", errorMessage, "error");
         }
@@ -115,42 +117,34 @@ export default function Branches() {
         <ErpLayout>
             <Head title="Branches Management" />
 
-            <Container fluid>
-                <Row className="g-3">
-                    <Col md={12} className="d-flex justify-content-between align-items-center">
-                        <h2 className="mb-0">Branches Management</h2>
+            <Card className="border-0 rounded-0 shadow-sm">
+                <Card.Header className="d-flex justify-content-between align-items-center bg-transparent">
+                    <h6 className="mb-0 fw-semibold">Branches Management</h6>
+                    <ButtonGroup>
                         <ButtonGroup>
                             <Button
-                                variant="primary"
+                                variant="outline-secondary"
+                                size="sm"
+                                className="rounded-1 d-flex align-items-center"
                                 onClick={handleCreate}
-                                className="d-flex align-items-center gap-2"
                             >
-                                <PlusCircle size={18} />
-                                Add New Branch
+                                <FiPlusSquare className="me-1" />
+                                New Branch
                             </Button>
                         </ButtonGroup>
-                    </Col>
-
-                    <Col md={12}>
-                        <hr className="dashed-hr" />
-                    </Col>
-
-                    <Col md={12}>
-                        <Card>
-                            <Card.Body>
-                                <Table
-                                    bordered
-                                    striped
-                                    hover
-                                    responsive
-                                    id="branchesTable"
-                                    className="w-100"
-                                />
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-            </Container>
+                    </ButtonGroup>
+                </Card.Header>
+                <Card.Body className="px-0">
+                    <Table
+                        bordered
+                        striped
+                        hover
+                        responsive
+                        id="branchesTable"
+                        className="w-100"
+                    />
+                </Card.Body>
+            </Card>
 
             <BranchModal
                 show={showModal}

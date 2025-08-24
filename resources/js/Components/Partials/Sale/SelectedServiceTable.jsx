@@ -1,7 +1,12 @@
-import { Table, Form, Button } from 'react-bootstrap';
-import { Trash } from 'react-bootstrap-icons';
+import { Table, Form, Button } from "react-bootstrap";
+import { Trash } from "react-bootstrap-icons";
 
-export default function SelectedServicesTable({ selectedServices, removeService, updateServiceQuantity, updateServicePrice }) {
+export default function SelectedServicesTable({
+    selectedServices,
+    removeService,
+    updateServiceQuantity,
+    updateServicePrice,
+}) {
     return (
         <Table striped hover className="mb-0">
             <thead>
@@ -31,7 +36,9 @@ export default function SelectedServicesTable({ selectedServices, removeService,
                                     )}
                                     <div>
                                         <h6 className="mb-0">{service.name}</h6>
-                                        <small className="text-muted">{service.code}</small>
+                                        <small className="text-muted">
+                                            {service.code}
+                                        </small>
                                     </div>
                                 </div>
                             </td>
@@ -41,7 +48,12 @@ export default function SelectedServicesTable({ selectedServices, removeService,
                                     min="0.01"
                                     step="0.01"
                                     value={service.price}
-                                    onChange={(e) => updateServicePrice(service.id, e.target.value)}
+                                    onChange={(e) =>
+                                        updateServicePrice(
+                                            service.id,
+                                            e.target.value
+                                        )
+                                    }
                                 />
                             </td>
                             <td>
@@ -49,10 +61,17 @@ export default function SelectedServicesTable({ selectedServices, removeService,
                                     type="number"
                                     min="1"
                                     value={service.quantity}
-                                    onChange={(e) => updateServiceQuantity(service.id, e.target.value)}
+                                    onChange={(e) =>
+                                        updateServiceQuantity(
+                                            service.id,
+                                            e.target.value
+                                        )
+                                    }
                                 />
                             </td>
-                            <td>${(service.price * service.quantity).toFixed(2)}</td>
+                            <td>
+                                ${(service.price * service.quantity).toFixed(2)}
+                            </td>
                             <td>
                                 <Button
                                     variant="outline-danger"

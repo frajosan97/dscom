@@ -8,8 +8,14 @@ export const useRolePermissions = () => {
     };
 
     const hasPermission = (permissionName) => {
-        return auth?.user?.permissions?.some((permission) => permission.name === permissionName) ||
-            auth?.user?.roles?.some(role => role.permissions?.some(p => p.name === permissionName));
+        return (
+            auth?.user?.permissions?.some(
+                (permission) => permission.name === permissionName
+            ) ||
+            auth?.user?.roles?.some((role) =>
+                role.permissions?.some((p) => p.name === permissionName)
+            )
+        );
     };
 
     return {

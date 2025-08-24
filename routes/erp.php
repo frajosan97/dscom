@@ -1,20 +1,22 @@
 <?php
 
-use App\Http\Controllers\Erp\BranchController;
 use App\Http\Controllers\Erp\DashboardController;
-use App\Http\Controllers\Erp\BrandController;
-use App\Http\Controllers\Erp\CategoryController;
-use App\Http\Controllers\Erp\CustomerController;
-use App\Http\Controllers\Erp\PaymentMethodController;
-use App\Http\Controllers\Erp\ProductController;
-use App\Http\Controllers\Erp\RepairServiceController;
-use App\Http\Controllers\Erp\DeviceTypeController;
-use App\Http\Controllers\Erp\EmployeeController;
-use App\Http\Controllers\Erp\SaleController;
-use App\Http\Controllers\Erp\ServiceController;
-use App\Http\Controllers\Erp\SliderController;
-use App\Http\Controllers\Erp\SliderItemController;
-use App\Http\Controllers\Erp\WarehouseController;
+use App\Http\Controllers\Erp\Hrm\AttendanceController;
+use App\Http\Controllers\Erp\Hrm\CustomerController;
+use App\Http\Controllers\Erp\Hrm\EmployeeController;
+use App\Http\Controllers\Erp\Hrm\SalaryController;
+use App\Http\Controllers\Erp\Product\ProductController;
+use App\Http\Controllers\Erp\Product\SaleController;
+use App\Http\Controllers\Erp\Service\DeviceTypeController;
+use App\Http\Controllers\Erp\Service\RepairServiceController;
+use App\Http\Controllers\Erp\Service\ServiceController;
+use App\Http\Controllers\Erp\Setting\BranchController;
+use App\Http\Controllers\Erp\Setting\BrandController;
+use App\Http\Controllers\Erp\Setting\CategoryController;
+use App\Http\Controllers\Erp\Setting\PaymentMethodController;
+use App\Http\Controllers\Erp\Setting\SliderController;
+use App\Http\Controllers\Erp\Setting\SliderItemController;
+use App\Http\Controllers\Erp\Setting\WarehouseController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -41,20 +43,39 @@ Route::middleware(['auth', 'verified'])->group(function () {
     | These routes handle all CRUD operations for the application's resources.
     | Each resource is mapped to its corresponding controller.
     */
-    Route::resources([
-        'branch'         => BranchController::class,
-        'warehouse'      => WarehouseController::class,
-        'payment-method' => PaymentMethodController::class,
-        'category'       => CategoryController::class,
-        'brand'          => BrandController::class,
-        'slider'         => SliderController::class,
-        'slider-item'    => SliderItemController::class,
-        'product'        => ProductController::class,
-        'device-type'    => DeviceTypeController::class,
-        'repair-service' => RepairServiceController::class,
-        'sales'          => SaleController::class,
-        'customers'      => CustomerController::class,
-        'services'       => ServiceController::class,
-        'employee'       => EmployeeController::class,
-    ]);
+    Route::prefix('settings')->group(function () {
+        Route::resources([
+            'branch'         => BranchController::class,
+            'warehouse'      => WarehouseController::class,
+            'payment-method' => PaymentMethodController::class,
+            'category'       => CategoryController::class,
+            'brand'          => BrandController::class,
+            'slider'         => SliderController::class,
+            'slider-item'    => SliderItemController::class,
+        ]);
+    });
+
+    Route::prefix('product')->group(function () {
+        Route::resources([
+            'product' => ProductController::class,
+            'sales'   => SaleController::class,
+        ]);
+    });
+
+    Route::prefix('service')->group(function () {
+        Route::resources([
+            'services'       => ServiceController::class,
+            // 'device-type'    => DeviceTypeController::class,
+            // 'repair-service' => RepairServiceController::class,
+        ]);
+    });
+
+    Route::prefix('hrm')->group(function () {
+        Route::resources([
+            'employee'   => EmployeeController::class,
+            'attendance' => AttendanceController::class,
+            'salary'     => SalaryController::class,
+            'customers'  => CustomerController::class,
+        ]);
+    });
 });

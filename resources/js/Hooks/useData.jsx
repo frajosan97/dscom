@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 export default function useData() {
+    const [roles, setRoles] = useState([]);
     const [categories, setCategories] = useState([]);
     const [brands, setBrands] = useState([]);
     const [branches, setBranches] = useState([]);
@@ -18,7 +19,9 @@ export default function useData() {
         try {
             const response = await fetch(route(endpoint));
             if (!response.ok) {
-                throw new Error(`API request failed with status ${response.status}`);
+                throw new Error(
+                    `API request failed with status ${response.status}`
+                );
             }
             const data = await response.json();
             setter(data);
@@ -36,6 +39,7 @@ export default function useData() {
             setError(null);
 
             await Promise.all([
+                fetchData("api.roles", setRoles),
                 fetchData("api.categories", setCategories),
                 fetchData("api.brands", setBrands),
                 fetchData("api.branches", setBranches),
@@ -53,6 +57,7 @@ export default function useData() {
     };
 
     // Individual refresh functions
+    const refreshRoles = () => fetchData("api.roles", setRoles);
     const refreshCategories = () => fetchData("api.categories", setCategories);
     const refreshBrands = () => fetchData("api.brands", setBrands);
     const refreshBranches = () => fetchData("api.branches", setBranches);
@@ -61,14 +66,17 @@ export default function useData() {
     const refreshCustomers = () => fetchData("api.customers", setCustomers);
     const refreshProducts = () => fetchData("api.products", setProducts);
     const refreshServices = () => fetchData("api.services", setServices);
-    const refreshDeviceTypes = () => fetchData("api.device-types", setDeviceTypes);
-    const refreshPaymentMethods = () => fetchData("api.payment-methods", setPaymentMethods);
+    const refreshDeviceTypes = () =>
+        fetchData("api.device-types", setDeviceTypes);
+    const refreshPaymentMethods = () =>
+        fetchData("api.payment-methods", setPaymentMethods);
 
     useEffect(() => {
         fetchAll();
     }, []);
 
     return {
+        roles,
         categories,
         brands,
         branches,
@@ -81,6 +89,7 @@ export default function useData() {
         paymentMethods,
         isLoading,
         error,
+        refreshRoles,
         refreshCategories,
         refreshBrands,
         refreshBranches,

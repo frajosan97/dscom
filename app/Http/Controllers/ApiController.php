@@ -16,174 +16,177 @@ use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Spatie\Permission\Models\Role;
 
-class ApiController extends Controller
-{
-    public function slider(string $type)
-    {
+class ApiController extends Controller {
+    public function roles() {
         try {
-            $slider = Slider::with('items')
-                ->where('type', $type)
-                ->first();
+            $roles = Role::all();
+            return response()->json( $roles );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'roles not found' ] );
+        }
+    }
 
-            if (!$slider) {
-                return response()->json(['message' => 'Slider not found'], 404);
+    public function slider( string $type ) {
+        try {
+            $slider = Slider::with( 'items' )
+            ->where( 'type', $type )
+            ->first();
+
+            if ( !$slider ) {
+                return response()->json( [ 'message' => 'Slider not found' ] );
             }
 
-            return response()->json($slider);
-        } catch (\Throwable $th) {
-            Log::error('Slider not found', ['error' => $th->getMessage()]);
-            return response()->json(['message' => 'Slider not found'], 404);
+            return response()->json( $slider );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'Slider not found' ] );
         }
     }
 
-    public function categories(Request $request)
-    {
+    public function categories( Request $request ) {
         try {
-            $categories = Category::with(['children', 'parent'])
-                ->withCount('products')
-                ->whereNull('parent_id')
-                ->orderBy('order')
-                ->get();
+            $categories = Category::with( [ 'children', 'parent' ] )
+            ->withCount( 'products' )
+            ->whereNull( 'parent_id' )
+            ->orderBy( 'order' )
+            ->get();
 
-            return response()->json($categories);
-        } catch (\Throwable $th) {
-            Log::error('Categories not found', ['error' => $th->getMessage()]);
-            return response()->json(['message' => 'Categories not found'], 404);
+            return response()->json( $categories );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'Categories not found' ] );
         }
     }
 
-    public function brands()
-    {
+    public function brands() {
         try {
             $brands = Brand::all();
-            return response()->json($brands);
-        } catch (\Throwable $th) {
-            Log::error('Brands not found', ['error' => $th->getMessage()]);
-            return response()->json(['message' => 'Brands not found'], 404);
+            return response()->json( $brands );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'Brands not found' ] );
         }
     }
 
-    public function branches()
-    {
+    public function branches() {
         try {
             $branches = Branch::all();
-            return response()->json($branches);
-        } catch (\Throwable $th) {
-            Log::error('Branches not found', ['error' => $th->getMessage()]);
-            return response()->json(['message' => 'Branches not found'], 404);
+            return response()->json( $branches );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'Branches not found' ] );
         }
     }
 
-    public function warehouses()
-    {
+    public function warehouses() {
         try {
             $warehouses = Warehouse::all();
-            return response()->json($warehouses);
-        } catch (\Throwable $th) {
-            Log::error('Warehouses not found', ['error' => $th->getMessage()]);
-            return response()->json(['message' => 'Warehouses not found'], 404);
+            return response()->json( $warehouses );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'Warehouses not found' ] );
         }
     }
 
-
-    public function taxes()
-    {
+    public function taxes() {
         try {
             $taxes = Tax::all();
-            return response()->json($taxes);
-        } catch (\Throwable $th) {
-            Log::error('Taxes not found', ['error' => $th->getMessage()]);
-            return response()->json(['message' => 'Taxes not found'], 404);
+            return response()->json( $taxes );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'Taxes not found' ] );
         }
     }
 
-    public function customers()
-    {
+    public function customers() {
         try {
-            $customers = User::role('customer')
-                ->with('roles:id,name')
-                ->orderBy('created_at', 'desc')
-                ->get();
+            $customers = User::role( 'customer' )
+            ->with( 'roles:id,name' )
+            ->orderBy( 'created_at', 'desc' )
+            ->get();
 
-            return response()->json($customers);
-        } catch (\Throwable $th) {
-            Log::error('Customers not found', ['error' => $th->getMessage()]);
-            return response()->json(['message' => 'Customers not found'], 404);
+            return response()->json( $customers );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'Customers not found' ] );
         }
     }
 
-    public function paymentMethods()
-    {
+    public function customerSearch( Request $request ) {
+        try {
+            $customers = User::where( $request->field, 'like', '%' . $request->value . '%' )
+            ->get();
+
+            return response()->json( [
+                'success'=>true,
+                'customers'=>$customers
+            ] );
+        } catch ( \Throwable $th ) {
+            return response()->json( [
+                'success'=>false,
+                'message' => 'Customers not found'
+            ] );
+        }
+    }
+
+    public function paymentMethods() {
         try {
             $paymentMethods = PaymentMethod::all();
-            return response()->json($paymentMethods);
-        } catch (\Throwable $th) {
-            Log::error('Payment methods not found', ['error' => $th->getMessage()]);
-            return response()->json(['message' => 'Payment methods not found'], 404);
+            return response()->json( $paymentMethods );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'Payment methods not found' ] );
         }
     }
 
-    public function products(Request $request)
-    {
+    public function products( Request $request ) {
         try {
-            $products = Product::with(['category', 'brand'])
-                ->active()->get();
+            $products = Product::with( [ 'category', 'brand' ] )
+            ->active()->get();
 
-            return response()->json($products);
-        } catch (\Throwable $th) {
-            Log::error('Taxes not found', ['error' => $th->getMessage()]);
-            return response()->json(['message' => 'Taxes not found'], 404);
+            return response()->json( $products );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'Taxes not found' ] );
         }
     }
 
-    public function services(Request $request)
-    {
+    public function services( Request $request ) {
         try {
             $services = RepairService::all();
 
-            return response()->json($services);
-        } catch (\Throwable $th) {
-            Log::error('Services not found', ['error' => $th->getMessage()]);
-            return response()->json(['message' => 'Services not found'], 404);
+            return response()->json( $services );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'Services not found' ] );
         }
     }
 
-    public function deviceTypes(Request $request)
-    {
+    public function deviceTypes( Request $request ) {
         try {
             $deviceTypes = DeviceType::all();
 
-            return response()->json($deviceTypes);
-        } catch (\Throwable $th) {
-            Log::error('Device types not found', ['error' => $th->getMessage()]);
-            return response()->json(['message' => 'Device types not found'], 404);
+            return response()->json( $deviceTypes );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'Device types not found' ] );
         }
     }
 
-    public function orderTrack($id)
-    {
+    public function orderTrack( $id ) {
         try {
-            $order = Order::with([
+            $order = Order::with( [
                 'items',
-                'statusHistory' => function ($query) {
-                    $query->orderBy('created_at', 'desc');
-                },
+                'statusHistory' => function ( $query ) {
+                    $query->orderBy( 'created_at', 'desc' );
+                }
+                ,
                 'shippingMethod',
-                'payments' => function ($query) {
-                    $query->orderBy('created_at', 'desc');
-                },
+                'payments' => function ( $query ) {
+                    $query->orderBy( 'created_at', 'desc' );
+                }
+                ,
                 'customer'
-            ])->find($id);
+            ] )->find( $id );
 
-            if (!$order) {
-                return response()->json(['message' => 'Order not found'], 404);
+            if ( !$order ) {
+                return response()->json( [ 'message' => 'Order not found' ] );
             }
 
-            return response()->json($order);
-        } catch (\Throwable $th) {
-            Log::error('Order not found', ['error' => $th->getMessage()]);
-            return response()->json(['message' => 'Order not found'], 404);
+            return response()->json( $order );
+        } catch ( \Throwable $th ) {
+            return response()->json( [ 'message' => 'Order not found' ] );
         }
     }
 }
