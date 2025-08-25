@@ -1,6 +1,6 @@
 import { Head } from "@inertiajs/react";
 import { Tab, Nav, Row, Col, Button, Form } from "react-bootstrap";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 
 import ErpLayout from "@/Layouts/ErpLayout";
 
@@ -11,42 +11,47 @@ import PaymentInfo from "@/Components/Partials/Service/PaymentInfo";
 import OtherInfo from "@/Components/Partials/Service/OtherInfo";
 
 const ServiceCreate = () => {
-    const data = {
-        customer: null,
-    };
-
     const [activeKey, setActiveKey] = useState("customer");
 
-    const tabs = [
-        { key: "customer", label: "Customer Info", icon: "bi-person" },
-        { key: "details", label: "Job Details", icon: "bi-clipboard" },
-        {
-            key: "initial-check",
-            label: "Initial Check",
-            icon: "bi-check-circle",
-        },
-        { key: "payment-info", label: "Payment Info", icon: "bi-credit-card" },
-        { key: "other-info", label: "Other Info", icon: "bi-info-circle" },
-    ];
+    // Memoized tabs configuration to prevent recreation on each render
+    const tabs = useMemo(
+        () => [
+            { key: "customer", label: "Customer Info", icon: "bi-person" },
+            { key: "details", label: "Job Details", icon: "bi-clipboard" },
+            {
+                key: "initial-check",
+                label: "Initial Check",
+                icon: "bi-check-circle",
+            },
+            {
+                key: "payment-info",
+                label: "Payment Info",
+                icon: "bi-credit-card",
+            },
+            { key: "other-info", label: "Other Info", icon: "bi-info-circle" },
+        ],
+        []
+    );
 
-    const handleNext = () => {
+    // Memoized navigation handlers
+    const handleNext = useCallback(() => {
         const currentIndex = tabs.findIndex((tab) => tab.key === activeKey);
         if (currentIndex < tabs.length - 1) {
             setActiveKey(tabs[currentIndex + 1].key);
         }
-    };
+    }, [activeKey, tabs]);
 
-    const handlePrevious = () => {
+    const handlePrevious = useCallback(() => {
         const currentIndex = tabs.findIndex((tab) => tab.key === activeKey);
         if (currentIndex > 0) {
             setActiveKey(tabs[currentIndex - 1].key);
         }
-    };
+    }, [activeKey, tabs]);
 
-    const handleSubmit = () => {
+    const handleSubmit = useCallback(() => {
         // Handle form submission here
         alert("Form submitted successfully!");
-    };
+    }, []);
 
     const isFirstTab = activeKey === tabs[0].key;
     const isLastTab = activeKey === tabs[tabs.length - 1].key;
@@ -70,7 +75,9 @@ const ServiceCreate = () => {
                                             <i
                                                 className={`${tab.icon} me-2`}
                                             ></i>
-                                            {tab.label}
+                                            <span className="d-none d-md-inline">
+                                                {tab.label}
+                                            </span>
                                         </Nav.Link>
                                     </Nav.Item>
                                 ))}
@@ -98,7 +105,7 @@ const ServiceCreate = () => {
                             </Tab.Content>
 
                             {/* Navigation Buttons */}
-                            <div className="d-flex justify-content-between mt-4 pt-3 bg-light border-top">
+                            <div className="d-flex justify-content-between mt-4 pt-3 bg-light border-top p-3">
                                 <Button
                                     variant="outline-secondary"
                                     onClick={handlePrevious}

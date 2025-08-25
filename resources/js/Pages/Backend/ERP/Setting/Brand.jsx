@@ -1,48 +1,17 @@
 import { Head } from "@inertiajs/react";
-import {
-    Container,
-    Row,
-    Col,
-    Card,
-    Button,
-    ButtonGroup,
-    Table,
-} from "react-bootstrap";
-import { useState, useEffect, useCallback } from "react";
-
+import { useCallback, useEffect, useState } from "react";
+import { Button, Card, ButtonGroup, Table } from "react-bootstrap";
+import { toast } from "react-toastify";
+import { FiPlusSquare } from "react-icons/fi";
 import ErpLayout from "@/Layouts/ErpLayout";
-
-import BrandModal from "@/Components/Modals/BrandModal";
 import Swal from "sweetalert2";
 import xios from "@/Utils/axios";
 
-const initialFormData = () => ({
-    id: "",
-    name: "",
-    slug: "",
-    description: "",
-    meta_title: "",
-    meta_description: "",
-    logo: null,
-    website_url: "",
-    facebook_url: "",
-    instagram_url: "",
-    twitter_url: "",
-    is_active: false,
-    is_featured: false,
-    order: 0,
-});
+import BrandModal from "@/Components/Modals/BrandModal";
 
 export default function BrandsList() {
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState(initialFormData());
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const reloadTable = useCallback(() => {
-        if ($.fn.DataTable.isDataTable("#brandsTable")) {
-            $("#brandsTable").DataTable().ajax.reload(null, false);
-        }
-    }, []);
+    const [currentBrand, setCurrentBrand] = useState(null);
 
     const initializeDataTable = useCallback(() => {
         if ($.fn.DataTable.isDataTable("#brandsTable")) {
@@ -61,84 +30,94 @@ export default function BrandsList() {
             },
             columns: [
                 {
+                    data: "logo",
+                    name: "logo",
+                    title: "Logo",
+                },
+                {
                     data: "name",
+                    name: "name",
                     title: "Brand Name",
                 },
                 {
                     data: "slug",
+                    name: "slug",
                     title: "Slug",
                 },
                 {
-                    data: "logo",
-                    title: "Logo",
-                },
-                {
                     data: "status_badge",
+                    name: "status_badge",
                     title: "Status",
                 },
                 {
                     data: "featured_badge",
+                    name: "featured_badge",
                     title: "Featured",
                 },
                 {
                     data: "action",
+                    name: "action",
                     title: "Actions",
                     orderable: false,
+                    searchable: false,
+                    width: "10%",
                 },
             ],
+            order: [[0, "desc"]],
             drawCallback: () => {
                 $(".edit-btn")
                     .off("click")
                     .on("click", function () {
                         const id = $(this).data("id");
-                        editBrand(id);
+                        handleEditBrand(id);
                     });
 
                 $(".delete-btn")
                     .off("click")
                     .on("click", function () {
                         const id = $(this).data("id");
-                        deleteBrand(id);
+                        handleDeleteBrand(id);
                     });
             },
         });
     }, []);
 
-    const handleInputChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: type === "checkbox" ? checked : value,
-        }));
-    };
+    useEffect(() => {
+        initializeDataTable();
+    }, [initializeDataTable]);
 
-    const handleFileChange = (e) => {
-        setFormData((prev) => ({
-            ...prev,
-            logo: e.target.files[0],
-        }));
-    };
-
-    const handleCreate = () => {
-        setFormData(initialFormData());
+    const handleCreate = useCallback(() => {
+        setCurrentBrand(null);
         setShowModal(true);
-    };
+    }, []);
 
-    const editBrand = async (id) => {
+    const handleModalClose = useCallback(() => {
+        setShowModal(false);
+        setCurrentBrand(null);
+    }, []);
+
+    const handleSuccess = useCallback((message) => {
+        toast.success(message);
+        $("#brandsTable").DataTable().ajax.reload(null, false);
+        setShowModal(false);
+    }, []);
+
+    const handleEditBrand = async (id) => {
         try {
-            const res = await xios.get(route("brand.edit", id));
-            setFormData({
-                ...res.data,
-                is_active: !!res.data.is_active,
-                is_featured: !!res.data.is_featured,
-            });
-            setShowModal(true);
+            const response = await xios.get(route("brand.edit", id));
+
+            if (response.data.success === true) {
+                setCurrentBrand(response.data.brand);
+                setShowModal(true);
+            } else {
+                toast.error(response.data.message);
+            }
         } catch (error) {
-            Swal.fire("Error", "Failed to load brand data.", "error");
+            toast.error(error.response?.data?.message || "An error occurred");
         }
     };
 
-    const deleteBrand = async (id) => {
+    const handleDeleteBrand = async (id) => {
         const confirm = await Swal.fire({
             title: "Delete Brand?",
             text: "This cannot be undone.",
@@ -152,7 +131,7 @@ export default function BrandsList() {
 
         try {
             await xios.delete(route("brand.destroy", id));
-            reloadTable();
+            $("#brandsTable").DataTable().ajax.reload(null, false);
             Swal.fire("Deleted!", "Brand has been deleted.", "success");
         } catch (err) {
             let errorMessage = "Delete failed.";
@@ -164,143 +143,43 @@ export default function BrandsList() {
         }
     };
 
-    const handleSubmit = async (values) => {
-        const isEditing = !!values.id;
-
-        const confirm = await Swal.fire({
-            title: isEditing ? "Update brand?" : "Create brand?",
-            text: isEditing
-                ? "Are you sure you want to update this brand?"
-                : "Are you sure you want to create a new brand?",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonColor: "#3085d6",
-            cancelButtonColor: "#d33",
-            confirmButtonText: isEditing
-                ? "Yes, update it!"
-                : "Yes, create it!",
-        });
-
-        if (!confirm.isConfirmed) return;
-
-        setIsSubmitting(true);
-        Swal.fire({
-            icon: "info",
-            title: "Processing...",
-            text: "Please wait...",
-            allowOutsideClick: false,
-            showConfirmButton: false,
-            didOpen: () => Swal.showLoading(),
-        });
-
-        try {
-            const formData = new FormData();
-            Object.entries(values).forEach(([key, value]) => {
-                if (value !== null && value !== undefined) {
-                    formData.append(key, value);
-                }
-            });
-
-            if (isEditing) {
-                formData.append("_method", "put");
-            }
-
-            const url = isEditing
-                ? route("brand.update", values.id)
-                : route("brand.store");
-            await xios.post(url, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-            });
-
-            setShowModal(false);
-            reloadTable();
-            Swal.fire(
-                "Success",
-                `Brand ${isEditing ? "updated" : "created"} successfully.`,
-                "success"
-            );
-        } catch (err) {
-            // console.error("Error saving brand", err);
-            let errorMessage = "Failed to save brand.";
-            if (err.response?.data?.message) {
-                errorMessage = err.response.data.message;
-            } else if (err.response?.status === 422) {
-                errorMessage = "Validation error. Please check your input.";
-            } else if (err.response?.status === 403) {
-                errorMessage =
-                    "You don't have permission to perform this action.";
-            }
-
-            Swal.fire("Error", errorMessage, "error");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    useEffect(() => {
-        initializeDataTable();
-        return () => {
-            if ($.fn.DataTable.isDataTable("#brandsTable")) {
-                $("#brandsTable").DataTable().destroy();
-            }
-        };
-    }, [initializeDataTable]);
-
     return (
         <ErpLayout>
             <Head title="Brands" />
 
-            <Container>
-                <Row className="g-3">
-                    <Col
-                        md={12}
-                        className="d-flex justify-content-between align-items-center"
-                    >
-                        <h2 className="mb-0">Brands</h2>
-                        <ButtonGroup className="gap-2">
-                            <Button
-                                variant="outline-primary"
-                                className="rounded"
-                                onClick={handleCreate}
-                            >
-                                <i className="bi bi-plus-circle"></i> Create
-                                Brand
-                            </Button>
-                        </ButtonGroup>
-                    </Col>
+            <Card className="border-0 rounded-0 shadow-sm">
+                <Card.Header className="d-flex justify-content-between align-items-center bg-transparent">
+                    <h6 className="mb-0 fw-semibold">Brands Management</h6>
+                    <ButtonGroup>
+                        <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="rounded-1 d-flex align-items-center"
+                            onClick={handleCreate}
+                        >
+                            <FiPlusSquare className="me-1" />
+                            New Brand
+                        </Button>
+                    </ButtonGroup>
+                </Card.Header>
+                <Card.Body className="px-0">
+                    <Table
+                        bordered
+                        striped
+                        hover
+                        responsive
+                        id="brandsTable"
+                        className="w-100"
+                    />
+                </Card.Body>
+            </Card>
 
-                    <Col md={12}>
-                        <hr className="dashed-hr" />
-                    </Col>
-
-                    <Col md={12}>
-                        <Card>
-                            <Card.Body>
-                                <Table
-                                    bordered
-                                    striped
-                                    hover
-                                    responsive
-                                    id="brandsTable"
-                                    className="w-100"
-                                ></Table>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-
-                <BrandModal
-                    showModal={showModal}
-                    setShowModal={setShowModal}
-                    formData={formData}
-                    handleInputChange={handleInputChange}
-                    handleFileChange={handleFileChange}
-                    handleSubmit={handleSubmit}
-                    isSubmitting={isSubmitting}
-                />
-            </Container>
+            <BrandModal
+                show={showModal}
+                onHide={handleModalClose}
+                brand={currentBrand}
+                onSuccess={handleSuccess}
+            />
         </ErpLayout>
     );
 }

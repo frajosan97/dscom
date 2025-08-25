@@ -25,6 +25,43 @@ export default function ErpHeader() {
 
     const menuItems = [
         {
+            label: "Store",
+            icon: "bi bi-shop",
+            show: canViewStore,
+            children: [
+                {
+                    path: route("product.index"),
+                    icon: "bi bi-box-seam",
+                    label: "Items Register",
+                    show: true,
+                },
+                {
+                    path: route("product.create"),
+                    icon: "bi bi-box-seam",
+                    label: "New Item",
+                    show: true,
+                },
+                {
+                    path: route("product.index"),
+                    icon: "bi bi-box-seam",
+                    label: "Purchase",
+                    show: true,
+                },
+                {
+                    path: route("sales.index"),
+                    icon: "bi bi-journal-plus",
+                    label: "Sales",
+                    show: true,
+                },
+                {
+                    path: route("sales.create"),
+                    icon: "bi bi-journal-plus",
+                    label: "Sales Entry",
+                    show: true,
+                },
+            ].filter((item) => item.show),
+        },
+        {
             label: "Services",
             icon: "bi bi-tools",
             show: canViewServices,
@@ -157,18 +194,18 @@ export default function ErpHeader() {
                     label: "Payment Methods",
                     show: true,
                 },
-                // {
-                //     path: route("device-type.index"),
-                //     icon: "bi bi-journal-plus",
-                //     label: "Device Types",
-                //     show: true,
-                // },
-                // {
-                //     path: route("repair-service.index"),
-                //     icon: "bi bi-journal-plus",
-                //     label: "Services List",
-                //     show: true,
-                // },
+                {
+                    path: route("category.index"),
+                    icon: "bi bi-journal-plus",
+                    label: "Catalogue",
+                    show: true,
+                },
+                {
+                    path: route("brand.index"),
+                    icon: "bi bi-journal-plus",
+                    label: "Brands",
+                    show: true,
+                },
             ].filter((item) => item.show),
         },
     ];

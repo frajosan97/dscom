@@ -1,1 +1,0 @@
-import{j as r,$ as t}from"./app-BHgsMdMN.js";import{E as o}from"./ErpLayout-BrY7BVt6.js";import"./Footer-D2ooF5pp.js";import"./Image-DXsOGyib.js";import"./CloseButton-qahUCrdS.js";import"./Form-C31rj1ON.js";/* empty css                      */const c=()=>r.jsx(o,{children:r.jsx(t,{title:"Services"})});export{c as default};

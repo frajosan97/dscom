@@ -1,4 +1,5 @@
 import { Card, Row, Col, Form } from "react-bootstrap";
+import Select from "react-select";
 
 const JobDetails = () => {
     return (
@@ -178,11 +179,7 @@ const JobDetails = () => {
                                                 *
                                             </span>
                                         </Form.Label>
-                                        <Form.Select isInvalid>
-                                            <option value="">
-                                                Search Service Complaints
-                                            </option>
-                                        </Form.Select>
+                                        <Select placeholder="Service complaint" />
                                         <Form.Control.Feedback type="invalid">
                                             Required.
                                         </Form.Control.Feedback>

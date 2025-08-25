@@ -1,4 +1,4 @@
-import { Head, router } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 import {
     Container,
     Row,
@@ -63,11 +63,11 @@ export default function ProductsListing() {
     };
 
     const initializeDataTable = useCallback(() => {
-        if ($.fn.DataTable.isDataTable("#productsTable")) {
-            $("#productsTable").DataTable().destroy();
+        if ($.fn.DataTable.isDataTable("#itemsTable")) {
+            $("#itemsTable").DataTable().destroy();
         }
 
-        const dataTable = $("#productsTable").DataTable({
+        const dataTable = $("#itemsTable").DataTable({
             processing: true,
             serverSide: true,
             ajax: {
@@ -87,9 +87,11 @@ export default function ProductsListing() {
             },
             columns: [
                 { data: "product_image", title: "Image" },
-                { data: "product_name", title: "Name" },
-                { data: "price_list", title: "Pricing (Ksh)" },
-                { data: "status_badge", title: "Status" },
+                { data: "product_name", title: "Item Name" },
+                { data: "category.name", title: "Category" },
+                { data: "quantity", title: "Quantity" },
+                { data: "price_list", title: "Unit Purchase Cost" },
+                { data: "price_list", title: "Unit Selling Price" },
                 { data: "action", title: "Actions" },
             ],
             order: [[1, "asc"]],
@@ -155,7 +157,7 @@ export default function ProductsListing() {
         const dataTable = initializeDataTable();
 
         return () => {
-            if ($.fn.DataTable.isDataTable("#productsTable")) {
+            if ($.fn.DataTable.isDataTable("#itemsTable")) {
                 dataTable.destroy();
             }
         };
@@ -180,49 +182,39 @@ export default function ProductsListing() {
 
     return (
         <ErpLayout>
-            <Head title="Products Management" />
+            <Head title="Store Items Register" />
 
-            <Container>
-                <Row className="g-3">
-                    <Col
-                        md={12}
-                        className="d-flex justify-content-between align-items-center"
-                    >
-                        <h2 className="mb-0">Products</h2>
-                        <ButtonGroup className="gap-2">
-                            <Button
-                                variant="primary"
-                                className="rounded"
-                                onClick={() =>
-                                    router.get(route("product.create"))
-                                }
-                            >
-                                <i className="bi bi-plus-circle me-2"></i>
-                                Add Product
-                            </Button>
-                        </ButtonGroup>
-                    </Col>
-
-                    <Col md={12}>
-                        <hr className="dashed-hr" />
-                    </Col>
-
-                    <Col md={12}>
-                        <Card>
-                            <Card.Body className="position-relative">
-                                <Table
-                                    bordered
-                                    striped
-                                    hover
-                                    responsive
-                                    id="productsTable"
-                                    className="w-100"
-                                ></Table>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-            </Container>
+            <Card className="border-0 rounded-0 shadow-sm">
+                <Card.Header className="d-flex justify-content-between align-items-center bg-transparent">
+                    <h6 className="mb-0 fw-semibold">Store Items Register</h6>
+                    <ButtonGroup className="gap-1">
+                        <Button variant="primary" className="rounded-0">
+                            Import
+                        </Button>
+                        <Button variant="info" className="rounded-0">
+                            Export Excel
+                        </Button>
+                        <Button
+                            variant="success"
+                            className="rounded-0"
+                            as={Link}
+                            href={route("product.create")}
+                        >
+                            New Item
+                        </Button>
+                    </ButtonGroup>
+                </Card.Header>
+                <Card.Body className="px-0">
+                    <Table
+                        bordered
+                        striped
+                        hover
+                        responsive
+                        id="itemsTable"
+                        className="w-100"
+                    ></Table>
+                </Card.Body>
+            </Card>
         </ErpLayout>
     );
 }

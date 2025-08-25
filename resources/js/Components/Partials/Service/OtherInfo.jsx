@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, Row, Col, Form, Button } from "react-bootstrap";
+import Select from "react-select";
 
 const OtherInfo = () => {
     return (
@@ -14,10 +15,7 @@ const OtherInfo = () => {
                         <Col md={6}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Entering Staff</Form.Label>
-                                <Form.Select>
-                                    <option>Technician</option>
-                                    <option>Admin</option>
-                                </Form.Select>
+                                <Select placeholder="Select Staff" />
                             </Form.Group>
                         </Col>
 

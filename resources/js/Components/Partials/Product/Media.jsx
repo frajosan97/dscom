@@ -1,8 +1,14 @@
+import { Card } from "react-bootstrap";
+
 export default function MediaTab({ renderImages }) {
     return (
-        <>
-            <h5 className="mb-3">Product Images</h5>
-            {renderImages()}
-        </>
+        <Card className="border-0 rounded-0 shadow-sm mb-3">
+            <Card.Header className="bg-transparent d-flex justify-content-between align-items-center">
+                <h6 className="mb-0 fw-semibold text-capitalize">
+                    Product Images
+                </h6>
+            </Card.Header>
+            <Card.Body>{renderImages()}</Card.Body>
+        </Card>
     );
 }

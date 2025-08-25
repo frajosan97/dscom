@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\CartController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\Erp\ProductController;
+use App\Http\Controllers\Erp\Product\ProductController;
+use App\Http\Controllers\Erp\Setting\CategoryController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -44,7 +44,7 @@ switch (systemMode()) {
 
         Route::resources([
             'category' => CategoryController::class,
-            'product'  => ProductController::class,
+            'product' => ProductController::class,
         ]);
 
         Route::middleware(['auth'])->group(function () {

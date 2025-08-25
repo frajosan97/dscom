@@ -121,17 +121,15 @@ export default function Branches() {
                 <Card.Header className="d-flex justify-content-between align-items-center bg-transparent">
                     <h6 className="mb-0 fw-semibold">Branches Management</h6>
                     <ButtonGroup>
-                        <ButtonGroup>
-                            <Button
-                                variant="outline-secondary"
-                                size="sm"
-                                className="rounded-1 d-flex align-items-center"
-                                onClick={handleCreate}
-                            >
-                                <FiPlusSquare className="me-1" />
-                                New Branch
-                            </Button>
-                        </ButtonGroup>
+                        <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="rounded-1 d-flex align-items-center"
+                            onClick={handleCreate}
+                        >
+                            <FiPlusSquare className="me-1" />
+                            New Branch
+                        </Button>
                     </ButtonGroup>
                 </Card.Header>
                 <Card.Body className="px-0">

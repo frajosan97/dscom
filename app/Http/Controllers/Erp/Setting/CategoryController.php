@@ -27,15 +27,15 @@ class CategoryController extends Controller
                     ->addColumn('name', fn($row) => $row->name ?? 'N/A')
                     ->addColumn('parent', fn($row) => $row->parent?->name ?? '—')
                     ->addColumn('products_count', fn($row) => $row->products_count ?? 0)
-                    ->addColumn('image_preview', fn($row) => view('partials.backend.image-preview', ['image' => $row->image]))
-                    ->addColumn('featured_badge', fn($row) => view('partials.backend.featured-badge', ['isFeatured' => $row->is_featured]))
-                    ->addColumn('status_badge', fn($row) => view('partials.backend.status-badge', ['isActive' => $row->is_active]))
-                    ->addColumn('action', fn($row) => view('partials.backend.category-actions', ['category' => $row]))
+                    ->addColumn('image_preview', fn($row) => view('partials.backend.image-preview', compact('row')))
+                    ->addColumn('featured_badge', fn($row) => view('partials.backend.featured-badge', compact('row')))
+                    ->addColumn('status_badge', fn($row) => view('partials.backend.status-badge', compact('row')))
+                    ->addColumn('action', fn($row) => view('partials.backend.category-actions', compact('row')))
                     ->rawColumns(['image_preview', 'featured_badge', 'status_badge', 'action'])
                     ->make(true);
             }
 
-            return Inertia::render('Backend/ERP/Category/Index');
+            return Inertia::render('Backend/ERP/Setting/Category');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -91,7 +91,17 @@ class CategoryController extends Controller
 
     public function edit(Category $category)
     {
-        return response()->json($category);
+        try {
+            return response()->json([
+                'success' => true,
+                'category' => $category
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
     }
 
     public function update(UpdateRequest $request, Category $category)

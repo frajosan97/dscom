@@ -1,4 +1,5 @@
 import { Card, Row, Col, Form } from "react-bootstrap";
+import Select from "react-select";
 
 const InitiaCheck = () => {
     return (
@@ -41,17 +42,13 @@ const InitiaCheck = () => {
                 <Col md={6}>
                     <Form.Group>
                         <Form.Label>Physical Condition</Form.Label>
-                        <Form.Select>
-                            <option value="">Search Physical Conditions</option>
-                        </Form.Select>
+                        <Select placeholder="Search Physical Conditions" />
                     </Form.Group>
                 </Col>
                 <Col md={6}>
                     <Form.Group>
                         <Form.Label>Risk Agreed By Customer</Form.Label>
-                        <Form.Select>
-                            <option value="">Search Risk Agreements</option>
-                        </Form.Select>
+                        <Select placeholder="Search Risk Agreements" />
                     </Form.Group>
                 </Col>
             </Row>

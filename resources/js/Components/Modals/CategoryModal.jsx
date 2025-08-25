@@ -1,8 +1,8 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
     Modal,
-    Button,
     Form,
+    Button,
     Row,
     Col,
     Spinner,
@@ -11,90 +11,117 @@ import {
 } from "react-bootstrap";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-
-const validationSchema = Yup.object().shape({
-    name: Yup.string()
-        .required("Category name is required")
-        .max(255, "Category name must not exceed 255 characters"),
-    icon: Yup.string().max(255, "Icon must not exceed 255 characters"),
-    parent_id: Yup.string().nullable(),
-    is_active: Yup.boolean(),
-    is_featured: Yup.boolean(),
-    order: Yup.number().integer("Must be an integer"),
-});
+import xios from "@/Utils/axios";
+import Select from "react-select";
 
 export default function CategoryModal({
-    showModal,
-    setShowModal,
-    formData,
-    handleInputChange,
-    handleFileChange,
-    handleSubmit,
-    isSubmitting,
+    show,
+    onHide,
+    category,
+    onSuccess,
     parentCategories,
 }) {
+    const isEditMode = !!category;
+
+    // Form validation schema
+    const validationSchema = Yup.object().shape({
+        name: Yup.string()
+            .required("Category name is required")
+            .max(255, "Category name must not exceed 255 characters"),
+        slug: Yup.string().nullable(),
+        icon: Yup.string().max(255, "Icon must not exceed 255 characters"),
+        description: Yup.string().nullable(),
+        parent_id: Yup.string().nullable(),
+        meta_title: Yup.string().nullable(),
+        meta_description: Yup.string().nullable(),
+        is_active: Yup.boolean(),
+        is_featured: Yup.boolean(),
+        order: Yup.number().integer("Must be an integer"),
+    });
+
+    // Formik form handling
     const formik = useFormik({
+        enableReinitialize: true,
         initialValues: {
-            id: "",
-            name: "",
-            icon: "",
-            description: "",
-            parent_id: "",
-            is_active: true,
-            is_featured: false,
+            name: category?.name || "",
+            slug: category?.slug || "",
+            icon: category?.icon || "",
+            description: category?.description || "",
+            parent_id: category?.parent_id || "",
+            meta_title: category?.meta_title || "",
+            meta_description: category?.meta_description || "",
+            is_active: category?.is_active ?? true,
+            is_featured: category?.is_featured ?? false,
+            order: category?.order || 0,
             image: null,
-            meta_title: "",
-            meta_description: "",
-            order: 0,
+            _method: isEditMode ? "PUT" : "POST",
         },
         validationSchema,
-        enableReinitialize: true,
-        onSubmit: (values) => {
-            handleSubmit(values);
+        onSubmit: async (values, { setSubmitting, setErrors }) => {
+            try {
+                const formData = new FormData();
+
+                // Append all form values to FormData
+                Object.entries(values).forEach(([key, value]) => {
+                    if (value !== null && value !== undefined) {
+                        formData.append(key, value);
+                    }
+                });
+
+                // Post route
+                const postRoute = isEditMode
+                    ? route("category.update", category.id)
+                    : route("category.store");
+
+                const response = await xios.post(postRoute, formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
+
+                if (response.data.success === true) {
+                    onSuccess(response.data.message);
+                    onHide();
+                }
+            } catch (error) {
+                if (error.response?.data?.errors) {
+                    setErrors(error.response.data.errors);
+                } else {
+                    console.error("Error submitting form:", error);
+                }
+            } finally {
+                setSubmitting(false);
+            }
         },
     });
 
-    useEffect(() => {
-        if (formData) {
-            formik.setValues({
-                ...formik.values,
-                ...formData,
-                is_active:
-                    formData.is_active !== undefined
-                        ? formData.is_active
-                        : true,
-                is_featured:
-                    formData.is_featured !== undefined
-                        ? formData.is_featured
-                        : false,
-            });
-        }
-    }, [formData]);
+    // Handle file change
+    const handleFileChange = (e) => {
+        formik.setFieldValue("image", e.target.files[0]);
+    };
+
+    // Remove image
+    const handleRemoveImage = () => {
+        formik.setFieldValue("image", null);
+    };
+
+    const parentCategoryOptions = parentCategories.map((category) => ({
+        value: category.id,
+        label: category.name,
+    }));
 
     return (
-        <Modal
-            centered
-            show={showModal}
-            onHide={() => {
-                if (!isSubmitting) {
-                    setShowModal(false);
-                    formik.resetForm();
-                }
-            }}
-            backdrop={isSubmitting ? "static" : true}
-            keyboard={!isSubmitting}
-            size="lg"
-        >
-            <Form onSubmit={formik.handleSubmit} noValidate>
-                <Modal.Header closeButton={!isSubmitting}>
-                    <Modal.Title>
-                        {formData.id ? "Edit Category" : "Create Category"}
-                    </Modal.Title>
-                </Modal.Header>
+        <Modal show={show} onHide={onHide} size="lg" centered backdrop="static">
+            <Modal.Header closeButton>
+                <Modal.Title>
+                    {isEditMode ? "Edit Category" : "Create New Category"}
+                </Modal.Title>
+            </Modal.Header>
+            <Form onSubmit={formik.handleSubmit}>
                 <Modal.Body>
                     <Row>
                         <Col md={8}>
-                            <Form.Group className="mb-3">
+                            <Form.Group className="mb-3" controlId="name">
                                 <Form.Label>
                                     Category Name{" "}
                                     <span className="text-danger">*</span>
@@ -113,8 +140,7 @@ export default function CategoryModal({
                                             formik.touched.name &&
                                             !!formik.errors.name
                                         }
-                                        disabled={isSubmitting}
-                                        required
+                                        disabled={formik.isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
                                         {formik.errors.name}
@@ -122,7 +148,7 @@ export default function CategoryModal({
                                 </InputGroup>
                             </Form.Group>
 
-                            <Form.Group className="mb-3">
+                            <Form.Group className="mb-3" controlId="icon">
                                 <Form.Label>Icon</Form.Label>
                                 <InputGroup>
                                     <InputGroup.Text>
@@ -138,7 +164,7 @@ export default function CategoryModal({
                                             formik.touched.icon &&
                                             !!formik.errors.icon
                                         }
-                                        disabled={isSubmitting}
+                                        disabled={formik.isSubmitting}
                                     />
                                     <Form.Control.Feedback type="invalid">
                                         {formik.errors.icon}
@@ -149,11 +175,14 @@ export default function CategoryModal({
                                 </Form.Text>
                             </Form.Group>
 
-                            <Form.Group className="mb-3">
+                            <Form.Group
+                                className="mb-3"
+                                controlId="description"
+                            >
                                 <Form.Label>Description</Form.Label>
                                 <Form.Control
                                     as="textarea"
-                                    rows={3}
+                                    rows={2}
                                     name="description"
                                     value={formik.values.description}
                                     onChange={formik.handleChange}
@@ -162,7 +191,7 @@ export default function CategoryModal({
                                         formik.touched.description &&
                                         !!formik.errors.description
                                     }
-                                    disabled={isSubmitting}
+                                    disabled={formik.isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.description}
@@ -171,40 +200,45 @@ export default function CategoryModal({
 
                             <Row>
                                 <Col md={6}>
-                                    <Form.Group className="mb-3">
+                                    <Form.Group
+                                        className="mb-3"
+                                        controlId="parent_id"
+                                    >
                                         <Form.Label>Parent Category</Form.Label>
-                                        <Form.Select
+                                        <Select
                                             name="parent_id"
-                                            value={formik.values.parent_id}
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            isInvalid={
-                                                formik.touched.parent_id &&
-                                                !!formik.errors.parent_id
-                                            }
-                                            disabled={isSubmitting}
-                                        >
-                                            <option value="">
-                                                None (Top Level)
-                                            </option>
-                                            {parentCategories.map(
-                                                (category) => (
-                                                    <option
-                                                        key={category.id}
-                                                        value={category.id}
-                                                    >
-                                                        {category.name}
-                                                    </option>
-                                                )
+                                            value={parentCategoryOptions.find(
+                                                (option) =>
+                                                    option.value ===
+                                                    formik.values.parent_id
                                             )}
-                                        </Form.Select>
-                                        <Form.Control.Feedback type="invalid">
-                                            {formik.errors.parent_id}
-                                        </Form.Control.Feedback>
+                                            onChange={(selectedOption) => {
+                                                formik.setFieldValue(
+                                                    "parent_id",
+                                                    selectedOption
+                                                        ? selectedOption.value
+                                                        : ""
+                                                );
+                                            }}
+                                            onBlur={formik.handleBlur}
+                                            options={parentCategoryOptions}
+                                            isDisabled={formik.isSubmitting}
+                                            isClearable
+                                            placeholder="Parent category..."
+                                        />
+                                        {formik.touched.parent_id &&
+                                            formik.errors.parent_id && (
+                                                <Form.Control.Feedback type="invalid">
+                                                    {formik.errors.parent_id}
+                                                </Form.Control.Feedback>
+                                            )}
                                     </Form.Group>
                                 </Col>
                                 <Col md={6}>
-                                    <Form.Group className="mb-3">
+                                    <Form.Group
+                                        className="mb-3"
+                                        controlId="order"
+                                    >
                                         <Form.Label>Order</Form.Label>
                                         <Form.Control
                                             type="number"
@@ -216,7 +250,7 @@ export default function CategoryModal({
                                                 formik.touched.order &&
                                                 !!formik.errors.order
                                             }
-                                            disabled={isSubmitting}
+                                            disabled={formik.isSubmitting}
                                         />
                                         <Form.Control.Feedback type="invalid">
                                             {formik.errors.order}
@@ -227,22 +261,16 @@ export default function CategoryModal({
                         </Col>
 
                         <Col md={4}>
-                            <Form.Group className="mb-3">
+                            <Form.Group className="mb-3" controlId="image">
                                 <Form.Label>Category Image</Form.Label>
                                 <Form.Control
                                     type="file"
                                     accept="image/*"
-                                    onChange={(e) => {
-                                        formik.setFieldValue(
-                                            "image",
-                                            e.target.files[0]
-                                        );
-                                        handleFileChange(e);
-                                    }}
-                                    disabled={isSubmitting}
+                                    onChange={handleFileChange}
+                                    disabled={formik.isSubmitting}
                                 />
                                 {(formik.values.image ||
-                                    formData?.image_url) && (
+                                    category?.image_url) && (
                                     <div className="mt-3 text-center">
                                         <Image
                                             src={
@@ -253,7 +281,7 @@ export default function CategoryModal({
                                                     ? URL.createObjectURL(
                                                           formik.values.image
                                                       )
-                                                    : formData?.image_url
+                                                    : category?.image_url
                                             }
                                             alt="Image Preview"
                                             fluid
@@ -264,13 +292,8 @@ export default function CategoryModal({
                                             variant="link"
                                             size="sm"
                                             className="text-danger mt-2"
-                                            onClick={() => {
-                                                formik.setFieldValue(
-                                                    "image",
-                                                    null
-                                                );
-                                            }}
-                                            disabled={isSubmitting}
+                                            onClick={handleRemoveImage}
+                                            disabled={formik.isSubmitting}
                                         >
                                             Remove Image
                                         </Button>
@@ -278,7 +301,7 @@ export default function CategoryModal({
                                 )}
                             </Form.Group>
 
-                            <Form.Group className="mb-3">
+                            <Form.Group className="mb-3" controlId="is_active">
                                 <Form.Check
                                     type="switch"
                                     id="is_active"
@@ -286,11 +309,14 @@ export default function CategoryModal({
                                     label="Active"
                                     checked={formik.values.is_active}
                                     onChange={formik.handleChange}
-                                    disabled={isSubmitting}
+                                    disabled={formik.isSubmitting}
                                 />
                             </Form.Group>
 
-                            <Form.Group className="mb-3">
+                            <Form.Group
+                                className="mb-3"
+                                controlId="is_featured"
+                            >
                                 <Form.Check
                                     type="switch"
                                     id="is_featured"
@@ -298,11 +324,11 @@ export default function CategoryModal({
                                     label="Featured"
                                     checked={formik.values.is_featured}
                                     onChange={formik.handleChange}
-                                    disabled={isSubmitting}
+                                    disabled={formik.isSubmitting}
                                 />
                             </Form.Group>
 
-                            <Form.Group className="mb-3">
+                            <Form.Group className="mb-3" controlId="meta_title">
                                 <Form.Label>Meta Title</Form.Label>
                                 <Form.Control
                                     type="text"
@@ -314,18 +340,21 @@ export default function CategoryModal({
                                         formik.touched.meta_title &&
                                         !!formik.errors.meta_title
                                     }
-                                    disabled={isSubmitting}
+                                    disabled={formik.isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.meta_title}
                                 </Form.Control.Feedback>
                             </Form.Group>
 
-                            <Form.Group className="mb-3">
+                            <Form.Group
+                                className="mb-3"
+                                controlId="meta_description"
+                            >
                                 <Form.Label>Meta Description</Form.Label>
                                 <Form.Control
                                     as="textarea"
-                                    rows={2}
+                                    rows={4}
                                     name="meta_description"
                                     value={formik.values.meta_description}
                                     onChange={formik.handleChange}
@@ -334,7 +363,7 @@ export default function CategoryModal({
                                         formik.touched.meta_description &&
                                         !!formik.errors.meta_description
                                     }
-                                    disabled={isSubmitting}
+                                    disabled={formik.isSubmitting}
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.meta_description}
@@ -345,21 +374,18 @@ export default function CategoryModal({
                 </Modal.Body>
                 <Modal.Footer>
                     <Button
-                        variant="outline-danger"
-                        onClick={() => {
-                            setShowModal(false);
-                            formik.resetForm();
-                        }}
-                        disabled={isSubmitting}
+                        variant="secondary"
+                        onClick={onHide}
+                        disabled={formik.isSubmitting}
                     >
                         Cancel
                     </Button>
                     <Button
-                        variant="outline-light"
+                        variant="primary"
                         type="submit"
-                        disabled={isSubmitting || !formik.isValid}
+                        disabled={formik.isSubmitting}
                     >
-                        {isSubmitting ? (
+                        {formik.isSubmitting ? (
                             <>
                                 <Spinner
                                     as="span"
@@ -367,17 +393,12 @@ export default function CategoryModal({
                                     size="sm"
                                     role="status"
                                     aria-hidden="true"
+                                    className="me-2"
                                 />
-                                <span className="ms-2">
-                                    {formData.id
-                                        ? "Updating..."
-                                        : "Creating..."}
-                                </span>
+                                {isEditMode ? "Updating..." : "Creating..."}
                             </>
-                        ) : formData.id ? (
-                            "Update"
                         ) : (
-                            "Create"
+                            `${isEditMode ? "Update" : "Create"} Category`
                         )}
                     </Button>
                 </Modal.Footer>

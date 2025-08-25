@@ -1,55 +1,18 @@
 import { Head } from "@inertiajs/react";
-import {
-    Container,
-    Row,
-    Col,
-    Card,
-    Button,
-    ButtonGroup,
-    Table,
-} from "react-bootstrap";
-import { useState, useEffect, useCallback } from "react";
-
+import { useCallback, useEffect, useState } from "react";
+import { Button, Card, ButtonGroup, Table } from "react-bootstrap";
+import { toast } from "react-toastify";
+import { FiPlusSquare } from "react-icons/fi";
 import ErpLayout from "@/Layouts/ErpLayout";
-import CategoryModal from "@/Components/Modals/CategoryModal";
 import Swal from "sweetalert2";
 import xios from "@/Utils/axios";
 
-const initialFormData = () => ({
-    id: "",
-    name: "",
-    slug: "",
-    description: "",
-    parent_id: null,
-    image: null,
-    icon: "",
-    meta_title: "",
-    meta_description: "",
-    is_active: false,
-    is_featured: false,
-    order: 0,
-});
+import CategoryModal from "@/Components/Modals/CategoryModal";
 
 export default function CategoryListing() {
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState(initialFormData());
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [currentCategory, setCurrentCategory] = useState(null);
     const [parentCategories, setParentCategories] = useState([]);
-
-    const reloadTable = useCallback(() => {
-        if ($.fn.DataTable.isDataTable("#categoriesTable")) {
-            $("#categoriesTable").DataTable().ajax.reload(null, false);
-        }
-    }, []);
-
-    const fetchParentCategories = useCallback(async () => {
-        try {
-            const response = await xios.get(route("api.categories"));
-            setParentCategories(response.data);
-        } catch (error) {
-            Swal.fire("Error", "Failed to load parent categories.", "error");
-        }
-    }, []);
 
     const initializeDataTable = useCallback(() => {
         if ($.fn.DataTable.isDataTable("#categoriesTable")) {
@@ -120,54 +83,70 @@ export default function CategoryListing() {
                     .off("click")
                     .on("click", function () {
                         const id = $(this).data("id");
-                        editCategory(id);
+                        handleEditCategory(id);
                     });
 
                 $(".delete-btn")
                     .off("click")
                     .on("click", function () {
                         const id = $(this).data("id");
-                        deleteCategory(id);
+                        handleDeleteCategory(id);
                     });
             },
         });
     }, []);
 
-    const handleInputChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: type === "checkbox" ? checked : value,
-        }));
-    };
+    useEffect(() => {
+        initializeDataTable();
+        fetchParentCategories();
+    }, [initializeDataTable]);
 
-    const handleFileChange = (e) => {
-        setFormData((prev) => ({
-            ...prev,
-            image: e.target.files[0],
-        }));
-    };
-
-    const handleCreate = () => {
-        setFormData(initialFormData());
-        setShowModal(true);
-    };
-
-    const editCategory = async (id) => {
+    const fetchParentCategories = useCallback(async () => {
         try {
-            const res = await xios.get(route("category.edit", id));
-            setFormData({
-                ...res.data,
-                is_active: !!res.data.is_active,
-                is_featured: !!res.data.is_featured,
-            });
-            setShowModal(true);
+            const response = await xios.get(route("api.categories"));
+            setParentCategories(response.data);
         } catch (error) {
-            Swal.fire("Error", "Failed to load category data.", "error");
+            toast.error("Failed to load parent categories.");
+        }
+    }, []);
+
+    const handleCreate = useCallback(() => {
+        setCurrentCategory(null);
+        setShowModal(true);
+    }, []);
+
+    const handleModalClose = useCallback(() => {
+        setShowModal(false);
+        setCurrentCategory(null);
+    }, []);
+
+    const handleSuccess = useCallback(
+        (message) => {
+            toast.success(message);
+            $("#categoriesTable").DataTable().ajax.reload(null, false);
+            fetchParentCategories();
+            setShowModal(false);
+        },
+        [fetchParentCategories]
+    );
+
+    const handleEditCategory = async (id) => {
+        try {
+            const response = await xios.get(route("category.edit", id));
+
+            if (response.data.success === true) {
+                setCurrentCategory(response.data.category);
+                setShowModal(true);
+            } else {
+                toast.error(response.data.message);
+            }
+        } catch (error) {
+            console.log(error);
+            toast.error(error.response?.data?.message || "An error occurred");
         }
     };
 
-    const deleteCategory = async (id) => {
+    const handleDeleteCategory = async (id) => {
         const confirm = await Swal.fire({
             title: "Delete Category?",
             text: "This cannot be undone.",
@@ -181,7 +160,7 @@ export default function CategoryListing() {
 
         try {
             await xios.delete(route("category.destroy", id));
-            reloadTable();
+            $("#categoriesTable").DataTable().ajax.reload(null, false);
             Swal.fire("Deleted!", "Category has been deleted.", "success");
         } catch (err) {
             let errorMessage = "Delete failed.";
@@ -193,146 +172,44 @@ export default function CategoryListing() {
         }
     };
 
-    const handleSubmit = async (values) => {
-        const isEditing = !!values.id;
-
-        const confirm = await Swal.fire({
-            title: isEditing ? "Update category?" : "Create category?",
-            text: isEditing
-                ? "Are you sure you want to update this category?"
-                : "Are you sure you want to create a new category?",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonColor: "#3085d6",
-            cancelButtonColor: "#d33",
-            confirmButtonText: isEditing
-                ? "Yes, update it!"
-                : "Yes, create it!",
-        });
-
-        if (!confirm.isConfirmed) return;
-
-        setIsSubmitting(true);
-        Swal.fire({
-            icon: "info",
-            title: "Processing...",
-            text: "Please wait...",
-            allowOutsideClick: false,
-            showConfirmButton: false,
-            didOpen: () => Swal.showLoading(),
-        });
-
-        try {
-            const formData = new FormData();
-            Object.entries(values).forEach(([key, value]) => {
-                if (value !== null && value !== undefined) {
-                    formData.append(key, value);
-                }
-            });
-
-            if (isEditing) {
-                formData.append("_method", "put");
-            }
-
-            const url = isEditing
-                ? route("category.update", values.id)
-                : route("category.store");
-            await xios.post(url, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-            });
-
-            setShowModal(false);
-            reloadTable();
-            fetchParentCategories();
-            Swal.fire(
-                "Success",
-                `Category ${isEditing ? "updated" : "created"} successfully.`,
-                "success"
-            );
-        } catch (err) {
-            // console.error("Error saving category", err);
-            let errorMessage = "Failed to save category.";
-            if (err.response?.data?.message) {
-                errorMessage = err.response.data.message;
-            } else if (err.response?.status === 422) {
-                errorMessage = "Validation error. Please check your input.";
-            } else if (err.response?.status === 403) {
-                errorMessage =
-                    "You don't have permission to perform this action.";
-            }
-
-            Swal.fire("Error", errorMessage, "error");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    useEffect(() => {
-        initializeDataTable();
-        fetchParentCategories();
-        return () => {
-            if ($.fn.DataTable.isDataTable("#categoriesTable")) {
-                $("#categoriesTable").DataTable().destroy();
-            }
-        };
-    }, [initializeDataTable, fetchParentCategories]);
-
     return (
         <ErpLayout>
             <Head title="Categories" />
 
-            <Container>
-                <Row className="g-3">
-                    <Col
-                        md={12}
-                        className="d-flex justify-content-between align-items-center"
-                    >
-                        <h2 className="mb-0">Categories</h2>
-                        <ButtonGroup className="gap-2">
-                            <Button
-                                variant="outline-primary"
-                                className="rounded"
-                                onClick={handleCreate}
-                            >
-                                <i className="bi bi-plus-circle"></i> Create
-                                Category
-                            </Button>
-                        </ButtonGroup>
-                    </Col>
+            <Card className="border-0 rounded-0 shadow-sm">
+                <Card.Header className="d-flex justify-content-between align-items-center bg-transparent">
+                    <h6 className="mb-0 fw-semibold">Catalogue Management</h6>
+                    <ButtonGroup>
+                        <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="rounded-1 d-flex align-items-center"
+                            onClick={handleCreate}
+                        >
+                            <FiPlusSquare className="me-1" />
+                            New Catalogue
+                        </Button>
+                    </ButtonGroup>
+                </Card.Header>
+                <Card.Body className="px-0">
+                    <Table
+                        bordered
+                        striped
+                        hover
+                        responsive
+                        id="categoriesTable"
+                        className="w-100"
+                    />
+                </Card.Body>
+            </Card>
 
-                    <Col md={12}>
-                        <hr className="dashed-hr" />
-                    </Col>
-
-                    <Col md={12}>
-                        <Card>
-                            <Card.Body>
-                                <Table
-                                    bordered
-                                    striped
-                                    hover
-                                    responsive
-                                    id="categoriesTable"
-                                    className="w-100"
-                                ></Table>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-
-                <CategoryModal
-                    showModal={showModal}
-                    setShowModal={setShowModal}
-                    formData={formData}
-                    handleInputChange={handleInputChange}
-                    handleFileChange={handleFileChange}
-                    handleSubmit={handleSubmit}
-                    isSubmitting={isSubmitting}
-                    parentCategories={parentCategories}
-                />
-            </Container>
+            <CategoryModal
+                show={showModal}
+                onHide={handleModalClose}
+                category={currentCategory}
+                onSuccess={handleSuccess}
+                parentCategories={parentCategories}
+            />
         </ErpLayout>
     );
 }
