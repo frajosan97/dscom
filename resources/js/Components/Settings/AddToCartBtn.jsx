@@ -16,7 +16,7 @@ export default function AddToCartBtn({ product, quantity = 1 }) {
             name: product.name,
             price: product.price,
             image: `/storage/${product.default_image?.image_path}`,
-            quantity: quantity
+            quantity: quantity,
         });
 
         // toast alert
@@ -43,13 +43,16 @@ export default function AddToCartBtn({ product, quantity = 1 }) {
         >
             <div className="d-flex align-items-center justify-content-center">
                 <span className="me-2">
-                    {isAdded ? "Added to Cart!" : "Add to Cart"}
+                    {/* {isAdded ? "Added to Cart!" : "Add to Cart"} */}
                 </span>
                 <div className="cart-icon-wrapper">
                     {isAdded ? (
                         <BsCheck size="1.5em" className="position-relative" />
                     ) : isHovered ? (
-                        <BsCartPlus size="1.2em" className="position-relative" />
+                        <BsCartPlus
+                            size="1.2em"
+                            className="position-relative"
+                        />
                     ) : (
                         <BsCart size="1.2em" className="position-relative" />
                     )}

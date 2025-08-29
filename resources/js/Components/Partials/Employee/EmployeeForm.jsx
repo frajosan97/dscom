@@ -1,13 +1,5 @@
 import { router } from "@inertiajs/react";
-import {
-    Form,
-    Row,
-    Col,
-    ButtonGroup,
-    Button,
-    Alert,
-    Card,
-} from "react-bootstrap";
+import { Form, Row, Col, ButtonGroup, Button, Card } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { useForm } from "@inertiajs/react";
 import { useState, useCallback, useEffect } from "react";
@@ -26,82 +18,12 @@ const employeeSchema = yup.object().shape({
         .string()
         .required("Phone number is required")
         .matches(/^[0-9+\-\s()]{10,}$/, "Invalid phone number format"),
-    username: yup
-        .string()
-        .min(3, "Username must be at least 3 characters")
-        .nullable(),
-    password: yup
-        .string()
-        .min(6, "Password must be at least 6 characters")
-        .when("username", (username, schema) =>
-            username
-                ? schema.required(
-                      "Password is required when username is provided"
-                  )
-                : schema
-        ),
-    confirmPassword: yup
-        .string()
-        .oneOf([yup.ref("password"), null], "Passwords must match"),
-    gender: yup.string().oneOf(["Male", "Female"], "Invalid gender selection"),
-    age: yup
-        .number()
-        .min(18, "Employee must be at least 18 years old")
-        .max(70, "Employee cannot be older than 70 years")
-        .nullable(),
     qualification: yup.string().nullable(),
     designation: yup.string().nullable(),
-    salaryType: yup
-        .string()
-        .oneOf(["", "Monthly", "Weekly", "Daily"], "Invalid salary type"),
-    salary: yup
-        .number()
-        .min(0, "Salary cannot be negative")
-        .nullable()
-        .transform((value) => (isNaN(value) ? undefined : value)),
-    bloodGroup: yup
-        .string()
-        .oneOf(
-            ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-            "Invalid blood group"
-        ),
     role: yup.string().required("Role is required"),
-    endingDate: yup.string().required("Ending date is required"),
-    openingBalance: yup
-        .number()
-        .min(0, "Opening balance cannot be negative")
-        .nullable()
-        .transform((value) => (isNaN(value) ? undefined : value)),
     address: yup.string().nullable(),
     description: yup.string().nullable(),
     status: yup.string().oneOf(["Enable", "Disable"], "Invalid status"),
-    profileImage: yup
-        .mixed()
-        .test(
-            "fileSize",
-            "File too large",
-            (value) => !value || (value && value.size <= 5 * 1024 * 1024) // 5MB max
-        )
-        .test(
-            "fileType",
-            "Unsupported file format",
-            (value) =>
-                !value ||
-                (value &&
-                    ["image/jpeg", "image/png", "image/gif"].includes(
-                        value.type
-                    ))
-        ),
-    idCard: yup.mixed().test(
-        "fileSize",
-        "File too large",
-        (value) => !value || (value && value.size <= 10 * 1024 * 1024) // 10MB max
-    ),
-    document: yup.mixed().test(
-        "fileSize",
-        "File too large",
-        (value) => !value || (value && value.size <= 10 * 1024 * 1024) // 10MB max
-    ),
 });
 
 export default function EmployeeForm({ employee = null, onSuccess }) {
@@ -113,7 +35,7 @@ export default function EmployeeForm({ employee = null, onSuccess }) {
         phone: employee?.phone || "",
         username: employee?.username || "",
         password: "",
-        confirmPassword: "",
+        consfirm_password: "",
         gender: employee?.gender || "Male",
         age: employee?.age || "",
         qualification: employee?.qualification || "",
@@ -221,8 +143,7 @@ export default function EmployeeForm({ employee = null, onSuccess }) {
 
             if (response.data.success) {
                 toast.success(response.data.message);
-                reset();
-                if (onSuccess) onSuccess();
+                router.visit(route("employee.index"));
             }
         } catch (error) {
             toast.error(
@@ -425,27 +346,27 @@ export default function EmployeeForm({ employee = null, onSuccess }) {
                                 </Col>
 
                                 <Col md={2} className="mb-2">
-                                    <Form.Group controlId="confirmPassword">
+                                    <Form.Group controlId="consfirm_password">
                                         <Form.Label className="small fw-semibold">
                                             Confirm Password
                                         </Form.Label>
                                         <Form.Control
                                             {...formControlProps}
                                             type="password"
-                                            name="confirmPassword"
-                                            value={data.confirmPassword}
+                                            name="consfirm_password"
+                                            value={data.consfirm_password}
                                             onChange={handleChange}
                                             onBlur={handleBlur}
                                             placeholder="••••••"
                                             isInvalid={isFieldInvalid(
-                                                "confirmPassword"
+                                                "consfirm_password"
                                             )}
                                         />
                                         <Form.Control.Feedback
                                             type="invalid"
                                             className="small"
                                         >
-                                            {getFieldError("confirmPassword")}
+                                            {getFieldError("consfirm_password")}
                                         </Form.Control.Feedback>
                                     </Form.Group>
                                 </Col>

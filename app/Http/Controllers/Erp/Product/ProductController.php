@@ -8,7 +8,6 @@ use App\Http\Requests\Product\UpdateRequest;
 use App\Models\Product;
 use App\Models\ProductImage;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Yajra\DataTables\Facades\DataTables;
@@ -17,7 +16,7 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        if ($request->ajax()) {
+        if ($request->has("draw")) {
             $query = Product::with(['category', 'brand'])
                 ->withCount(['variants'])
                 ->latest();
@@ -47,7 +46,7 @@ class ProductController extends Controller
 
     public function create()
     {
-        return Inertia::render('Backend/ERP/Product/Create');
+        return Inertia::render('Backend/ERP/Product/ProductForm');
     }
 
     public function store(StoreRequest $request)
@@ -87,12 +86,6 @@ class ProductController extends Controller
             'attributes.values'
         ]);
 
-        if (systemMode() === 'erp') {
-            return Inertia::render('Backend/ERP/Product/Show', [
-                'product' => $product
-            ]);
-        }
-
         return Inertia::render('Frontend/Product', [
             'product' => $product
         ]);
@@ -100,7 +93,7 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        return Inertia::render('Backend/ERP/Product/Edit', [
+        return Inertia::render('Backend/ERP/Product/ProductForm', [
             'product' => $product->load([
                 'category',
                 'brand',
@@ -141,7 +134,7 @@ class ProductController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update product',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -168,11 +161,11 @@ class ProductController extends Controller
             $path = $file->store('products', 'public');
 
             ProductImage::create([
-                'product_id'  => $product->id,
-                'image_path'  => $path,
-                'alt_text'    => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
-                'is_default'  => false,
-                'order'       => 0
+                'product_id' => $product->id,
+                'image_path' => $path,
+                'alt_text' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                'is_default' => false,
+                'order' => 0
             ]);
         }
     }

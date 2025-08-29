@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Order extends Model
 {
@@ -16,15 +19,6 @@ class Order extends Model
         'branch_id',
         'user_id',
         'customer_id',
-        'customer_email',
-        'customer_phone',
-        'customer_first_name',
-        'customer_last_name',
-        'customer_company',
-        'customer_tax_number',
-        'billing_address',
-        'shipping_address',
-        'shipping_same_as_billing',
         'status',
         'fulfillment_status',
         'subtotal',
@@ -36,8 +30,6 @@ class Order extends Model
         'total_refunded',
         'currency',
         'payment_method_id',
-        'payment_method_code',
-        'payment_method_name',
         'payment_status',
         'payment_reference',
         'payment_date',
@@ -53,14 +45,10 @@ class Order extends Model
         'private_notes',
         'custom_fields',
         'ip_address',
-        'user_agent'
+        'user_agent',
     ];
 
     protected $casts = [
-        'billing_address' => 'array',
-        'shipping_address' => 'array',
-        'custom_fields' => 'array',
-        'shipping_same_as_billing' => 'boolean',
         'subtotal' => 'decimal:2',
         'tax' => 'decimal:2',
         'shipping_cost' => 'decimal:2',
@@ -68,59 +56,90 @@ class Order extends Model
         'total' => 'decimal:2',
         'total_paid' => 'decimal:2',
         'total_refunded' => 'decimal:2',
-        'coupon_value' => 'decimal:2',
         'payment_date' => 'datetime',
         'shipped_at' => 'datetime',
-        'delivered_at' => 'datetime'
+        'delivered_at' => 'datetime',
+        'coupon_value' => 'decimal:2',
+        'custom_fields' => 'array',
     ];
 
-    public function branch()
+    /**
+     * Get the branch that owns the order.
+     */
+    public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
     }
 
-    public function user()
+    /**
+     * Get the user that owns the order.
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function customer()
+    /**
+     * Get the customer that owns the order.
+     */
+    public function customer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_id');
     }
 
-    public function paymentMethod()
+    /**
+     * Get the payment method that owns the order.
+     */
+    public function paymentMethod(): BelongsTo
     {
         return $this->belongsTo(PaymentMethod::class);
     }
 
-    public function shippingMethod()
+    /**
+     * Get the shipping method that owns the order.
+     */
+    public function shippingMethod(): BelongsTo
     {
         return $this->belongsTo(ShippingMethod::class);
     }
 
-    public function coupon()
+    /**
+     * Get the coupon that owns the order.
+     */
+    public function coupon(): BelongsTo
     {
         return $this->belongsTo(Coupon::class);
     }
 
-    public function items()
+    /**
+     * Get the items for the order.
+     */
+    public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
 
-    public function orderStatusHistory()
-    {
-        return $this->hasMany(OrderStatusHistory::class);
-    }
-
-    public function payments()
+    /**
+     * Get the payments for the order.
+     */
+    public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
     }
 
-    public function getCustomerFullNameAttribute()
+    /**
+     * Get the status history for the order.
+     */
+    public function statusHistory(): HasMany
     {
-        return $this->customer_first_name . ' ' . $this->customer_last_name;
+        return $this->hasMany(OrderStatusHistory::class);
+    }
+
+    /**
+     * Get the latest payment for the order.
+     */
+    public function latestPayment(): HasOne
+    {
+        return $this->hasOne(Payment::class)->latest();
     }
 }

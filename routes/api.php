@@ -23,6 +23,8 @@ Route::prefix('/data')->group(function () {
     Route::get('/warehouses', [ApiController::class, 'warehouses'])->name('api.warehouses');
     Route::get('/taxes', [ApiController::class, 'taxes'])->name('api.taxes');
     Route::get('/customers', [ApiController::class, 'customers'])->name('api.customers');
+    Route::get('/technicians', [ApiController::class, 'technicians'])->name('api.technicians');
+    Route::get('/staff', [ApiController::class, 'staff'])->name('api.staff');
     Route::get('/products', [ApiController::class, 'products'])->name('api.products');
     Route::get('/services', [ApiController::class, 'services'])->name('api.services');
     Route::get('/device-types', [ApiController::class, 'deviceTypes'])->name('api.device-types');

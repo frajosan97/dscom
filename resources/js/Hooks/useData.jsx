@@ -8,6 +8,8 @@ export default function useData() {
     const [warehouses, setWarehouses] = useState([]);
     const [taxes, setTaxes] = useState([]);
     const [customers, setCustomers] = useState([]);
+    const [technicians, setTechnicians] = useState([]);
+    const [staff, setStaff] = useState([]);
     const [products, setProducts] = useState([]);
     const [services, setServices] = useState([]);
     const [deviceTypes, setDeviceTypes] = useState([]);
@@ -46,6 +48,8 @@ export default function useData() {
                 fetchData("api.warehouses", setWarehouses),
                 fetchData("api.taxes", setTaxes),
                 fetchData("api.customers", setCustomers),
+                fetchData("api.staff", setStaff),
+                fetchData("api.technicians", setTechnicians),
                 fetchData("api.products", setProducts),
                 fetchData("api.services", setServices),
                 fetchData("api.device-types", setDeviceTypes),
@@ -64,6 +68,9 @@ export default function useData() {
     const refreshWarehouses = () => fetchData("api.warehouses", setWarehouses);
     const refreshTaxes = () => fetchData("api.taxes", setTaxes);
     const refreshCustomers = () => fetchData("api.customers", setCustomers);
+    const refreshTechnicians = () =>
+        fetchData("api.technicians", setTechnicians);
+    const refreshStaff = () => fetchData("api.staff", setStaff);
     const refreshProducts = () => fetchData("api.products", setProducts);
     const refreshServices = () => fetchData("api.services", setServices);
     const refreshDeviceTypes = () =>
@@ -83,6 +90,8 @@ export default function useData() {
         warehouses,
         taxes,
         customers,
+        technicians,
+        staff,
         products,
         services,
         deviceTypes,
@@ -96,6 +105,8 @@ export default function useData() {
         refreshWarehouses,
         refreshTaxes,
         refreshCustomers,
+        refreshTechnicians,
+        refreshStaff,
         refreshProducts,
         refreshServices,
         refreshDeviceTypes,

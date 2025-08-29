@@ -106,14 +106,14 @@ class EmployeeController extends Controller
     {
         try {
             return response()->json([
-                'success'=>true,
-                'employee'=>$employee
+                'success' => true,
+                'employee' => $employee
             ]);
         } catch (\Throwable $th) {
             return response()->json([
-                'success'=>false,
-                'message'=>$th->getMessage(),
-                'errors'=>['general'=>$th->getMessage()]
+                'success' => false,
+                'message' => $th->getMessage(),
+                'errors' => ['general' => $th->getMessage()]
             ]);
         }
     }

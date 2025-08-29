@@ -130,12 +130,11 @@ export default function EmployeeTable({ onEdit }) {
 
     const deleteEmployee = async (id) => {
         try {
-            toast.success("Employee deleted successfully");
-            // const response = await xios.get(route("employee.destroy", id));
+            const response = await xios.get(route("employee.destroy", id));
 
-            // if (response.data.success === true) {
-            //     toast.success("Employee deleted successfully");
-            // }
+            if (response.data.success === true) {
+                toast.success("Employee deleted successfully");
+            }
         } catch (error) {
             toast.error("An error occurred while fetching the employee data.");
         }

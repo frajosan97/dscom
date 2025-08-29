@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Erp\Service;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Setting\DeviceType\StoreRequest;
 use App\Http\Requests\Setting\DeviceType\UpdateRequest;
-use App\Models\DeviceType;
+use App\Models\RepairServiceDeviceType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,10 +17,9 @@ class DeviceTypeController extends Controller
     {
         try {
             if ($request->has('draw')) {
-                $deviceTypes = DeviceType::query()
-                    ->withoutTrashed()
-                    ->with(['parent', 'children'])
-                    ->withCount(['repairServices', 'orders']);
+                $deviceTypes = RepairServiceDeviceType::query()
+                    ->with(['parent', 'children']);
+                    // ->withCount(['repairServices']);
 
                 return datatables()->of($deviceTypes)
                     ->addColumn('name', function ($row) {
@@ -28,8 +27,8 @@ class DeviceTypeController extends Controller
                     })
                     ->addColumn('parent_name', fn($row) => $row->parent?->name ?? '—')
                     ->addColumn('children_count', fn($row) => $row->children_count ?? 0)
-                    ->addColumn('repair_services_count', fn($row) => $row->repair_services_count ?? 0)
-                    ->addColumn('orders_count', fn($row) => $row->orders_count ?? 0)
+                    // ->addColumn('repair_services_count', fn($row) => $row->repair_services_count ?? 0)
+                    // ->addColumn('orders_count', fn($row) => $row->orders_count ?? 0)
                     ->addColumn('status_badge', function ($row) {
                         return view('partials.settings.status', compact('row'))->render();
                     })
@@ -41,7 +40,7 @@ class DeviceTypeController extends Controller
             }
 
             return Inertia::render('Backend/ERP/Setting/DeviceType', [
-                'parentDeviceTypes' => DeviceType::whereNull('parent_id')->active()->get(['id', 'name'])
+                'parentDeviceTypes' => RepairServiceDeviceType::whereNull('parent_id')->active()->get(['id', 'name'])
             ]);
         } catch (\Exception $e) {
             Log::error($e->getMessage());
@@ -56,7 +55,7 @@ class DeviceTypeController extends Controller
     {
         DB::beginTransaction();
         try {
-            DeviceType::create($request->validated());
+            RepairServiceDeviceType::create($request->validated());
 
             DB::commit();
 
@@ -73,7 +72,7 @@ class DeviceTypeController extends Controller
         }
     }
 
-    public function edit(DeviceType $deviceType)
+    public function edit(RepairServiceDeviceType $deviceType)
     {
         try {
             return response()->json([
@@ -89,7 +88,7 @@ class DeviceTypeController extends Controller
         }
     }
 
-    public function update(UpdateRequest $request, DeviceType $deviceType)
+    public function update(UpdateRequest $request, RepairServiceDeviceType $deviceType)
     {
         DB::beginTransaction();
         try {
@@ -110,7 +109,7 @@ class DeviceTypeController extends Controller
         }
     }
 
-    public function destroy(DeviceType $deviceType)
+    public function destroy(RepairServiceDeviceType $deviceType)
     {
         DB::beginTransaction();
         try {

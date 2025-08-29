@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class OrderItem extends Model
 {
@@ -12,10 +13,8 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id',
         'product_id',
-        'prod_variant_id',
+        'product_variant_id',
         'product_name',
-        'sku',
-        'barcode',
         'description',
         'price',
         'original_price',
@@ -28,7 +27,7 @@ class OrderItem extends Model
         'attributes',
         'inventory_updated',
         'inventory_updated_at',
-        'status'
+        'status',
     ];
 
     protected $casts = [
@@ -40,21 +39,30 @@ class OrderItem extends Model
         'options' => 'array',
         'attributes' => 'array',
         'inventory_updated' => 'boolean',
-        'inventory_updated_at' => 'datetime'
+        'inventory_updated_at' => 'datetime',
     ];
 
-    public function order()
+    /**
+     * Get the order that owns the item.
+     */
+    public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
     }
 
-    public function product()
+    /**
+     * Get the product that owns the item.
+     */
+    public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
-    public function variant()
+    /**
+     * Get the product variant that owns the item.
+     */
+    public function variant(): BelongsTo
     {
-        return $this->belongsTo(ProductVariant::class, 'prod_variant_id');
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
 }

@@ -1,28 +1,21 @@
 import { Head } from "@inertiajs/react";
 import { useCallback, useEffect, useState } from "react";
-import {
-    Container,
-    Row,
-    Col,
-    Button,
-    Card,
-    ButtonGroup,
-    Table,
-    Badge,
-} from "react-bootstrap";
+import { Button, Card, ButtonGroup, Table } from "react-bootstrap";
 import { PlusCircle } from "react-bootstrap-icons";
 import { toast } from "react-toastify";
+import { formatCurrency } from "@/Utils/helpers";
+
 import ErpLayout from "@/Layouts/ErpLayout";
 import RepairServiceModal from "@/Components/Modals/RepairServiceModal";
 import Swal from "sweetalert2";
 import xios from "@/Utils/axios";
-import useFilterOptions from "@/Hooks/useData";
-import { formatCurrency } from "@/Utils/helpers";
+import useData from "@/Hooks/useData";
 
 export default function RepairServices() {
     const [showModal, setShowModal] = useState(false);
     const [currentService, setCurrentService] = useState(null);
-    const { deviceTypes } = useFilterOptions();
+    
+    const { deviceTypes } = useData();
 
     const initializeDataTable = useCallback(() => {
         if ($.fn.DataTable.isDataTable("#repairServicesTable")) {
@@ -35,20 +28,44 @@ export default function RepairServices() {
             ajax: {
                 url: route("repair-service.index"),
                 type: "GET",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                },
             },
             columns: [
-                { data: "name", title: "Service Name" },
+                {
+                    data: "name",
+                    name: "name",
+                    title: "Service Name",
+                },
                 {
                     data: "base_price",
+                    name: "base_price",
                     title: "Base Price",
                     render: function (data) {
                         return formatCurrency(data) || "0";
                     },
                 },
-                { data: "orders_count", title: "Orders" },
-                { data: "status", title: "Status" },
-                { data: "action", title: "Actions" },
+                // {
+                //     data: "orders_count",
+                //     name: "orders_count",
+                //     title: "Orders",
+                // },
+                {
+                    data: "status",
+                    name: "status",
+                    title: "Status",
+                },
+                {
+                    data: "action",
+                    name: "action",
+                    title: "Actions",
+                    orderable: false,
+                    searchable: false,
+                    width: "10%",
+                },
             ],
+            order: [[0, "desc"]],
             drawCallback: () => {
                 $(".edit-btn")
                     .off("click")
@@ -98,7 +115,6 @@ export default function RepairServices() {
                 toast.error(response.data.message);
             }
         } catch (error) {
-            console.log(error);
             toast.error(error.response?.data?.message || "An error occurred");
         }
     };
@@ -141,45 +157,34 @@ export default function RepairServices() {
         <ErpLayout>
             <Head title="Repair Services Management" />
 
-            <Container fluid>
-                <Row className="g-3">
-                    <Col
-                        md={12}
-                        className="d-flex justify-content-between align-items-center"
-                    >
-                        <h2 className="mb-0">Repair Services</h2>
-                        <ButtonGroup>
-                            <Button
-                                variant="primary"
-                                onClick={handleCreate}
-                                className="d-flex align-items-center gap-2"
-                            >
-                                <PlusCircle size={18} />
-                                Add New Service
-                            </Button>
-                        </ButtonGroup>
-                    </Col>
-
-                    <Col md={12}>
-                        <hr className="dashed-hr" />
-                    </Col>
-
-                    <Col md={12}>
-                        <Card>
-                            <Card.Body>
-                                <Table
-                                    bordered
-                                    striped
-                                    hover
-                                    responsive
-                                    id="repairServicesTable"
-                                    className="w-100"
-                                />
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-            </Container>
+            <Card className="border-0 rounded-0 shadow-sm">
+                <Card.Header className="d-flex justify-content-between align-items-center bg-transparent">
+                    <h6 className="mb-0 fw-semibold">
+                        Repair Services Management
+                    </h6>
+                    <ButtonGroup>
+                        <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="rounded-1 d-flex align-items-center"
+                            onClick={handleCreate}
+                        >
+                            <PlusCircle className="me-1" />
+                            New Service
+                        </Button>
+                    </ButtonGroup>
+                </Card.Header>
+                <Card.Body className="px-0">
+                    <Table
+                        bordered
+                        striped
+                        hover
+                        responsive
+                        id="repairServicesTable"
+                        className="w-100"
+                    />
+                </Card.Body>
+            </Card>
 
             <RepairServiceModal
                 show={showModal}

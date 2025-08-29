@@ -1,17 +1,9 @@
 import { Head } from "@inertiajs/react";
 import { useCallback, useEffect, useState } from "react";
-import {
-    Container,
-    Row,
-    Col,
-    Button,
-    Card,
-    ButtonGroup,
-    Table,
-    Badge,
-} from "react-bootstrap";
+import { Button, Card, ButtonGroup, Table, Badge } from "react-bootstrap";
 import { PlusCircle } from "react-bootstrap-icons";
 import { toast } from "react-toastify";
+
 import ErpLayout from "@/Layouts/ErpLayout";
 import DeviceTypeModal from "@/Components/Modals/DeviceTypeModal";
 import Swal from "sweetalert2";
@@ -33,14 +25,41 @@ export default function DeviceTypes() {
             ajax: {
                 url: route("device-type.index"),
                 type: "GET",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                },
             },
             columns: [
-                { data: "name", title: "Device Type" },
-                { data: "parent_name", title: "Parent Category" },
-                { data: "repair_services_count", title: "Services" },
-                { data: "orders_count", title: "Orders" },
-                { data: "action", title: "Action" },
+                {
+                    data: "name",
+                    name: "name",
+                    title: "Device Type",
+                },
+                {
+                    data: "parent_name",
+                    name: "parent_name",
+                    title: "Parent Category",
+                },
+                // {
+                //     data: "repair_services_count",
+                //     name: "repair_services_count",
+                //     title: "Services",
+                // },
+                // {
+                //     data: "orders_count",
+                //     name: "orders_count",
+                //     title: "Orders",
+                // },
+                {
+                    data: "action",
+                    name: "action",
+                    title: "Actions",
+                    orderable: false,
+                    searchable: false,
+                    width: "10%",
+                },
             ],
+            order: [[0, "desc"]],
             drawCallback: () => {
                 $(".edit-btn")
                     .off("click")
@@ -61,12 +80,13 @@ export default function DeviceTypes() {
 
     useEffect(() => {
         initializeDataTable();
+
         // // Fetch parent device types for the modal
-        // xios.get(route('device-type.parents'))
-        //     .then(response => {
+        // xios.get(route("device-type.parents"))
+        //     .then((response) => {
         //         setParentDeviceTypes(response.data.data || []);
         //     })
-        //     .catch(error => {
+        //     .catch((error) => {
         //         console.error("Failed to fetch parent device types:", error);
         //     });
     }, [initializeDataTable]);
@@ -98,7 +118,6 @@ export default function DeviceTypes() {
                 toast.error(response.data.message);
             }
         } catch (error) {
-            console.log(error);
             toast.error(error.response?.data?.message || "An error occurred");
         }
     };
@@ -148,45 +167,34 @@ export default function DeviceTypes() {
         <ErpLayout>
             <Head title="Device Types Management" />
 
-            <Container fluid>
-                <Row className="g-3">
-                    <Col
-                        md={12}
-                        className="d-flex justify-content-between align-items-center"
-                    >
-                        <h2 className="mb-0">Device Types</h2>
-                        <ButtonGroup>
-                            <Button
-                                variant="primary"
-                                onClick={handleCreate}
-                                className="d-flex align-items-center gap-2"
-                            >
-                                <PlusCircle size={18} />
-                                Add New Device Type
-                            </Button>
-                        </ButtonGroup>
-                    </Col>
-
-                    <Col md={12}>
-                        <hr className="dashed-hr" />
-                    </Col>
-
-                    <Col md={12}>
-                        <Card>
-                            <Card.Body>
-                                <Table
-                                    bordered
-                                    striped
-                                    hover
-                                    responsive
-                                    id="deviceTypesTable"
-                                    className="w-100"
-                                />
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-            </Container>
+            <Card className="border-0 rounded-0 shadow-sm">
+                <Card.Header className="d-flex justify-content-between align-items-center bg-transparent">
+                    <h6 className="mb-0 fw-semibold">
+                        Device Types Management
+                    </h6>
+                    <ButtonGroup>
+                        <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="rounded-1 d-flex align-items-center"
+                            onClick={handleCreate}
+                        >
+                            <PlusCircle className="me-1" />
+                            New Device Type
+                        </Button>
+                    </ButtonGroup>
+                </Card.Header>
+                <Card.Body className="px-0">
+                    <Table
+                        bordered
+                        striped
+                        hover
+                        responsive
+                        id="deviceTypesTable"
+                        className="w-100"
+                    />
+                </Card.Body>
+            </Card>
 
             <DeviceTypeModal
                 show={showModal}

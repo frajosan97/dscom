@@ -13,8 +13,8 @@ export default function ContactInfoBar() {
         {
             icon: <FaPhone size={24} />,
             title: "Call Us",
-            info: "+243 (894) 779-059",
-            link: "tel:+243894779059",
+            info: "+243 (827) 306-680",
+            link: "tel:+243827306680",
             color: "primary",
         },
         {

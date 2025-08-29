@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Payment extends Model
 {
@@ -25,7 +26,7 @@ class Payment extends Model
         'gateway_response',
         'gateway_parameters',
         'metadata',
-        'paid_at'
+        'paid_at',
     ];
 
     protected $casts = [
@@ -33,25 +34,37 @@ class Payment extends Model
         'fee' => 'decimal:2',
         'gateway_parameters' => 'array',
         'metadata' => 'array',
-        'paid_at' => 'datetime'
+        'paid_at' => 'datetime',
     ];
 
-    public function branch()
+    /**
+     * Get the branch that owns the payment.
+     */
+    public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
     }
 
-    public function order()
+    /**
+     * Get the order that owns the payment.
+     */
+    public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
     }
 
-    public function user()
+    /**
+     * Get the user that owns the payment.
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function paymentMethod()
+    /**
+     * Get the payment method that owns the payment.
+     */
+    public function paymentMethod(): BelongsTo
     {
         return $this->belongsTo(PaymentMethod::class);
     }

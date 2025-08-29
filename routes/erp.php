@@ -8,6 +8,7 @@ use App\Http\Controllers\Erp\Hrm\SalaryController;
 use App\Http\Controllers\Erp\Product\ProductController;
 use App\Http\Controllers\Erp\Product\SaleController;
 use App\Http\Controllers\Erp\Service\DeviceTypeController;
+use App\Http\Controllers\Erp\Service\RepairOrderController;
 use App\Http\Controllers\Erp\Service\RepairServiceController;
 use App\Http\Controllers\Erp\Service\ServiceController;
 use App\Http\Controllers\Erp\Setting\BranchController;
@@ -45,37 +46,41 @@ Route::middleware(['auth', 'verified'])->group(function () {
     */
     Route::prefix('settings')->group(function () {
         Route::resources([
-            'branch'         => BranchController::class,
-            'warehouse'      => WarehouseController::class,
+            'branch' => BranchController::class,
+            'warehouse' => WarehouseController::class,
             'payment-method' => PaymentMethodController::class,
-            'category'       => CategoryController::class,
-            'brand'          => BrandController::class,
-            'slider'         => SliderController::class,
-            'slider-item'    => SliderItemController::class,
+            'category' => CategoryController::class,
+            'brand' => BrandController::class,
+            'slider' => SliderController::class,
+            'slider-item' => SliderItemController::class,
         ]);
     });
 
-    Route::prefix('product')->group(function () {
+    Route::prefix('store')->group(function () {
         Route::resources([
             'product' => ProductController::class,
-            'sales'   => SaleController::class,
+            'sales' => SaleController::class,
         ]);
     });
 
     Route::prefix('service')->group(function () {
         Route::resources([
-            'services'       => ServiceController::class,
-            // 'device-type'    => DeviceTypeController::class,
-            // 'repair-service' => RepairServiceController::class,
+            'device-type' => DeviceTypeController::class,
+            'repair-service' => RepairServiceController::class,
+            'repair-orders' => RepairOrderController::class,
         ]);
+
+        // assign technician
+        Route::get('assign-technician', [RepairOrderController::class, 'assign'])->name('repair-orders.assign-technician');
+        Route::post('assign-technician', [RepairOrderController::class, 'assignStore'])->name('repair-orders.assign-technician');
     });
 
     Route::prefix('hrm')->group(function () {
         Route::resources([
-            'employee'   => EmployeeController::class,
+            'employee' => EmployeeController::class,
             'attendance' => AttendanceController::class,
-            'salary'     => SalaryController::class,
-            'customers'  => CustomerController::class,
+            'salary' => SalaryController::class,
+            'customers' => CustomerController::class,
         ]);
     });
 });

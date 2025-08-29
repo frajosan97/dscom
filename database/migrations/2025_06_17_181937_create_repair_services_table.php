@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -88,7 +87,7 @@ return new class extends Migration
             $table->id();
             $table->string('order_number')->unique();
             $table->string('invoice_number')->nullable()->unique();
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('customer_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('branch_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('repair_service_id')->constrained()->onDelete('cascade');
             $table->foreignId('device_type_id')->constrained('repair_service_device_types')->onDelete('cascade');
@@ -136,12 +135,6 @@ return new class extends Migration
             $table->integer('customer_rating')->nullable();
             $table->timestamps();
             $table->softDeletes();
-
-            // Indexes
-            $table->index(['order_number', 'status']);
-            $table->index(['user_id', 'created_at']);
-            $table->index(['assigned_technician_id', 'status']);
-            $table->index('created_at');
         });
 
         // Repair Order Status History - Enhanced Tracking
@@ -239,6 +232,66 @@ return new class extends Migration
             // Indexes
             $table->index(['repair_order_id', 'is_completed']);
         });
+
+        // Repair Order Complaints Table
+        Schema::create('repair_order_complaints', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+            $table->text('complaint');
+            $table->text('remarks')->nullable();
+            $table->timestamps();
+        });
+
+        // Repair Order Initial Checks Table
+        Schema::create('repair_order_initial_checks', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+            $table->boolean('power_on')->default(false);
+            $table->string('visible_damage')->nullable();
+            $table->boolean('buttons_working')->default(true);
+            $table->string('screen_condition')->nullable();
+            $table->string('battery_condition')->nullable();
+            $table->text('other_notes')->nullable();
+            $table->timestamps();
+        });
+
+        // Repair Order Physical Conditions Table
+        Schema::create('repair_order_physical_conditions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+            $table->string('screen_condition')->nullable();
+            $table->string('body_condition')->nullable();
+            $table->string('ports_condition')->nullable();
+            $table->string('buttons_condition')->nullable();
+            $table->text('accessories_included')->nullable();
+            $table->text('additional_notes')->nullable();
+            $table->timestamps();
+        });
+
+        // Repair Order Risk Agreements Table
+        Schema::create('repair_order_risk_agreements', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+            $table->boolean('data_loss_accepted')->default(false);
+            $table->boolean('further_damage_accepted')->default(false);
+            $table->boolean('parts_replacement_accepted')->default(false);
+            $table->boolean('diagnostic_fee_accepted')->default(false);
+            $table->boolean('terms_accepted')->default(false);
+            $table->timestamp('signed_at')->nullable();
+            $table->text('customer_signature')->nullable(); // Could store signature data or image path
+            $table->timestamps();
+        });
+
+        // Repair Order Accessories Table
+        Schema::create('repair_order_accessories', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+            $table->string('name');
+            $table->integer('quantity')->default(1);
+            $table->string('condition')->nullable();
+            $table->text('notes')->nullable();
+            $table->timestamps();
+        });
     }
 
     /**
@@ -246,6 +299,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('repair_order_accessories');
+        Schema::dropIfExists('repair_order_risk_agreements');
+        Schema::dropIfExists('repair_order_physical_conditions');
+        Schema::dropIfExists('repair_order_initial_checks');
+        Schema::dropIfExists('repair_order_complaints');
         Schema::dropIfExists('repair_order_checklists');
         Schema::dropIfExists('repair_checklist_items');
         Schema::dropIfExists('repair_checklists');

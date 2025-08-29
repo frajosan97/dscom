@@ -2,58 +2,84 @@
 
 namespace App\Http\Requests\Sale;
 
-use App\Http\Requests\Sale\StoreRequest;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class UpdateRequest extends StoreRequest
+class UpdateRequest extends FormRequest
 {
+    /**
+     * Determine if the user is authorized to make this request.
+     */
     public function authorize(): bool
     {
-        return true; // Allow updates
+        return true;
     }
 
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
-        $rules = parent::rules();
-
-        // Make certain fields optional for updates
-        $optionalFields = [
-            'date',
-            'reference',
-            'customer_id',
-            'status',
-            'fulfillment_status',
-            'payment_status',
-            'payment_date',
-            'items'
+        return [
+            'date' => 'sometimes|required|date',
+            'customer' => 'sometimes|required|exists:users,id',
+            'cartItems' => 'sometimes|required|array',
+            'paymentData' => 'sometimes|required|array',
+            'branch_id' => 'nullable|exists:branches,id',
+            'customer_note' => 'nullable|string',
+            'payment_method_id' => 'nullable|exists:payment_methods,id',
+            'shipping_method_id' => 'nullable|exists:shipping_methods,id',
+            'shipping_cost' => 'nullable|numeric|min:0',
+            'tax' => 'nullable|numeric|min:0',
+            'status' => 'sometimes|in:pending,confirmed,processing,shipped,delivered,cancelled,refunded,partially_refunded,on_hold,failed,completed',
+            'payment_status' => 'sometimes|in:pending,paid,failed,partially_paid,refunded',
         ];
+    }
 
-        foreach ($optionalFields as $field) {
-            if (isset($rules[$field])) {
-                $rules[$field] = str_replace('required|', 'sometimes|required|', $rules[$field]);
-            }
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        // Decode JSON strings to arrays if they exist
+        if ($this->has('cartItems')) {
+            $this->merge([
+                'cartItems' => json_decode($this->cartItems, true),
+            ]);
         }
 
-        // Additional update-specific rules
-        $rules['items'] = 'sometimes|array|min:1'; // Items are optional during update
-        $rules['total_paid'] = 'sometimes|required|numeric|min:0|lte:total'; // Paid can't exceed total
-
-        return $rules;
+        if ($this->has('paymentData')) {
+            $this->merge([
+                'paymentData' => json_decode($this->paymentData, true),
+            ]);
+        }
     }
 
-    public function messages()
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
     {
-        return array_merge(parent::messages(), [
-            // Update-specific messages
-            'total_paid.lte' => 'Paid amount cannot exceed the total order amount.',
-        ]);
+        return [
+            'cartItems.required' => 'Cart items are required',
+            'cartItems.json' => 'Cart items must be valid JSON',
+            'paymentData.required' => 'Payment data is required',
+            'paymentData.json' => 'Payment data must be valid JSON',
+            'customer.exists' => 'The selected customer does not exist',
+        ];
     }
 
-    public function withValidator($validator)
+    /**
+     * Get custom attributes for validator errors.
+     */
+    public function attributes(): array
     {
-        parent::withValidator($validator);
-
-        $validator->after(function ($validator) {
-            // Additional update validation if needed
-        });
+        return [
+            'customer' => 'customer',
+            'cartItems' => 'cart items',
+            'paymentData' => 'payment data',
+        ];
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Requests\Setting\Slider\StoreRequest;
 use App\Http\Requests\Setting\Slider\UpdateRequest;
 use App\Models\Slider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -54,9 +55,10 @@ class SliderController extends Controller
                 'slider' => $slider
             ]);
         } catch (\Exception $e) {
+            Log::info($e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to create slider. Please try again.'
+                'error' => 'Failed to create slider.' . $e->getMessage()
             ], 500);
         }
     }
@@ -65,7 +67,7 @@ class SliderController extends Controller
     {
         try {
             $slider->load('items');
-            
+
             return response()->json([
                 'success' => true,
                 'slider' => $slider

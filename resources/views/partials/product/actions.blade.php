@@ -1,5 +1,9 @@
-<div class="btn-group gap-2 w-100 text-end">
-    <a class="btn btn-outline-danger text-nowrap rounded" href="{{ route('product.show', $row->id) }}">
-        <i class="bi bi-briefcase me-1"></i> Manage
+<div class="btn-group float-end text-end gap-2">
+    <a class="btn btn-sm p-0 px-1 btn-outline-primary text-nowrap rounded-0"
+        href="{{ route('product.edit', $row->id) }}">
+        <i class="bi bi-eye"></i>
     </a>
+    <button class="btn btn-sm p-0 px-1 btn-outline-danger text-nowrap rounded-0" data-id="{{ $row->id }}">
+        <i class="bi bi-trash"></i>
+    </button>
 </div>

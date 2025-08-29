@@ -1,17 +1,21 @@
 import React from "react";
 import { Modal, Form, Button, Row, Col, Tab, Nav } from "react-bootstrap";
 import { useFormik } from "formik";
+import { toast } from "react-toastify";
+
 import * as Yup from "yup";
 import xios from "@/Utils/axios";
+import useData from "@/Hooks/useData";
 
 export default function RepairServiceModal({
     show,
     onHide,
-    service,
-    deviceTypes,
     onSuccess,
+    service,
 }) {
     const isEditMode = !!service;
+
+    const { deviceTypes } = useData();
 
     const validationSchema = Yup.object().shape({
         name: Yup.string().required("Name is required"),
@@ -90,26 +94,20 @@ export default function RepairServiceModal({
                 const response = await xios.post(postRoute, values);
 
                 if (response.data.success === true) {
-                    onSuccess(response.data.message);
-                    onHide();
-                }
-            } catch (error) {
-                if (error.response?.data?.errors) {
-                    setErrors(error.response.data.errors);
+                    toast.success(response.data.message);
+                    onSuccess();
                 } else {
-                    //
+                    toast.error(response.data.message);
                 }
+                onHide();
+            } catch (error) {
+                console.log(error);
+                toast.error(error.response.data.message);
             } finally {
                 setSubmitting(false);
             }
         },
     });
-
-    const handleDeviceTypeChange = (index, field, value) => {
-        const updatedDeviceTypes = [...formik.values.device_types];
-        updatedDeviceTypes[index][field] = value;
-        formik.setFieldValue("device_types", updatedDeviceTypes);
-    };
 
     return (
         <Modal show={show} onHide={onHide} size="xl" centered backdrop="static">

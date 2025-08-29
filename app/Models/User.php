@@ -77,11 +77,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'longitude' => 'decimal:7',
     ];
 
-    /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array<int, string>
-     */
     protected $appends = [
         'full_name',
         'avatar_url',

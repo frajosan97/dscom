@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ShippingMethod extends Model
 {
@@ -26,20 +27,23 @@ class ShippingMethod extends Model
         'supported_countries',
         'supported_states',
         'is_active',
-        'order'
+        'order',
     ];
 
     protected $casts = [
+        'base_cost' => 'decimal:2',
+        'free_shipping_threshold' => 'decimal:2',
+        'is_free' => 'boolean',
         'configuration' => 'array',
         'supported_countries' => 'array',
         'supported_states' => 'array',
-        'is_free' => 'boolean',
         'is_active' => 'boolean',
-        'base_cost' => 'decimal:2',
-        'free_shipping_threshold' => 'decimal:2'
     ];
 
-    public function orders()
+    /**
+     * Get the orders that use this shipping method.
+     */
+    public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
     }

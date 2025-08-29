@@ -15,14 +15,12 @@ class RepairServiceController extends Controller
     public function index(Request $request)
     {
         if ($request->has('draw')) {
-            $services = RepairService::query()
-                ->withoutTrashed()
-                ->withCount('orders');
+            $services = RepairService::query();
 
             return datatables()->of($services)
                 ->addColumn('name', fn($row) => $row->name ?? 'N/A')
                 ->addColumn('base_price', fn($row) => number_format($row->base_price, 2))
-                ->addColumn('orders_count', fn($row) => $row->orders_count)
+                // ->addColumn('orders_count', fn($row) => $row->orders_count)
                 ->addColumn('status', function ($row) {
                     return view('partials.settings.status', compact('row'))->render();
                 })
@@ -39,13 +37,14 @@ class RepairServiceController extends Controller
     public function store(StoreRequest $request)
     {
         DB::beginTransaction();
+
         try {
             $service = RepairService::create($request->validated());
 
-            // Sync device types and pricing
-            if ($request->has('device_types')) {
-                $this->syncDeviceTypes($service, $request->device_types);
-            }
+            // // Sync device types and pricing
+            // if ($request->has('device_types')) {
+            //     $this->syncDeviceTypes($service, $request->device_types);
+            // }
 
             DB::commit();
 
@@ -83,6 +82,7 @@ class RepairServiceController extends Controller
     public function update(UpdateRequest $request, RepairService $repairService)
     {
         DB::beginTransaction();
+
         try {
             $repairService->update($request->validated());
 
@@ -109,6 +109,7 @@ class RepairServiceController extends Controller
     public function destroy(RepairService $repairService)
     {
         DB::beginTransaction();
+
         try {
             // Prevent deletion if there are orders
             if ($repairService->orders()->exists()) {
@@ -145,6 +146,6 @@ class RepairServiceController extends Controller
             ];
         }
 
-        $service->deviceTypes()->sync($syncData);
+        return $service->deviceTypes()->sync($syncData);
     }
 }

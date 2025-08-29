@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, Card, ButtonGroup, Table } from "react-bootstrap";
 import { FiPlusSquare } from "react-icons/fi";
 import { toast } from "react-toastify";
-import { router } from "@inertiajs/react";
 
 import xios from "@/Utils/axios";
 import Swal from "sweetalert2";
@@ -12,7 +11,7 @@ import SliderModal from "@/Components/Modals/SliderModal";
 const initialFormData = () => ({
     id: "",
     name: "",
-    type: "",
+    type: "default",
     description: "",
     is_active: false,
     start_date: "",
@@ -234,8 +233,8 @@ export default function SlidesTable({ showSlider, onSuccess }) {
                 setShowModal(false);
                 reloadTable();
             }
-        } catch (err) {
-            toast.error("An error occurred while processing the request.");
+        } catch (error) {
+            toast.error(error?.response?.data?.message);
         } finally {
             setIsSubmitting(false);
         }

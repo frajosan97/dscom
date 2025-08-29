@@ -9,6 +9,7 @@ use Illuminate\Validation\Rule;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\File;
+use Carbon\Carbon;
 
 class StoreRequest extends FormRequest
 {
@@ -31,6 +32,7 @@ class StoreRequest extends FormRequest
             'phone' => 'required|string|max:20|unique:users,phone',
             'username' => 'nullable|string|max:255|min:3|unique:users,username',
             'password' => 'nullable|string|min:6|confirmed',
+            'password_confirmation' => 'required_with:password|same:password',
             'gender' => 'required|in:Male,Female',
             'age' => 'nullable|integer|min:18|max:70',
             'qualification' => 'nullable|string|max:255',
@@ -39,11 +41,11 @@ class StoreRequest extends FormRequest
             'salary' => 'nullable|numeric|min:0',
             'bloodGroup' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
             'role' => 'required|string|in:admin,manager,technician,receptionist,supervisor,sales',
-            'endingDate' => 'required|date|after:today',
+            'endingDate' => 'nullable|date|after_or_equal:today',
             'openingBalance' => 'nullable|numeric|min:0',
             'address' => 'nullable|string|max:500',
             'description' => 'nullable|string|max:1000',
-            'status' => 'required|in:Enable,Disable',
+            'status' => 'required',
 
             'profileImage' => [
                 'nullable',
@@ -68,15 +70,15 @@ class StoreRequest extends FormRequest
     /**
      * Prepare the data for validation.
      */
-    protected function prepareForValidation()
+    protected function prepareForValidation(): void
     {
         $this->merge([
             'first_name' => $this->extractFirstName(),
             'last_name' => $this->extractLastName(),
             'email' => $this->getValidatedEmail(),
             'phone' => $this->getValidatedPhone(),
-            'password' => $this->generatePassword(),
             'status' => $this->status === 'Enable' ? 'active' : 'inactive',
+            'endingDate' => $this->endingDate ?? Carbon::now()->addYear()->format('Y-m-d'),
         ]);
     }
 
@@ -140,18 +142,6 @@ class StoreRequest extends FormRequest
     }
 
     /**
-     * Generate random password if not provided
-     */
-    protected function generatePassword(): string
-    {
-        if ($this->password) {
-            return Hash::make($this->password);
-        }
-
-        return Hash::make(Str::random(10));
-    }
-
-    /**
      * Handle file uploads
      */
     protected function handleFileUploads(): array
@@ -200,6 +190,8 @@ class StoreRequest extends FormRequest
             'username.unique' => 'This username is already taken',
             'password.min' => 'Password must be at least 6 characters',
             'password.confirmed' => 'Password confirmation does not match',
+            'password_confirmation.same' => 'Password confirmation does not match',
+            'password_confirmation.required_with' => 'Password confirmation is required',
             'age.min' => 'Employee must be at least 18 years old',
             'age.max' => 'Employee cannot be older than 70 years',
             'salary.min' => 'Salary cannot be negative',
@@ -207,13 +199,13 @@ class StoreRequest extends FormRequest
             'bloodGroup.in' => 'Please select a valid blood group',
             'role.required' => 'Role is required',
             'role.in' => 'Please select a valid role',
-            'endingDate.required' => 'Ending date is required',
-            'endingDate.after' => 'Ending date must be in the future',
+            'endingDate.after_or_equal' => 'Ending date must be today or in the future',
             'openingBalance.min' => 'Opening balance cannot be negative',
             'profileImage.max' => 'Profile image must not exceed 5MB',
             'profileImage.mimes' => 'Profile image must be a JPEG, PNG, or GIF file',
             'idCard.max' => 'ID card must not exceed 10MB',
             'document.max' => 'Document must not exceed 10MB',
+            'status.in' => 'Status must be either Enable or Disable',
         ];
     }
 
@@ -230,6 +222,7 @@ class StoreRequest extends FormRequest
             'bloodGroup' => 'blood group',
             'openingBalance' => 'opening balance',
             'endingDate' => 'ending date',
+            'password_confirmation' => 'confirm password',
         ];
     }
 
@@ -243,13 +236,16 @@ class StoreRequest extends FormRequest
         // Handle file uploads
         $filePaths = $this->handleFileUploads();
 
+        // Handle password hashing
+        $password = $this->password ? Hash::make($this->password) : Hash::make(Str::random(10));
+
         // Merge all data for database insertion
         return array_merge($validated, [
             'first_name' => $this->extractFirstName(),
             'last_name' => $this->extractLastName(),
             'email' => $this->getValidatedEmail(),
             'phone' => $this->getValidatedPhone(),
-            'password' => $this->generatePassword(),
+            'password' => $password,
             'status' => $this->status === 'Enable' ? 'active' : 'inactive',
             'salary_type' => $this->salaryType,
             'blood_group' => $this->bloodGroup,
@@ -261,7 +257,7 @@ class StoreRequest extends FormRequest
     /**
      * Configure the validator instance.
      */
-    protected function withValidator($validator)
+    protected function withValidator($validator): void
     {
         $validator->after(function ($validator) {
             // Additional validation for username/password combination

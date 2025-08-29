@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Coupon extends Model
 {
@@ -28,33 +30,40 @@ class Coupon extends Model
         'excluded_product_ids',
         'category_ids',
         'apply_to_all_customers',
-        'customer_ids'
+        'customer_ids',
     ];
 
     protected $casts = [
+        'value' => 'decimal:2',
+        'min_order_amount' => 'decimal:2',
+        'max_discount_amount' => 'decimal:2',
         'start_date' => 'datetime',
         'end_date' => 'datetime',
         'is_active' => 'boolean',
+        'usage_count' => 'integer',
         'apply_to_all_products' => 'boolean',
-        'apply_to_all_customers' => 'boolean',
         'product_ids' => 'array',
         'excluded_product_ids' => 'array',
         'category_ids' => 'array',
+        'apply_to_all_customers' => 'boolean',
         'customer_ids' => 'array',
-        'value' => 'decimal:2',
-        'min_order_amount' => 'decimal:2',
-        'max_discount_amount' => 'decimal:2'
     ];
 
-    public function orders()
+    /**
+     * The users that have used this coupon.
+     */
+    public function users(): BelongsToMany
     {
-        return $this->hasMany(Order::class);
-    }
-
-    public function users()
-    {
-        return $this->belongsToMany(User::class)
+        return $this->belongsToMany(User::class, 'coupon_user')
             ->withPivot('usage_count')
             ->withTimestamps();
+    }
+
+    /**
+     * Get the orders that used this coupon.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
     }
 }

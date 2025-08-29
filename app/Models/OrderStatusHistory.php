@@ -2,33 +2,38 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class OrderStatusHistory extends Model
 {
     use HasFactory;
-
-    protected $table = 'order_status_history';
 
     protected $fillable = [
         'order_id',
         'user_id',
         'status',
         'notes',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
 
-    public function order()
+    /**
+     * Get the order that owns the status history.
+     */
+    public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
     }
 
-    public function user()
+    /**
+     * Get the user that owns the status history.
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

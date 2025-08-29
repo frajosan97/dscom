@@ -8,11 +8,6 @@ export default function ErpHeader() {
 
     // Permission checks
     const canViewServices = hasPermission("view services") || hasRole("admin");
-    const canViewStore = hasPermission("view store") || hasRole("admin");
-    const canViewAccounts = hasPermission("view accounts") || hasRole("admin");
-    const canViewHR = hasPermission("view hr") || hasRole("admin");
-    const canViewReports = hasPermission("view reports") || hasRole("admin");
-    const canViewSettings = hasRole("admin");
 
     const baseItems = [
         {
@@ -24,67 +19,11 @@ export default function ErpHeader() {
     ];
 
     const menuItems = [
-        // {
-        //     label: "Store",
-        //     icon: "bi bi-shop",
-        //     show: canViewStore,
-        //     children: [
-        //         {
-        //             path: route("category.index"),
-        //             icon: "bi bi-journal-plus",
-        //             label: "Catalogue",
-        //             show: hasPermission("view categories"),
-        //         },
-        //         {
-        //             path: route("brand.index"),
-        //             icon: "bi bi-journal-plus",
-        //             label: "Brands",
-        //             show: hasPermission("view brands"),
-        //         },
-        //         {
-        //             path: route("product.index"),
-        //             icon: "bi bi-box-seam",
-        //             label: "Products",
-        //             show: hasPermission("view products"),
-        //         },
-        //     ].filter((item) => item.show),
-        // },
-        // {
-        //     label: "Sales/Orders",
-        //     icon: "bi bi-shop",
-        //     show: true,
-        //     children: [
-        //         {
-        //             path: route("sales.index"),
-        //             icon: "bi bi-journal-plus",
-        //             label: "Sales History",
-        //             show: true,
-        //         },
-        //         {
-        //             path: route("sales.create"),
-        //             icon: "bi bi-journal-plus",
-        //             label: "New Sale",
-        //             show: true,
-        //         },
-        //     ].filter((item) => item.show),
-        // },
         {
             label: "Services",
             icon: "bi bi-tools",
             show: canViewServices,
             children: [
-                // {
-                //     path: route("services.create"),
-                //     icon: "bi bi-person-gear",
-                //     label: "Service Request Entry",
-                //     show: true,
-                // },
-                // {
-                //     path: route("services.index"),
-                //     icon: "bi bi-person-gear",
-                //     label: "All Services",
-                //     show: true,
-                // },
                 {
                     path: "#/services/assign-technician",
                     icon: "bi bi-person-gear",
@@ -245,31 +184,6 @@ export default function ErpHeader() {
         //         },
         //     ].filter((item) => item.show),
         // },
-        {
-            label: "HR Management",
-            icon: "bi bi-people",
-            show: true,
-            children: [
-                {
-                    path: route("employee.index"),
-                    icon: "bi bi-person-gear",
-                    label: "User Management",
-                    show: true,
-                },
-                {
-                    path: route("attendance.index"),
-                    icon: "bi bi-calendar-check",
-                    label: "Attendance",
-                    show: true,
-                },
-                {
-                    path: route("salary.index"),
-                    icon: "bi bi-calendar-check",
-                    label: "Salary Payment",
-                    show: true,
-                },
-            ].filter((item) => item.show),
-        },
         // {
         //     label: "Reports",
         //     icon: "bi bi-file-earmark-bar-graph",
@@ -302,49 +216,6 @@ export default function ErpHeader() {
         //         },
         //     ].filter((item) => item.show),
         // },
-        {
-            label: "Settings",
-            icon: "bi bi-gear",
-            show: canViewSettings,
-            children: [
-                {
-                    path: route("slider.index"),
-                    icon: "bi bi-journal-plus",
-                    label: "Slides Management",
-                    show: true,
-                },
-                {
-                    path: route("branch.index"),
-                    icon: "bi bi-journal-plus",
-                    label: "Branches",
-                    show: true,
-                },
-                {
-                    path: route("warehouse.index"),
-                    icon: "bi bi-journal-plus",
-                    label: "Ware Houses",
-                    show: true,
-                },
-                {
-                    path: route("payment-method.index"),
-                    icon: "bi bi-journal-plus",
-                    label: "Payment Methods",
-                    show: true,
-                },
-                {
-                    path: route("device-type.index"),
-                    icon: "bi bi-journal-plus",
-                    label: "Device Types",
-                    show: true,
-                },
-                {
-                    path: route("repair-service.index"),
-                    icon: "bi bi-journal-plus",
-                    label: "Services List",
-                    show: true,
-                },
-            ].filter((item) => item.show),
-        },
     ];
 
     const navItems = [

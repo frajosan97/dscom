@@ -15,15 +15,15 @@ class StoreRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'type' => 'nullable|string|in:default,hero,banner,testimonial,gallery',
+            'type' => 'nullable|string',
             'is_active' => 'required|boolean',
             'autoplay' => 'required|boolean',
             'arrows' => 'required|boolean',
             'dots' => 'required|boolean',
             'infinite' => 'required|boolean',
-            'autoplay_speed' => 'required|integer|min:1000',
-            'slides_to_show' => 'required|integer|min:1',
-            'slides_to_scroll' => 'required|integer|min:1',
+            'autoplay_speed' => 'nullable|integer|min:1000',
+            'slides_to_show' => 'nullable|integer|min:1',
+            'slides_to_scroll' => 'nullable|integer|min:1',
             'breakpoints' => 'nullable|json',
             'custom_settings' => 'nullable|json',
         ];

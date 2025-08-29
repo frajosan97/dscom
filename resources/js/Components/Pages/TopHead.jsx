@@ -14,11 +14,8 @@ import {
     Bell,
     Grid,
     ChevronDown,
-    Maximize2,
     LogOut,
     User as UserIcon,
-    Lock,
-    Users,
     Phone,
 } from "react-feather";
 import { router, usePage } from "@inertiajs/react";
@@ -221,7 +218,7 @@ const UserProfileDropdown = ({ user }) => (
 
 const ContactSupport = () => (
     <a
-        href="tel:+243894779059"
+        href="tel:+243827306680"
         className="d-none d-lg-flex align-items-center contact-info text-decoration-none"
     >
         <div className="contact-icon">
@@ -229,7 +226,7 @@ const ContactSupport = () => (
         </div>
         <div className="ms-2">
             <div className="small text-muted">24/7 Support</div>
-            <div className="fw-semibold">+243 (894) 779-059</div>
+            <div className="fw-semibold">+243 (827) 306-680</div>
         </div>
     </a>
 );
