@@ -3,6 +3,7 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
 import xios from "@/Utils/axios";
+import { router } from "@inertiajs/react";
 
 const validationSchema = Yup.object().shape({
     name: Yup.string()
@@ -19,7 +20,7 @@ const validationSchema = Yup.object().shape({
     address: Yup.string().max(500, "Address must not exceed 500 characters"),
 });
 
-export default function CustomerModal({ show, onClose, onCustomerAdded }) {
+export default function CustomerModal({ show, onClose }) {
     const formik = useFormik({
         initialValues: {
             name: "",
@@ -38,9 +39,8 @@ export default function CustomerModal({ show, onClose, onCustomerAdded }) {
 
                 if (response.data.success) {
                     toast.success("Customer added successfully.");
-                    resetForm();
                     onClose();
-                    onCustomerAdded();
+                    router.reload();
                 }
             } catch (error) {
                 if (error.response && error.response.data.errors) {

@@ -25,15 +25,7 @@ const JobDetails = ({ jobDetailsData, setJobDetailsData, errors = {} }) => {
             (opt) => opt.value === jobDetailsData.repair_service_id
         );
 
-        return (
-            option || {
-                value: jobDetailsData.repair_service_id,
-                label: "Name"
-                // label:
-                //     jobDetailsData.repair_service_id.charAt(0).toUpperCase() +
-                //     jobDetailsData.repair_service_id.slice(1),
-            }
-        );
+        return option || null;
     }, [jobDetailsData?.repair_service_id, complaintOptions]);
 
     return (
@@ -372,30 +364,6 @@ const JobDetails = ({ jobDetailsData, setJobDetailsData, errors = {} }) => {
                                         />
                                     </Form.Group>
                                 </Col>
-
-                                {/* remarks */}
-                                <Col md={12}>
-                                    <Form.Group>
-                                        <Form.Label htmlFor="remarksDescription">
-                                            Remarks
-                                        </Form.Label>
-                                        <Form.Control
-                                            id="remarksDescription"
-                                            as="textarea"
-                                            rows={1}
-                                            value={
-                                                jobDetailsData?.remarks || ""
-                                            }
-                                            onChange={(e) =>
-                                                handleChange(
-                                                    "remarks",
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="Remarks"
-                                        />
-                                    </Form.Group>
-                                </Col>
                             </Row>
                         </Card.Body>
                     </Card>
@@ -424,7 +392,7 @@ const JobDetails = ({ jobDetailsData, setJobDetailsData, errors = {} }) => {
                                             value={currentComplaintValue}
                                             onChange={(selectedOption) =>
                                                 handleChange(
-                                                    "complaint",
+                                                    "repair_service_id", // Fixed: changed from "complaint" to "repair_service_id"
                                                     selectedOption?.value || ""
                                                 )
                                             }
@@ -434,21 +402,21 @@ const JobDetails = ({ jobDetailsData, setJobDetailsData, errors = {} }) => {
                                                 control: (base) => ({
                                                     ...base,
                                                     borderColor:
-                                                        errors.complaint
+                                                        errors.repair_service_id
                                                             ? "#dc3545"
                                                             : base.borderColor,
                                                     "&:hover": {
                                                         borderColor:
-                                                            errors.complaint
+                                                            errors.repair_service_id
                                                                 ? "#dc3545"
                                                                 : base.borderColor,
                                                     },
                                                 }),
                                             }}
                                         />
-                                        {errors.complaint && (
+                                        {errors.repair_service_id && ( // Fixed: changed from errors.complaint
                                             <div className="invalid-feedback d-block">
-                                                {errors.complaint}
+                                                {errors.repair_service_id}
                                             </div>
                                         )}
                                     </Form.Group>

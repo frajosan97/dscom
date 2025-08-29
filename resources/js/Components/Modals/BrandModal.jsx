@@ -12,8 +12,12 @@ import {
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import xios from "@/Utils/axios";
+import { toast } from "react-toastify";
+import { useErrorToast } from "@/Hooks/useErrorToast";
 
-export default function BrandModal({ show, onHide, brand, onSuccess }) {
+export default function BrandModal({ show, onSuccess, onHide, brand }) {
+    const { showErrorToast } = useErrorToast();
+
     const isEditMode = !!brand;
 
     // Form validation schema
@@ -77,15 +81,12 @@ export default function BrandModal({ show, onHide, brand, onSuccess }) {
                 });
 
                 if (response.data.success === true) {
-                    onSuccess(response.data.message);
+                    toast.success(response.data.message);
+                    onSuccess();
                     onHide();
                 }
             } catch (error) {
-                if (error.response?.data?.errors) {
-                    setErrors(error.response.data.errors);
-                } else {
-                    console.error("Error submitting form:", error);
-                }
+                showErrorToast(error);
             } finally {
                 setSubmitting(false);
             }

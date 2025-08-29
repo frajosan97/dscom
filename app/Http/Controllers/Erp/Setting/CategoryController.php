@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Erp\Setting;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Category\StoreRequest;
-use App\Http\Requests\Category\UpdateRequest;
+use App\Http\Requests\Setting\Category\StoreRequest;
+use App\Http\Requests\Setting\Category\UpdateRequest;
 use App\Models\Category;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Yajra\DataTables\Facades\DataTables;
 

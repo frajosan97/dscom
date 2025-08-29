@@ -62,14 +62,6 @@ class RepairServiceDeviceType extends Model
     }
 
     /**
-     * Get the checklists for the device type.
-     */
-    public function checklists(): HasMany
-    {
-        return $this->hasMany(RepairChecklist::class);
-    }
-
-    /**
      * Get the repair orders for the device type.
      */
     public function repairOrders(): HasMany

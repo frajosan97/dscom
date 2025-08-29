@@ -90,43 +90,14 @@ const JobEntryInfo = ({ order }) => {
                         Device Information
                     </Card.Header>
                     <Card.Body>
-                        <p>
-                            <strong>Company:</strong>{" "}
-                            {order?.device_brand || "N/A"}
-                        </p>
-                        <p>
-                            <strong>Model:</strong>{" "}
-                            {order?.device_model || "N/A"}
-                        </p>
-                        <p>
-                            <strong>Color:</strong>{" "}
-                            {order?.custom_fields?.color || "N/A"}
-                        </p>
-                        <p>
-                            <strong>IMEI/Serial:</strong>{" "}
-                            {order?.device_serial || "N/A"}
-                        </p>
-                        <p>
-                            <strong>Password:</strong>{" "}
-                            {order?.custom_fields?.device_password || "N/A"}
-                        </p>
-                        <p>
-                            <strong>Detailed Notes:</strong>{" "}
-                            {order?.device_notes || "N/A"}
-                        </p>
-                        <p>
-                            <strong>Device Photo:</strong>{" "}
-                            {order?.device_images ? (
-                                <Image
-                                    src={JSON.parse(order.device_images)[0]}
-                                    alt="Device"
-                                    width={50}
-                                    height={50}
-                                />
-                            ) : (
-                                "N/A"
+                        {order?.device_metadata &&
+                            Object.entries(order.device_metadata).map(
+                                ([key, value], index) => (
+                                    <p key={index}>
+                                        <strong>{key}:</strong> {value}
+                                    </p>
+                                )
                             )}
-                        </p>
                     </Card.Body>
                 </Card>
             </Col>
@@ -194,29 +165,32 @@ const JobEntryInfo = ({ order }) => {
                         Initial Checks Information
                     </Card.Header>
                     <Card.Body>
-                        {order?.initialChecks ? (
-                            <>
-                                <p>
-                                    <strong>Power On:</strong>{" "}
-                                    {order.initialChecks.power_on
-                                        ? "Yes"
-                                        : "No"}
-                                </p>
-                                <p>
-                                    <strong>Visible Damage:</strong>{" "}
-                                    {order.initialChecks.visible_damage ||
-                                        "None"}
-                                </p>
-                                <p>
-                                    <strong>Buttons Working:</strong>{" "}
-                                    {order.initialChecks.buttons_working
-                                        ? "Yes"
-                                        : "No"}
-                                </p>
-                            </>
-                        ) : (
-                            <p>No Data</p>
-                        )}
+                        {order?.initial_check_metadata &&
+                            Object.entries(order.initial_check_metadata).map(
+                                ([key, value], index) => (
+                                    <div key={index}>
+                                        <strong>{key}:</strong>{" "}
+                                        {typeof value === "object" &&
+                                        value !== null ? (
+                                            <ul className="ms-3">
+                                                {Object.entries(value).map(
+                                                    (
+                                                        [subKey, subValue],
+                                                        subIndex
+                                                    ) => (
+                                                        <li key={subIndex}>
+                                                            {subKey}:{" "}
+                                                            {String(subValue)}
+                                                        </li>
+                                                    )
+                                                )}
+                                            </ul>
+                                        ) : (
+                                            <span>{String(value)}</span>
+                                        )}
+                                    </div>
+                                )
+                            )}
                     </Card.Body>
                 </Card>
             </Col>

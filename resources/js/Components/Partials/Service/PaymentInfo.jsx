@@ -1,6 +1,6 @@
-import { Card, Row, Col, Form, InputGroup, FormControl } from "react-bootstrap";
+import { Card, Row, Col, Form, InputGroup } from "react-bootstrap";
 import PaymentsMethods from "../Sale/PaymentMethods";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
     FaDollarSign,
     FaExchangeAlt,
@@ -21,47 +21,46 @@ const PaymentInfo = ({
         return diagnosisFee + estimateFee + finalCost;
     };
 
-    const serviceTotal = useMemo(
-        () => calculateServiceTotal(),
-        [
-            paymentData?.diagnosis_fee,
-            paymentData?.estimated_cost,
-            paymentData?.final_cost,
-        ]
-    );
+    const serviceTotal = useMemo(calculateServiceTotal, [
+        paymentData?.diagnosis_fee,
+        paymentData?.estimated_cost,
+        paymentData?.final_cost,
+    ]);
 
     const toTransactions = (val) => {
         if (Array.isArray(val)) return val;
-        if (val && Array.isArray(val.transactions)) return val.transactions;
+        if (val?.transactions && Array.isArray(val.transactions))
+            return val.transactions;
         return [];
     };
 
-    // Build per-method breakdown (ignore non-transaction fields like numbers)
     const paymentBreakdown = useMemo(() => {
         return Object.entries(paymentData)
             .filter(
-                ([, v]) => Array.isArray(v) || Array.isArray(v?.transactions)
+                ([, value]) =>
+                    Array.isArray(value) || Array.isArray(value?.transactions)
             )
-            .map(([method, v]) => {
-                const txs = toTransactions(v);
-                const total = txs.reduce(
-                    (sum, tx) => sum + (Number(tx.amount) || 0),
+            .map(([method, value]) => {
+                const transactions = toTransactions(value);
+                const total = transactions.reduce(
+                    (sum, transaction) =>
+                        sum + (Number(transaction.amount) || 0),
                     0
                 );
                 return { method, total };
             });
     }, [paymentData]);
 
-    // If a totalPaid prop is provided, use it; otherwise compute from breakdown
     const computedTotalPaid = useMemo(
-        () => paymentBreakdown.reduce((s, m) => s + m.total, 0),
+        () => paymentBreakdown.reduce((sum, method) => sum + method.total, 0),
         [paymentBreakdown]
     );
+
     const totalPaid =
         typeof totalPaidProp === "number" ? totalPaidProp : computedTotalPaid;
 
     const balanceDue = Math.max(serviceTotal - totalPaid, 0);
-    const change = totalPaid > serviceTotal ? totalPaid - serviceTotal : 0;
+    const change = Math.max(totalPaid - serviceTotal, 0);
 
     const handleChange = (field, value) => {
         setPaymentData((prev) => ({
@@ -82,60 +81,60 @@ const PaymentInfo = ({
                         <Col md={4}>
                             <Form.Group>
                                 <Form.Label>Diagnosis Fees</Form.Label>
-                                <div className="input-group">
-                                    <span className="input-group-text">$</span>
+                                <InputGroup>
+                                    <InputGroup.Text>$</InputGroup.Text>
                                     <Form.Control
                                         type="number"
                                         placeholder="Diagnosis Fees"
                                         value={paymentData?.diagnosis_fee || ""}
-                                        onChange={(e) => {
+                                        onChange={(e) =>
                                             handleChange(
                                                 "diagnosis_fee",
                                                 e.target.value
-                                            );
-                                        }}
+                                            )
+                                        }
                                     />
-                                </div>
+                                </InputGroup>
                             </Form.Group>
                         </Col>
                         <Col md={4}>
                             <Form.Group>
                                 <Form.Label>Estimate Fees</Form.Label>
-                                <div className="input-group">
-                                    <span className="input-group-text">$</span>
+                                <InputGroup>
+                                    <InputGroup.Text>$</InputGroup.Text>
                                     <Form.Control
                                         type="number"
                                         placeholder="Estimate Fees"
                                         value={
                                             paymentData?.estimated_cost || ""
                                         }
-                                        onChange={(e) => {
+                                        onChange={(e) =>
                                             handleChange(
                                                 "estimated_cost",
                                                 e.target.value
-                                            );
-                                        }}
+                                            )
+                                        }
                                     />
-                                </div>
+                                </InputGroup>
                             </Form.Group>
                         </Col>
                         <Col md={4}>
                             <Form.Group>
                                 <Form.Label>Final Cost</Form.Label>
-                                <div className="input-group">
-                                    <span className="input-group-text">$</span>
+                                <InputGroup>
+                                    <InputGroup.Text>$</InputGroup.Text>
                                     <Form.Control
                                         type="number"
                                         placeholder="Final Cost"
                                         value={paymentData?.final_cost || ""}
-                                        onChange={(e) => {
+                                        onChange={(e) =>
                                             handleChange(
                                                 "final_cost",
                                                 e.target.value
-                                            );
-                                        }}
+                                            )
+                                        }
                                     />
-                                </div>
+                                </InputGroup>
                             </Form.Group>
                         </Col>
                     </Row>
@@ -169,7 +168,7 @@ const PaymentInfo = ({
                                         <FaDollarSign className="me-1" />
                                         Total Billed
                                     </InputGroup.Text>
-                                    <FormControl
+                                    <Form.Control
                                         value={formatCurrency(serviceTotal)}
                                         className="text-end fw-bold bg-light"
                                         disabled
@@ -189,7 +188,7 @@ const PaymentInfo = ({
                                                 <FaWallet className="me-1" />
                                                 {method}
                                             </InputGroup.Text>
-                                            <FormControl
+                                            <Form.Control
                                                 value={formatCurrency(total)}
                                                 className="text-end fw-bold bg-light"
                                                 disabled
@@ -211,7 +210,7 @@ const PaymentInfo = ({
                                         <FaReceipt className="me-1" />
                                         Total Paid
                                     </InputGroup.Text>
-                                    <FormControl
+                                    <Form.Control
                                         value={formatCurrency(totalPaid)}
                                         className="text-end fw-bold bg-light"
                                         disabled
@@ -232,7 +231,7 @@ const PaymentInfo = ({
                                         <FaExchangeAlt className="me-1" />
                                         Balance Due
                                     </InputGroup.Text>
-                                    <FormControl
+                                    <Form.Control
                                         value={formatCurrency(balanceDue)}
                                         className={`text-end fw-bold ${
                                             balanceDue > 0
@@ -254,7 +253,7 @@ const PaymentInfo = ({
                                             <FaExchangeAlt className="me-1" />
                                             Change
                                         </InputGroup.Text>
-                                        <FormControl
+                                        <Form.Control
                                             value={formatCurrency(change)}
                                             className="text-end fw-bold text-info"
                                             disabled

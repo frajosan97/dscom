@@ -20,7 +20,7 @@ import {
     FaUserTie,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
-import Swal from "sweetalert2";
+import { printReceipt } from "@/Components/Print/PrintReceipt";
 
 import CustomerModal from "@/Components/Modals/CustomerModal";
 import Cart from "@/Components/Partials/Sale/Cart";
@@ -28,6 +28,7 @@ import PaymentsMethods from "@/Components/Partials/Sale/PaymentMethods";
 import ProductsList from "@/Components/Partials/Sale/ProductsList";
 import ErpLayout from "@/Layouts/ErpLayout";
 import xios from "@/Utils/axios";
+import Swal from "sweetalert2";
 import useData from "@/Hooks/useData";
 
 const SaleForm = ({ sale = null }) => {
@@ -91,8 +92,6 @@ const SaleForm = ({ sale = null }) => {
                     }))
                 );
             }, 0);
-        } else {
-            clearCart();
         }
     }, [sale, clearCart, setCartItems]);
 
@@ -217,19 +216,14 @@ const SaleForm = ({ sale = null }) => {
                     ? route("sales.update", { sale: sale.id })
                     : route("sales.store");
 
-                const { data } = await xios.post(url, formData);
+                const response = await xios.post(url, formData);
 
-                if (data.success) {
-                    toast.success(data.message);
-
-                    if (!sale) handleSaleReset();
-
+                if (response.data.success === true) {
+                    toast.success(response.data.message);
                     if (shouldPrint) {
-                        window.open(
-                            route("sales.print", { sale: data.sale.id }),
-                            "_blank"
-                        );
+                        printReceipt(response?.data?.data?.order);
                     }
+                    clearCart();
                 }
             } catch (error) {
                 toast.error(

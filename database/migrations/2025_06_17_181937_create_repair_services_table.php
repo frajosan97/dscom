@@ -41,9 +41,6 @@ return new class extends Migration {
             $table->json('metadata')->nullable();
             $table->timestamps();
             $table->softDeletes();
-
-            // Indexes
-            $table->index(['is_active', 'is_featured']);
         });
 
         // Device Types Table - Enhanced with Hierarchy Support
@@ -60,7 +57,6 @@ return new class extends Migration {
             $table->timestamps();
             $table->softDeletes();
 
-            // Indexes
             $table->index(['parent_id', 'is_active']);
         });
 
@@ -77,8 +73,6 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->unique(['repair_service_id', 'device_type_id']);
-
-            // Indexes
             $table->index(['price', 'device_type_id']);
         });
 
@@ -86,36 +80,12 @@ return new class extends Migration {
         Schema::create('repair_orders', function (Blueprint $table) {
             $table->id();
             $table->string('order_number')->unique();
-            $table->string('invoice_number')->nullable()->unique();
-            $table->foreignId('customer_id')->nullable()->constrained()->onDelete('set null');
-            $table->foreignId('branch_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('repair_service_id')->constrained()->onDelete('cascade');
             $table->foreignId('device_type_id')->constrained('repair_service_device_types')->onDelete('cascade');
-            $table->string('device_brand')->nullable();
-            $table->string('device_model')->nullable();
-            $table->string('device_serial')->nullable();
-            $table->integer('device_age')->nullable();
-            $table->text('device_issue')->nullable();
-            $table->text('device_notes')->nullable();
-            $table->json('device_images')->nullable();
-            $table->json('device_specifications')->nullable();
-            $table->enum('status', [
-                'pending',
-                'diagnosis',
-                'quoted',
-                'approved',
-                'repairing',
-                'awaiting_parts',
-                'awaiting_customer_response',
-                'completed',
-                'delivered',
-                'cancelled',
-                'rejected',
-            ])->default('pending');
+            $table->json('device_metadata')->nullable();
+            $table->json('initial_check_metadata')->nullable();
+            $table->enum('status', ['pending', 'received', 'repairing', 'awaiting_parts', 'awaiting_customer_response', 'completed', 'delivered', 'cancelled', 'rejected',])->default('pending');
             $table->enum('priority', ['low', 'medium', 'high', 'urgent'])->default('medium');
-            $table->text('diagnosis_details')->nullable();
-            $table->text('repair_notes')->nullable();
-            $table->text('technician_notes')->nullable();
             $table->decimal('diagnosis_fee', 12, 2)->default(0);
             $table->decimal('estimated_cost', 12, 2)->nullable();
             $table->decimal('final_cost', 12, 2)->nullable();
@@ -123,13 +93,16 @@ return new class extends Migration {
             $table->decimal('discount_amount', 12, 2)->default(0);
             $table->decimal('total_amount', 12, 2)->default(0);
             $table->decimal('amount_paid', 12, 2)->default(0);
-            $table->decimal('balance_due', 12, 2)->default(0);
-            $table->string('currency')->default('$');
             $table->date('expected_completion_date')->nullable();
             $table->date('completion_date')->nullable();
             $table->date('delivery_date')->nullable();
+            $table->foreignId('customer_id')->nullable()->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('branch_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('assigned_technician_id')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->text('diagnosis_details')->nullable();
+            $table->text('repair_notes')->nullable();
+            $table->text('technician_notes')->nullable();
             $table->json('custom_fields')->nullable();
             $table->text('customer_feedback')->nullable();
             $table->integer('customer_rating')->nullable();
@@ -151,26 +124,26 @@ return new class extends Migration {
             $table->index(['repair_order_id', 'created_at']);
         });
 
-        // Repair Order Payments - Comprehensive Payment Tracking
-        Schema::create('repair_order_payments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
-            $table->decimal('amount', 12, 2);
-            $table->string('payment_method');
-            $table->string('transaction_id')->nullable();
-            $table->string('receipt_number')->nullable();
-            $table->enum('payment_type', ['deposit', 'partial', 'full', 'refund'])->default('full');
-            $table->enum('status', ['pending', 'completed', 'failed', 'refunded'])->default('completed');
-            $table->text('notes')->nullable();
-            $table->json('metadata')->nullable();
-            $table->date('payment_date')->nullable();
-            $table->timestamps();
+        // // Repair Order Payments - Comprehensive Payment Tracking
+        // Schema::create('repair_order_payments', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+        //     $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
+        //     $table->decimal('amount', 12, 2);
+        //     $table->string('payment_method');
+        //     $table->string('transaction_id')->nullable();
+        //     $table->string('receipt_number')->nullable();
+        //     $table->enum('payment_type', ['deposit', 'partial', 'full', 'refund'])->default('full');
+        //     $table->enum('status', ['pending', 'completed', 'failed', 'refunded'])->default('completed');
+        //     $table->text('notes')->nullable();
+        //     $table->json('metadata')->nullable();
+        //     $table->date('payment_date')->nullable();
+        //     $table->timestamps();
 
-            // Indexes
-            $table->index(['repair_order_id', 'status']);
-            $table->index('transaction_id');
-        });
+        //     // Indexes
+        //     $table->index(['repair_order_id', 'status']);
+        //     $table->index('transaction_id');
+        // });
 
         // Repair Parts Table - Track Parts Used in Repairs
         Schema::create('repair_parts', function (Blueprint $table) {
@@ -218,80 +191,80 @@ return new class extends Migration {
             $table->timestamps();
         });
 
-        // Repair Order Checklists Table - Track Completion
-        Schema::create('repair_order_checklists', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
-            $table->foreignId('checklist_item_id')->constrained('repair_checklist_items')->onDelete('cascade');
-            $table->boolean('is_completed')->default(false);
-            $table->foreignId('completed_by')->nullable()->constrained('users')->onDelete('set null');
-            $table->timestamp('completed_at')->nullable();
-            $table->text('notes')->nullable();
-            $table->timestamps();
+        // // Repair Order Checklists Table - Track Completion
+        // Schema::create('repair_order_checklists', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+        //     $table->foreignId('checklist_item_id')->constrained('repair_checklist_items')->onDelete('cascade');
+        //     $table->boolean('is_completed')->default(false);
+        //     $table->foreignId('completed_by')->nullable()->constrained('users')->onDelete('set null');
+        //     $table->timestamp('completed_at')->nullable();
+        //     $table->text('notes')->nullable();
+        //     $table->timestamps();
 
-            // Indexes
-            $table->index(['repair_order_id', 'is_completed']);
-        });
+        //     // Indexes
+        //     $table->index(['repair_order_id', 'is_completed']);
+        // });
 
-        // Repair Order Complaints Table
-        Schema::create('repair_order_complaints', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
-            $table->text('complaint');
-            $table->text('remarks')->nullable();
-            $table->timestamps();
-        });
+        // // Repair Order Complaints Table
+        // Schema::create('repair_order_complaints', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+        //     $table->text('complaint');
+        //     $table->text('remarks')->nullable();
+        //     $table->timestamps();
+        // });
 
-        // Repair Order Initial Checks Table
-        Schema::create('repair_order_initial_checks', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
-            $table->boolean('power_on')->default(false);
-            $table->string('visible_damage')->nullable();
-            $table->boolean('buttons_working')->default(true);
-            $table->string('screen_condition')->nullable();
-            $table->string('battery_condition')->nullable();
-            $table->text('other_notes')->nullable();
-            $table->timestamps();
-        });
+        // // Repair Order Initial Checks Table
+        // Schema::create('repair_order_initial_checks', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+        //     $table->boolean('power_on')->default(false);
+        //     $table->string('visible_damage')->nullable();
+        //     $table->boolean('buttons_working')->default(true);
+        //     $table->string('screen_condition')->nullable();
+        //     $table->string('battery_condition')->nullable();
+        //     $table->text('other_notes')->nullable();
+        //     $table->timestamps();
+        // });
 
-        // Repair Order Physical Conditions Table
-        Schema::create('repair_order_physical_conditions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
-            $table->string('screen_condition')->nullable();
-            $table->string('body_condition')->nullable();
-            $table->string('ports_condition')->nullable();
-            $table->string('buttons_condition')->nullable();
-            $table->text('accessories_included')->nullable();
-            $table->text('additional_notes')->nullable();
-            $table->timestamps();
-        });
+        // // Repair Order Physical Conditions Table
+        // Schema::create('repair_order_physical_conditions', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+        //     $table->string('screen_condition')->nullable();
+        //     $table->string('body_condition')->nullable();
+        //     $table->string('ports_condition')->nullable();
+        //     $table->string('buttons_condition')->nullable();
+        //     $table->text('accessories_included')->nullable();
+        //     $table->text('additional_notes')->nullable();
+        //     $table->timestamps();
+        // });
 
-        // Repair Order Risk Agreements Table
-        Schema::create('repair_order_risk_agreements', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
-            $table->boolean('data_loss_accepted')->default(false);
-            $table->boolean('further_damage_accepted')->default(false);
-            $table->boolean('parts_replacement_accepted')->default(false);
-            $table->boolean('diagnostic_fee_accepted')->default(false);
-            $table->boolean('terms_accepted')->default(false);
-            $table->timestamp('signed_at')->nullable();
-            $table->text('customer_signature')->nullable(); // Could store signature data or image path
-            $table->timestamps();
-        });
+        // // Repair Order Risk Agreements Table
+        // Schema::create('repair_order_risk_agreements', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+        //     $table->boolean('data_loss_accepted')->default(false);
+        //     $table->boolean('further_damage_accepted')->default(false);
+        //     $table->boolean('parts_replacement_accepted')->default(false);
+        //     $table->boolean('diagnostic_fee_accepted')->default(false);
+        //     $table->boolean('terms_accepted')->default(false);
+        //     $table->timestamp('signed_at')->nullable();
+        //     $table->text('customer_signature')->nullable(); // Could store signature data or image path
+        //     $table->timestamps();
+        // });
 
-        // Repair Order Accessories Table
-        Schema::create('repair_order_accessories', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
-            $table->string('name');
-            $table->integer('quantity')->default(1);
-            $table->string('condition')->nullable();
-            $table->text('notes')->nullable();
-            $table->timestamps();
-        });
+        // // Repair Order Accessories Table
+        // Schema::create('repair_order_accessories', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('repair_order_id')->constrained()->onDelete('cascade');
+        //     $table->string('name');
+        //     $table->integer('quantity')->default(1);
+        //     $table->string('condition')->nullable();
+        //     $table->text('notes')->nullable();
+        //     $table->timestamps();
+        // });
     }
 
     /**
@@ -299,16 +272,16 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('repair_order_accessories');
-        Schema::dropIfExists('repair_order_risk_agreements');
-        Schema::dropIfExists('repair_order_physical_conditions');
-        Schema::dropIfExists('repair_order_initial_checks');
-        Schema::dropIfExists('repair_order_complaints');
-        Schema::dropIfExists('repair_order_checklists');
+        // Schema::dropIfExists('repair_order_accessories');
+        // Schema::dropIfExists('repair_order_risk_agreements');
+        // Schema::dropIfExists('repair_order_physical_conditions');
+        // Schema::dropIfExists('repair_order_initial_checks');
+        // Schema::dropIfExists('repair_order_complaints');
+        // Schema::dropIfExists('repair_order_checklists');
         Schema::dropIfExists('repair_checklist_items');
         Schema::dropIfExists('repair_checklists');
         Schema::dropIfExists('repair_parts');
-        Schema::dropIfExists('repair_order_payments');
+        // Schema::dropIfExists('repair_order_payments');
         Schema::dropIfExists('repair_order_status_history');
         Schema::dropIfExists('repair_orders');
         Schema::dropIfExists('repair_service_pricings');

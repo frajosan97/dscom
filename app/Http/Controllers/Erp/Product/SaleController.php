@@ -161,8 +161,7 @@ class SaleController extends Controller
                 'success' => true,
                 'message' => 'Sale created successfully',
                 'data' => [
-                    'order_id' => $order->id,
-                    'order_number' => $order->order_number,
+                    'order' => $order->load(['items', 'payments', 'customer', 'user'])
                 ]
             ], 201);
 
@@ -292,8 +291,7 @@ class SaleController extends Controller
                 'success' => true,
                 'message' => 'Sale updated successfully',
                 'data' => [
-                    'order_id' => $sale->id,
-                    'order_number' => $sale->order_number,
+                    'order' => $sale->load(['items', 'payments', 'customer', 'user'])
                 ]
             ], 200);
 

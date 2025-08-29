@@ -4,19 +4,17 @@ namespace App\Http\Controllers\Erp\Service;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Service\StoreRequest;
+use App\Http\Requests\Service\UpdateRequest;
 use App\Models\RepairOrder;
-use App\Models\RepairOrderPayment;
 use App\Models\RepairOrderStatusHistory;
-use App\Models\RepairService;
-use App\Models\RepairServiceDeviceType;
-use Dotenv\Exception\ValidationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Inertia\Response;
 use Yajra\DataTables\Facades\DataTables;
 
 class RepairOrderController extends Controller
@@ -24,8 +22,7 @@ class RepairOrderController extends Controller
     /**
      * Display a listing of the resource.
      */
-
-    public function index(Request $request)
+    public function index(Request $request): Response|JsonResponse
     {
         if ($request->has("draw")) {
             $query = RepairOrder::query()
@@ -51,109 +48,98 @@ class RepairOrderController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-
-    public function create()
+    public function create(): Response
     {
         return Inertia::render('Backend/ERP/Service/ServiceForm');
     }
 
-    public function edit(RepairOrder $repairOrder)
+    /**
+     * Show the form for editing a repair order.
+     */
+    public function edit(RepairOrder $repairOrder): Response
     {
         return Inertia::render('Backend/ERP/Service/ServiceForm', [
             'service' => $repairOrder->load([
                 'creator',
                 'technician',
                 'customer',
-                'complaint',
                 'payments',
-                'initialChecks',
-                'physicalConditions',
-                'riskAgreements',
-                'accessories',
             ])
         ]);
     }
 
-    public function show(RepairOrder $repairOrder)
+    /**
+     * Display the specified repair order.
+     */
+    public function show(RepairOrder $repairOrder): Response
     {
         return Inertia::render('Backend/ERP/Service/Show', [
             'order' => $repairOrder->load([
                 'creator',
                 'technician',
                 'customer',
-                'complaint',
                 'payments',
-                'initialChecks',
-                'physicalConditions',
-                'riskAgreements',
-                'accessories',
             ])
         ]);
     }
 
-    public function assign(RepairOrder $repairOrder)
+    /**
+     * Show the assign technician form.
+     */
+    public function assign(RepairOrder $repairOrder): Response
     {
         return Inertia::render('Backend/ERP/Service/Assign', [
             'order' => $repairOrder->load([
                 'creator',
                 'technician',
                 'customer',
-                'complaint',
                 'payments',
             ])
         ]);
     }
 
-    public function assignStore(Request $request)
+    /**
+     * Assign a technician to a repair order.
+     */
+    public function assignStore(Request $request): JsonResponse
     {
         try {
-            Log::info($request);
-            // Validate the request
             $validated = $request->validate([
                 'job_id' => 'required|exists:repair_orders,id',
                 'technician_id' => 'required|exists:users,id',
             ]);
 
-            // Find the repair order
             $repairOrder = RepairOrder::findOrFail($validated['job_id']);
 
-            // Update the repair order with the assigned technician
-            $repairOrder->assigned_technician_id = $validated['technician_id'];
-            $repairOrder->status = 'approved';
+            $repairOrder->update([
+                'assigned_technician_id' => $validated['technician_id'],
+                'status' => 'received',
+            ]);
 
-            // Save the changes
-            $repairOrder->save();
+            // Create status history
+            RepairOrderStatusHistory::create([
+                'repair_order_id' => $repairOrder->id,
+                'status' => 'received',
+                'notes' => 'Technician assigned: ' . $validated['technician_id'],
+                'changed_by' => Auth::id(),
+            ]);
 
-            // Return success response
             return response()->json([
                 'success' => true,
                 'message' => 'Technician assigned successfully!',
             ]);
-
-        } catch (ValidationException $e) {
-            // Return validation errors
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-            ], 422);
-
-        } catch (ModelNotFoundException $e) {
-            // Return not found error
-            return response()->json([
-                'success' => false,
-                'message' => 'Repair order or technician not found'
-            ], 404);
-
         } catch (\Exception $e) {
-            // Return server error
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to assign technician. Please try again.' . $e->getMessage()
+                'message' => 'Failed to assign technician. Please try again.'
             ], 500);
         }
     }
 
-    public function store(StoreRequest $request)
+    /**
+     * Store a newly created repair order.
+     */
+    public function store(StoreRequest $request): JsonResponse
     {
         try {
             DB::beginTransaction();
@@ -165,58 +151,44 @@ class RepairOrderController extends Controller
             $otherInfo = $validated['other_info'] ?? [];
             $initialCheck = $validated['initial_check'] ?? [];
 
-            // Generate order number if not provided
-            if (empty($jobDetails['job_number'])) {
-                $jobDetails['job_number'] = 'RO-' . now()->format('Ymd') . '-' . Str::random(4);
-            }
+            // Get valid repair service and device type
+            // $repairServiceId = $this->getValidRepairServiceId($jobDetails);
+            // $deviceTypeId = $this->getValidDeviceTypeId($jobDetails);
 
-            // Get valid repair service and device type (replace with actual logic)
-            $repairServiceId = $this->getValidRepairServiceId($jobDetails);
-            $deviceTypeId = $this->getValidDeviceTypeId($jobDetails);
+            // calculate total amount
+            $total_amount = ($paymentInfo['diagnosis_fee'] ?? 0 + $paymentInfo['estimated_cost'] ?? 0 + $otherInfo['final_cost'] ?? 0)
+                - $paymentInfo['discount'] ?? 0;
 
             // Create the repair order
             $repairOrderData = [
-                'order_number' => $jobDetails['order_number'],
+                'order_number' => $jobDetails['order_number'] ?? $this->generateOrderNumber(),
                 'customer_id' => $customer['customer_id'],
-                'repair_service_id' => $repairServiceId,
-
-                'device_type_id' => $deviceTypeId,
-                'device_metadata' => [
-                    'brand' => $jobDetails['brand'],
-                    'model' => $jobDetails['model'],
-                    'serial' => $jobDetails['serial'],
-                    'specs' => $jobDetails['specs'],
-                    'issue' => $jobDetails['issue'],
-                    'remarks' => $jobDetails['remarks'] ?? null,
-                ],
-                'initial_check_metadata' => [
-                    'brand' => $jobDetails['brand'],
-                    'model' => $jobDetails['model'],
-                    'serial' => $jobDetails['serial'],
-                    'issue' => $jobDetails['issue'],
-                    'remarks' => $jobDetails['remarks'] ?? null,
-                ],
-
+                'repair_service_id' => $jobDetails['repair_service_id'],
+                // 'device_type_id' => $jobDetails['device_type_id'],
+                'device_type_id' => 1,
+                'device_metadata' => $this->prepareDeviceMetadata($jobDetails),
+                'initial_check_metadata' => $this->prepareInitialCheckMetadata($jobDetails, $initialCheck),
                 'diagnosis_fee' => $paymentInfo['diagnosis_fee'] ?? 0,
                 'estimated_cost' => $paymentInfo['estimated_cost'] ?? 0,
-                'final_cost' => $paymentInfo['final_cost'] ?? 0,
-                'total_amount' => $paymentInfo['total_amount'] ?? 0,
-
+                'final_cost' => $otherInfo['final_cost'] ?? 0,
+                'total_amount' => $total_amount ?? 0,
                 'assigned_technician_id' => $otherInfo['technician'] ?? null,
                 'created_by' => Auth::id(),
-
                 'custom_fields' => $this->prepareCustomFields($jobDetails, $initialCheck),
-
-                'expected_completion_date' => $jobDetails['expected_completion_date'],
+                'expected_completion_date' => $jobDetails['completion_date'] ?? null,
+                'completion_date' => $jobDetails['completion_date'] ?? null,
+                'priority' => $jobDetails['priority'] ?? 'medium',
+                'status' => $jobDetails['status'] ?? 'pending',
+                'warranty_status' => $jobDetails['warranty'] ?? 'out',
             ];
 
             $repairOrder = RepairOrder::create($repairOrderData);
 
-            // Create initial status history (uncomment when ready)
-            // $this->createStatusHistory($repairOrder);
+            // Create initial status history
+            $this->createStatusHistory($repairOrder, 'Order created');
 
-            // Process payments (uncomment when ready)
-            // $this->processPayments($repairOrder, $customer['id'], $paymentInfo);
+            // Process payments if any
+            $this->processPayments($repairOrder, $customer['customer_id'], $paymentInfo);
 
             DB::commit();
 
@@ -226,13 +198,10 @@ class RepairOrderController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Repair order created successfully',
-                'data' => $repairOrder->load(['customer', 'technician', 'service']),
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Repair order creation failed: ' . $e->getMessage());
-
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create repair order',
@@ -242,52 +211,162 @@ class RepairOrderController extends Controller
     }
 
     /**
-     * Get valid repair service ID (replace with your actual logic)
+     * Update an existing repair order.
      */
-    private function getValidRepairServiceId(array $jobDetails): int
+    public function update(UpdateRequest $request, RepairOrder $repairOrder): JsonResponse
     {
-        // Example: Get first available service or create a default one
-        $service = RepairService::first();
+        try {
+            DB::beginTransaction();
 
-        if (!$service) {
-            $service = RepairService::create([
-                'name' => 'General Repair',
-                'description' => 'General device repair service',
-                'base_price' => 0,
+            $validated = $request->validated();
+            $jobDetails = $validated['job_details'] ?? [];
+            $customer = $validated['customer'] ?? [];
+            $paymentInfo = $validated['payment_info'] ?? [];
+            $otherInfo = $validated['other_info'] ?? [];
+            $initialCheck = $validated['initial_check'] ?? [];
+
+            $updateData = [
+                'device_metadata' => array_merge(
+                    (array) $repairOrder->device_metadata,
+                    $this->prepareDeviceMetadata($jobDetails)
+                ),
+                'initial_check_metadata' => array_merge(
+                    (array) $repairOrder->initial_check_metadata,
+                    $this->prepareInitialCheckMetadata($jobDetails, $initialCheck)
+                ),
+                'custom_fields' => array_merge(
+                    (array) $repairOrder->custom_fields,
+                    $this->prepareCustomFields($jobDetails, $initialCheck)
+                ),
+            ];
+
+            // Add optional fields if they exist in the request
+            if (!empty($jobDetails['priority'])) {
+                $updateData['priority'] = $jobDetails['priority'];
+            }
+            if (!empty($jobDetails['status'])) {
+                $updateData['status'] = $jobDetails['status'];
+            }
+            if (!empty($otherInfo['final_cost'])) {
+                $updateData['final_cost'] = $otherInfo['final_cost'];
+            }
+            if (!empty($otherInfo['total_amount'])) {
+                $updateData['total_amount'] = $otherInfo['total_amount'];
+            }
+
+            $repairOrder->update($updateData);
+
+            // Create status history if status changed
+            if (!empty($jobDetails['status']) && $jobDetails['status'] !== $repairOrder->getOriginal('status')) {
+                $this->createStatusHistory($repairOrder, 'Order updated');
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Repair order updated successfully',
+                'data' => $repairOrder->fresh(['customer', 'technician', 'service']),
             ]);
-        }
 
-        return $service->id;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update repair order',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
+            ], 500);
+        }
     }
 
     /**
-     * Get valid device type ID (replace with your actual logic)
+     * Generate order number.
      */
-    private function getValidDeviceTypeId(array $jobDetails): int
+    private function generateOrderNumber(): string
     {
-        // Example: Get first available device type or create a default one
-        $deviceType = RepairServiceDeviceType::first();
-
-        if (!$deviceType) {
-            $deviceType = RepairServiceDeviceType::create([
-                'name' => $jobDetails['device_type'] ?? 'Mobile Device',
-                'description' => 'Mobile device repair',
-            ]);
-        }
-
-        return $deviceType->id;
+        return 'RO-' . now()->format('YmdHis') . '-' . Str::random(6);
     }
 
     /**
-     * Prepare custom fields data
+     * Prepare device metadata.
+     */
+    private function prepareDeviceMetadata(array $jobDetails): array
+    {
+        return [
+            'brand' => $jobDetails['brand'] ?? null,
+            'model' => $jobDetails['model'] ?? null,
+            'serial' => $jobDetails['serial'] ?? null,
+            'specs' => $jobDetails['specs'] ?? null,
+            'issue' => $jobDetails['issue'] ?? null,
+            'remarks' => $jobDetails['remarks'] ?? null,
+            'color' => $jobDetails['color'] ?? null,
+            'password' => $jobDetails['password'] ?? null,
+            'provider' => $jobDetails['provider'] ?? null,
+        ];
+    }
+
+    /**
+     * Prepare initial check metadata.
+     */
+    private function prepareInitialCheckMetadata(array $jobDetails, array $initialCheck): array
+    {
+        return [
+            'brand' => $jobDetails['brand'] ?? null,
+            'model' => $jobDetails['model'] ?? null,
+            'serial' => $jobDetails['serial'] ?? null,
+            'issue' => $jobDetails['issue'] ?? null,
+            'remarks' => $jobDetails['remarks'] ?? null,
+            'display' => $initialCheck['display'] ?? null,
+            'back_panel' => $initialCheck['back_panel'] ?? null,
+            'physical_condition' => $initialCheck['physical_condition'] ?? null,
+            'risk_agreed' => $initialCheck['risk_agreed'] ?? null,
+            'accessories' => $initialCheck['accessories'] ?? null,
+            'checked_by' => $initialCheck['checked_by'] ?? null,
+            'check_date' => $initialCheck['check_date'] ?? null,
+        ];
+    }
+
+    /**
+     * Get valid repair service ID.
+     */
+    // private function getValidRepairServiceId(array $jobDetails): int
+    // {
+    //     if (!empty($jobDetails['repair_service_id'])) {
+    //         return RepairService::firstOrCreate(
+    //             ['id' => $jobDetails['repair_service_id']],
+    //             ['name' => 'General Repair', 'description' => 'General device repair service', 'base_price' => 0]
+    //         )->id;
+    //     }
+
+    //     return RepairService::firstOrCreate(
+    //         ['name' => 'General Repair'],
+    //         ['description' => 'General device repair service', 'base_price' => 0]
+    //     )->id;
+    // }
+
+    /**
+     * Get valid device type ID.
+     */
+    // private function getValidDeviceTypeId(array $jobDetails): int
+    // {
+    //     $deviceTypeName = $jobDetails['brand'] . ' ' . $jobDetails['model'] ?? 'Mobile Device';
+
+    //     return RepairServiceDeviceType::firstOrCreate(
+    //         ['name' => $deviceTypeName],
+    //         ['description' => 'Device repair service']
+    //     )->id;
+    // }
+
+    /**
+     * Prepare custom fields data.
      */
     private function prepareCustomFields(array $jobDetails, array $initialCheck): array
     {
         return [
             'color' => $jobDetails['color'] ?? null,
-            'device_password' => $jobDetails['device_password'] ?? null,
-            'provider_info' => $jobDetails['provider_info'] ?? null,
-            'warranty_status' => $jobDetails['warranty_status'] ?? null,
+            'device_password' => $jobDetails['password'] ?? null,
+            'provider_info' => $jobDetails['provider'] ?? null,
+            'warranty_status' => $jobDetails['warranty'] ?? null,
             'physical_condition' => $initialCheck['physicalCondition'] ?? null,
             'risk_agreement' => $initialCheck['riskAgreement'] ?? null,
             'accessories' => $initialCheck['accessories'] ?? null,
@@ -295,63 +374,44 @@ class RepairOrderController extends Controller
     }
 
     /**
-     * Create initial status history
+     * Create status history.
      */
-    private function createStatusHistory(RepairOrder $repairOrder): void
+    private function createStatusHistory(RepairOrder $repairOrder, string $notes = ''): void
     {
         RepairOrderStatusHistory::create([
             'repair_order_id' => $repairOrder->id,
-            'status' => 'pending',
-            'notes' => 'Order created',
+            'status' => $repairOrder->status,
+            'notes' => $notes,
             'changed_by' => Auth::id(),
         ]);
     }
 
     /**
-     * Process payments
+     * Process payments.
      */
-    private function processPayments(RepairOrder $repairOrder, int $userId, array $paymentInfo): void
+    private function processPayments(RepairOrder $repairOrder, int $customerId, array $paymentInfo): void
     {
-        if (!empty($paymentInfo['cash'])) {
-            foreach ($paymentInfo['cash'] as $cashPayment) {
-                RepairOrderPayment::create([
-                    'repair_order_id' => $repairOrder->id,
-                    'user_id' => $userId,
-                    'amount' => $cashPayment['amount'],
-                    'payment_method' => 'cash',
-                    'payment_type' => 'partial',
-                    'status' => 'completed',
-                    'payment_date' => $cashPayment['date'] ?? now(),
-                ]);
-            }
-
-            // Update balance due
-            $totalPaid = $repairOrder->payments()->sum('amount');
-            $repairOrder->update([
-                'amount_paid' => $totalPaid,
-                'balance_due' => max(0, $repairOrder->total_amount - $totalPaid),
-            ]);
-        }
+        // Implement payment processing logic here
+        // This could include creating payment records, updating balances, etc.
     }
 
     /**
-     * Send notifications based on user preferences
+     * Send notifications based on user preferences.
      */
     private function sendNotifications(RepairOrder $repairOrder, array $otherInfo): void
     {
-        if ($otherInfo['sendSms'] ?? false) {
+        $channels = $otherInfo['notification_channel'] ?? [];
+
+        if (in_array('sms', $channels)) {
             // Implement SMS notification
-            // Notification::send($repairOrder->customer, new RepairOrderSmsNotification($repairOrder));
         }
 
-        if ($otherInfo['sendEmail'] ?? false) {
+        if (in_array('email', $channels)) {
             // Implement email notification
-            // Notification::send($repairOrder->customer, new RepairOrderEmailNotification($repairOrder));
         }
 
-        if ($otherInfo['sendWhatsApp'] ?? false) {
+        if (in_array('whatsapp', $channels)) {
             // Implement WhatsApp notification
-            // Notification::send($repairOrder->customer, new RepairOrderWhatsAppNotification($repairOrder));
         }
     }
 }

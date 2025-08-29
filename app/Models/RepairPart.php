@@ -49,14 +49,6 @@ class RepairPart extends Model
     }
 
     /**
-     * Calculate the total price.
-     */
-    public function calculateTotal(): void
-    {
-        $this->total = $this->selling_price * $this->quantity;
-    }
-
-    /**
      * Scope a query to only include installed parts.
      */
     public function scopeInstalled($query)

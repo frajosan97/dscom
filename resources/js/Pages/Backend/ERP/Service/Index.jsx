@@ -1,27 +1,11 @@
 import { Head, Link, usePage } from "@inertiajs/react";
-import {
-    Card,
-    Button,
-    ButtonGroup,
-    Table,
-    Badge,
-    Dropdown,
-} from "react-bootstrap";
+import { Card, Button, ButtonGroup, Table, Dropdown } from "react-bootstrap";
 import { useEffect, useCallback, useState } from "react";
 import { toast } from "react-toastify";
-import {
-    FaPlus,
-    FaEdit,
-    FaEye,
-    FaFileInvoice,
-    FaUserCog,
-    FaTools,
-    FaCalendarAlt,
-    FaFilter,
-} from "react-icons/fa";
+import { FaPlus, FaFilter } from "react-icons/fa";
+import { formatCurrency, formatDate } from "@/Utils/helpers";
 
 import ErpLayout from "@/Layouts/ErpLayout";
-import { formatCurrency, formatDate } from "@/Utils/helpers";
 
 export default function RepairOrders() {
     const { statusOptions, priorityOptions } = usePage().props;
@@ -67,22 +51,15 @@ export default function RepairOrders() {
                     title: "Customer",
                 },
                 {
-                    data: "device_type.name",
-                    title: "Device Type",
-                    render: function (data) {
-                        return data || "N/A";
-                    },
-                },
-                {
-                    data: "device_brand",
+                    data: "device_metadata.brand",
                     title: "Brand",
                     render: function (data) {
                         return data || "N/A";
                     },
                 },
                 {
-                    data: "device_model",
-                    title: "Device",
+                    data: "device_metadata.model",
+                    title: "Model",
                 },
                 {
                     data: "status",
@@ -98,13 +75,6 @@ export default function RepairOrders() {
                     className: "text-end fw-semibold",
                     render: function (data) {
                         return formatCurrency(data);
-                    },
-                },
-                {
-                    data: "expected_completion_date",
-                    title: "ETA",
-                    render: function (data) {
-                        return data ? formatDate(data) : "N/A";
                     },
                 },
                 {

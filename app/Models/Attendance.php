@@ -91,14 +91,6 @@ class Attendance extends Model
     }
 
     /**
-     * Check if the attendance record is for today.
-     */
-    public function isToday(): bool
-    {
-        return $this->attendance_date->isToday();
-    }
-
-    /**
      * Format clock_in time for display
      */
     public function getClockInDisplayAttribute(): ?string

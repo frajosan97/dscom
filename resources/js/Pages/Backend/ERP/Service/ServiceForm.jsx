@@ -44,8 +44,8 @@ const ServiceForm = ({ service = null }) => {
     });
 
     const [jobDetailsData, setJobDetailsData] = useState({
-        order_number: service?.order_number || generateOrderNumber,
-        entry_date: service?.entry_date || getTodayDate,
+        order_number: service?.order_number || generateOrderNumber(),
+        entry_date: service?.entry_date || getTodayDate(),
         company: service?.device_metadata?.company || "",
         brand: service?.device_metadata?.brand || "",
         model: service?.device_metadata?.model || "",
@@ -56,10 +56,9 @@ const ServiceForm = ({ service = null }) => {
         issue: service?.device_metadata?.issue || "",
         remarks: service?.device_metadata?.remarks || "",
         provider: service?.device_metadata?.provider || "",
-        warranty: service?.device_metadata?.warranty || "",
-        service_type: service?.service_type || "",
-        priority: service?.priority || "normal",
-        assigned_technician_id: service?.assigned_technician_id || "",
+        warranty: service?.device_metadata?.warranty || "out",
+        priority: service?.priority || "medium",
+        status: service?.status || "pending",
         expected_completion_date: service?.expected_completion_date || "",
         repair_service_id: service?.repair_service_id || "",
     });
@@ -78,13 +77,18 @@ const ServiceForm = ({ service = null }) => {
     });
 
     const [otherInfoData, setOtherInfoData] = useState({
-        assigned_technician_id: service?.assigned_technician_id || "",
-        created_by: service?.created_by || "",
+        estimated_cost: service?.estimated_cost || 0,
+        diagnosis_fee: service?.diagnosis_fee || 0,
+        final_cost: service?.final_cost || 0,
+        tax_amount: service?.tax_amount || 0,
+        discount_amount: service?.discount_amount || 0,
+        total_amount: service?.total_amount || 0,
         completion_date: service?.completion_date || "",
+        signature: service?.signature || "",
+        notification_channel: service?.notification_channel || [],
         attachments: service?.attachments || [],
     });
 
-    // Populate form data when service is provided (edit mode)
     useEffect(() => {
         if (service) {
             const initialPayments = paymentMethods.reduce((acc, method) => {
@@ -186,8 +190,8 @@ const ServiceForm = ({ service = null }) => {
             }
 
             const url = service
-                ? route("services.update", service?.id)
-                : route("services.store");
+                ? route("repair-orders.update", service?.id)
+                : route("repair-orders.store");
 
             const method = service ? "put" : "post";
 
@@ -264,6 +268,8 @@ const ServiceForm = ({ service = null }) => {
                                     <PaymentInfo
                                         paymentData={paymentData}
                                         setPaymentData={setPaymentData}
+                                        otherInfoData={otherInfoData}
+                                        setOtherInfoData={setOtherInfoData}
                                     />
                                 </Tab.Pane>
                                 <Tab.Pane eventKey="other-info">

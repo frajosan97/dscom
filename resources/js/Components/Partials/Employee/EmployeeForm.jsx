@@ -1,5 +1,13 @@
 import { router } from "@inertiajs/react";
-import { Form, Row, Col, ButtonGroup, Button, Card } from "react-bootstrap";
+import {
+    Form,
+    Row,
+    Col,
+    ButtonGroup,
+    Button,
+    Card,
+    InputGroup,
+} from "react-bootstrap";
 import { toast } from "react-toastify";
 import { useForm } from "@inertiajs/react";
 import { useState, useCallback, useEffect } from "react";
@@ -167,7 +175,7 @@ export default function EmployeeForm({ employee = null, onSuccess }) {
     // Form field configuration for consistent styling
     const formControlProps = {
         size: "sm",
-        className: "rounded-0 border-secondary",
+        className: "rounded-0",
     };
 
     const getFieldError = (fieldName) => {
@@ -745,7 +753,7 @@ export default function EmployeeForm({ employee = null, onSuccess }) {
                             <Form.Label className="small fw-semibold">
                                 Status
                             </Form.Label>
-                            <div className="border border-dark px-2">
+                            <InputGroup {...formControlProps}>
                                 <Form.Check
                                     inline
                                     type="radio"
@@ -770,7 +778,7 @@ export default function EmployeeForm({ employee = null, onSuccess }) {
                                     onBlur={handleBlur}
                                     className="small"
                                 />
-                            </div>
+                            </InputGroup>
                         </Col>
                     </Row>
                 </Card.Body>
