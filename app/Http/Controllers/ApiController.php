@@ -33,7 +33,7 @@ class ApiController extends Controller
     {
         try {
             $slider = Slider::with('items')
-                ->where('type', $type)
+                ->where('name', $type)
                 ->first();
 
             if (!$slider) {

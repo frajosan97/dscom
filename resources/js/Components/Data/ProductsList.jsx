@@ -1,8 +1,25 @@
 import React, { useEffect, useState } from "react";
+import { Spinner, Alert } from "react-bootstrap";
 import SlickSlider from "@/Components/Settings/SlickSlider";
 import ProductCard from "../Settings/ProductCard";
-import { Spinner, Alert } from "react-bootstrap";
 import useFilterOptions from "@/Hooks/useData";
+
+/**
+ * Autofill items to reach minimum count for slidesToShow
+ */
+const autofillItems = (items, minCount) => {
+    if (!items || items.length >= minCount) return items;
+    const filled = [...items];
+    let i = 0;
+    while (filled.length < minCount) {
+        filled.push({
+            ...items[i % items.length],
+            id: `${items[i % items.length].id}-${i}`,
+        });
+        i++;
+    }
+    return filled;
+};
 
 export default function ProductsList({
     categoryName = null,
@@ -60,46 +77,56 @@ export default function ProductsList({
     const displayProducts =
         brandId || categoryName ? filteredProducts : products;
 
-    const settings = {
-        slidesToShow: withBanner ? 4 : 5,
+    if (!displayProducts?.length) {
+        return (
+            <Alert variant="info" className="text-center">
+                {categoryName
+                    ? `No products found${
+                          brandId ? " for this brand" : ""
+                      } in ${categoryName}`
+                    : "No products available"}
+            </Alert>
+        );
+    }
+
+    const slidesToShow = withBanner ? 4 : 5;
+    const sliderSettings = {
+        slidesToShow,
         autoplay: true,
         autoplaySpeed: 6000,
         speed: 800,
         customSettings: {
             infinite: true,
             arrows: true,
-            dots: true,
+            dots: false,
             pauseOnHover: true,
             responsive: [
                 {
+                    breakpoint: 992,
+                    settings: { slidesToShow: Math.min(3, slidesToShow) },
+                },
+                {
                     breakpoint: 768,
-                    slidesToShow: 2,
-                    settings: {
-                        arrows: false,
-                        dots: false,
-                    },
+                    settings: { slidesToShow: 2, arrows: false, dots: false },
+                },
+                {
+                    breakpoint: 576,
+                    settings: { slidesToShow: 1, arrows: false, dots: false },
                 },
             ],
         },
     };
 
+    // Autofill products if not enough to fill slides
+    const displayedProducts = autofillItems(displayProducts, slidesToShow);
+
     return (
-        <>
-            {displayProducts?.length > 0 ? (
-                <SlickSlider {...settings}>
-                    {displayProducts.map((item) => (
-                        <ProductCard key={item.id} item={item} />
-                    ))}
-                </SlickSlider>
-            ) : (
-                <Alert variant="info" className="text-center">
-                    {categoryName
-                        ? `No products found${
-                              brandId ? " for this brand" : ""
-                          } in ${categoryName}`
-                        : "No products available"}
-                </Alert>
-            )}
-        </>
+        <SlickSlider {...sliderSettings}>
+            {displayedProducts.map((item) => (
+                <div className="px-1">
+                    <ProductCard key={item.id} item={item} />
+                </div>
+            ))}
+        </SlickSlider>
     );
 }

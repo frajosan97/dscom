@@ -1,66 +1,87 @@
-import React, { useEffect, useRef } from 'react';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
-import 'slick-carousel/slick/slick.min.js';
+// resources/js/Components/SlickCarousel.jsx
+import React from "react";
+import Slider from "react-slick";
+import { ChevronRight, ChevronLeft } from "react-feather";
 
-export default function SlickSlider({
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import "../../../css/perComponent/slick.css";
+
+// Custom Next Arrow
+const SampleNextArrow = ({ className, style, onClick }) => (
+    <div
+        className={`${className} custom-arrow next-arrow`}
+        style={style}
+        onClick={onClick}
+    >
+        <div className="arrow-circle">
+            <ChevronRight size={20} />
+        </div>
+    </div>
+);
+
+// Custom Prev Arrow
+const SamplePrevArrow = ({ className, style, onClick }) => (
+    <div
+        className={`${className} custom-arrow prev-arrow`}
+        style={style}
+        onClick={onClick}
+    >
+        <div className="arrow-circle">
+            <ChevronLeft size={20} />
+        </div>
+    </div>
+);
+
+export default function SlickCarousel({
     children,
-    slidesToShow = 3,
-    slidesToScroll = 1,
-    autoplay = false,
+    slidesToShow = 4,
+    autoplay = true,
+    speed = 500,
     autoplaySpeed = 3000,
-    dots = false,
-    arrows = true,
-    infinite = true,
-    speed = 300,
-    responsive = null,
-    className = '',
-    ...props
+    customSettings = {},
 }) {
-
-    const sliderRef = useRef(null);
-
-    useEffect(() => {
-        if (sliderRef.current) {
-            $(sliderRef.current).slick({
-                slidesToShow,
-                slidesToScroll,
-                autoplay,
-                autoplaySpeed,
-                dots,
-                arrows,
-                infinite,
-                speed,
-                responsive,
-                ...props
-            });
-        }
-
-        return () => {
-            if (sliderRef.current) {
-                $(sliderRef.current).slick('unslick');
-            }
-        };
-    }, [
-        slidesToShow,
-        slidesToScroll,
+    const settings = {
+        dots: false,
+        infinite: true,
+        speed,
         autoplay,
         autoplaySpeed,
-        dots,
-        arrows,
-        infinite,
-        speed,
-        responsive,
-        props
-    ]);
+        slidesToShow,
+        slidesToScroll: 1,
+        arrows: true,
+        nextArrow: <SampleNextArrow />,
+        prevArrow: <SamplePrevArrow />,
+        responsive: [
+            {
+                breakpoint: 992,
+                settings: { slidesToShow: Math.min(3, slidesToShow) },
+            },
+            {
+                breakpoint: 768,
+                settings: { slidesToShow: Math.min(2, slidesToShow) },
+            },
+            {
+                breakpoint: 576,
+                settings: { slidesToShow: 2 },
+            },
+        ],
+        appendDots: (dots) => (
+            <div className="custom-dots">
+                <ul>{dots}</ul>
+            </div>
+        ),
+        customPaging: () => (
+            <div className="custom-dot">
+                <div className="dot-inner" />
+            </div>
+        ),
+        ...customSettings,
+    };
 
     return (
-        <div className={`slick-slider ${className}`} ref={sliderRef}>
-            {React.Children.map(children, (child, index) => (
-                <div key={index} className="slick-slide">
-                    {child}
-                </div>
-            ))}
-        </div>
+        <Slider className="slick-container" {...settings}>
+            {children}
+        </Slider>
     );
 }

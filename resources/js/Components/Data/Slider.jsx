@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { Spinner } from "react-bootstrap";
 import axios from "axios";
-import { Spinner, Button } from "react-bootstrap";
-import { ArrowRight } from "react-feather";
 import SlickSlider from "../Settings/SlickSlider";
 
 export default function Slider({ sliderName = "hero" }) {
@@ -69,7 +68,7 @@ export default function Slider({ sliderName = "hero" }) {
         return renderStatusContainer(<p>No active slider found!</p>);
     }
 
-    const settings = {
+    const sliderSettings = {
         slidesToShow: 1,
         autoplay: true,
         autoplaySpeed: 6000,
@@ -92,76 +91,19 @@ export default function Slider({ sliderName = "hero" }) {
     };
 
     return (
-        <SlickSlider key={slider.id || sliderName} {...settings}>
-            {slider.items.map((item) => {
-                const buttonVariant =
-                    item.textContrast === "dark" ? "dark" : "light";
-
-                return (
-                    <div
-                        key={item.id}
-                        className="slider-item"
-                        style={{ background: item.bgGradient }}
-                    >
-                        <div
-                            className={`slider-content d-flex flex-column flex-md-row align-items-center justify-content-center h-100 p-5 ${
-                                item.imagePosition === "right"
-                                    ? "flex-md-row-reverse"
-                                    : ""
-                            }`}
-                        >
-                            <div className="slider-text text-center text-md-start mb-4 mb-md-0">
-                                {item.title && (
-                                    <h1 className="slider-title display-5 fw-bold">
-                                        {item.title}
-                                    </h1>
-                                )}
-                                {item.subtitle && (
-                                    <h2 className="slider-subtitle h4 text-muted mb-3">
-                                        {item.subtitle}
-                                    </h2>
-                                )}
-                                {item.description && (
-                                    <p className="slider-description lead mb-4">
-                                        {item.description}
-                                    </p>
-                                )}
-                                <div className="button-group">
-                                    {item.button_text && (
-                                        <Button
-                                            variant={buttonVariant}
-                                            className="slider-button btn-lg"
-                                        >
-                                            {item.button_text}{" "}
-                                            <ArrowRight
-                                                className="ms-2"
-                                                size={20}
-                                            />
-                                        </Button>
-                                    )}
-                                    {item.secondary_button_text && (
-                                        <Button
-                                            variant={buttonVariant}
-                                            className="slider-button btn-lg ms-2"
-                                        >
-                                            {item.secondary_button_text}
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-                            {item.image && (
-                                <div className="slider-image-wrapper ms-md-4 flex-shrink-0">
-                                    <img
-                                        src={item.image}
-                                        alt={item.title || "Slider image"}
-                                        className="slider-image img-fluid rounded shadow-lg"
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                );
-            })}
+        <SlickSlider key={slider.id || sliderName} {...sliderSettings}>
+            {slider.items.map((item) => (
+                <div key={item.id}>
+                    <img
+                        src={item.image}
+                        className="img-fluid w-100"
+                        alt={item.title || "Slider Image"}
+                    />
+                    {item.title && (
+                        <h5 className="text-center mt-2">{item.title}</h5>
+                    )}
+                </div>
+            ))}
         </SlickSlider>
     );
 }
