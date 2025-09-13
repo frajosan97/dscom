@@ -20,7 +20,6 @@ class RoleSeeder extends Seeder
             'receptionist',
             'supervisor',
             'sales',
-            // customer based roles
             'agent',
             'wholesaler',
             'customer',

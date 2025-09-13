@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Erp\DashboardController;
 use App\Http\Controllers\Erp\Hrm\AttendanceController;
-use App\Http\Controllers\Erp\Hrm\CustomerController;
+use App\Http\Controllers\Erp\Crm\CustomerController;
 use App\Http\Controllers\Erp\Hrm\EmployeeController;
 use App\Http\Controllers\Erp\Hrm\SalaryController;
 use App\Http\Controllers\Erp\Product\ProductController;
@@ -10,7 +10,6 @@ use App\Http\Controllers\Erp\Product\SaleController;
 use App\Http\Controllers\Erp\Service\DeviceTypeController;
 use App\Http\Controllers\Erp\Service\RepairOrderController;
 use App\Http\Controllers\Erp\Service\RepairServiceController;
-use App\Http\Controllers\Erp\Service\ServiceController;
 use App\Http\Controllers\Erp\Setting\BranchController;
 use App\Http\Controllers\Erp\Setting\BrandController;
 use App\Http\Controllers\Erp\Setting\CategoryController;
@@ -80,7 +79,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'employee' => EmployeeController::class,
             'attendance' => AttendanceController::class,
             'salary' => SalaryController::class,
+        ]);
+    });
+
+    Route::prefix('crm')->group(function () {
+        Route::resources([
             'customers' => CustomerController::class,
+            'supplier' => CustomerController::class,
+            'lead' => CustomerController::class,
+            'campaign' => CustomerController::class,
+            'loyalty' => CustomerController::class,
+            'feedback' => CustomerController::class,
+            'support' => CustomerController::class,
         ]);
     });
 });

@@ -12,7 +12,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use  HasRoles, HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasRoles, HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -172,7 +172,15 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function orders()
     {
-        return $this->hasMany(Order::class);
+        return $this->hasMany(Order::class, 'customer_id');
+    }
+
+    /**
+     * Get the services for the user.
+     */
+    public function services()
+    {
+        return $this->hasMany(RepairOrder::class, 'customer_id');
     }
 
     /**

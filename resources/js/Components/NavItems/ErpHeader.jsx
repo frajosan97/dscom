@@ -93,7 +93,50 @@ export default function ErpHeader() {
             ].filter((item) => item.show),
         },
         {
-            label: "HR Management",
+            label: "CRM",
+            icon: "bi bi-people-fill",
+            show: true,
+            children: [
+                {
+                    path: route("customers.index"),
+                    icon: "bi bi-people",
+                    label: "Customer Management",
+                    show: true,
+                },
+                {
+                    path: route("supplier.index"),
+                    icon: "bi bi-truck",
+                    label: "Supplier Management",
+                    show: true,
+                },
+                {
+                    path: route("campaign.index"),
+                    icon: "bi bi-bullseye",
+                    label: "Campaigns / Promotions",
+                    show: true,
+                },
+                {
+                    path: route("loyalty.index"),
+                    icon: "bi bi-gift",
+                    label: "Loyalty & Rewards",
+                    show: true,
+                },
+                {
+                    path: route("feedback.index"),
+                    icon: "bi bi-chat-dots",
+                    label: "Customer Feedback",
+                    show: true,
+                },
+                {
+                    path: route("support.index"),
+                    icon: "bi bi-headset",
+                    label: "Customer Support / Tickets",
+                    show: true,
+                },
+            ].filter((item) => item.show),
+        },
+        {
+            label: "HRM",
             icon: "bi bi-people-fill",
             show: true,
             children: [

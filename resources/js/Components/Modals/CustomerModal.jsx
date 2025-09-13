@@ -2,8 +2,10 @@ import { Modal, Button, Form, Row, Col } from "react-bootstrap";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
-import xios from "@/Utils/axios";
 import { router } from "@inertiajs/react";
+import { useErrorToast } from "@/Hooks/useErrorToast";
+
+import xios from "@/Utils/axios";
 
 const validationSchema = Yup.object().shape({
     name: Yup.string()
@@ -21,6 +23,7 @@ const validationSchema = Yup.object().shape({
 });
 
 export default function CustomerModal({ show, onClose }) {
+    const { showErrorToast } = useErrorToast();
     const formik = useFormik({
         initialValues: {
             name: "",
@@ -43,20 +46,7 @@ export default function CustomerModal({ show, onClose }) {
                     router.reload();
                 }
             } catch (error) {
-                if (error.response && error.response.data.errors) {
-                    Object.entries(error.response.data.errors).forEach(
-                        ([field, messages]) => {
-                            messages.forEach((message) => {
-                                toast.error(`${field}: ${message}`);
-                            });
-                        }
-                    );
-                } else {
-                    toast.error(
-                        error.response?.data?.message ||
-                            "An error occurred while adding the customer"
-                    );
-                }
+                showErrorToast(error);
             } finally {
                 setSubmitting(false);
             }

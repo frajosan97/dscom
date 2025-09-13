@@ -1,7 +1,7 @@
-import xios from "@/Utils/axios";
 import { useCallback, useEffect, useRef } from "react";
 import { Card, Table } from "react-bootstrap";
 import { toast } from "react-toastify";
+import xios from "@/Utils/axios";
 
 export default function EmployeeTable({ onEdit }) {
     const dataTableInitialized = useRef(false);
