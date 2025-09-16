@@ -10,9 +10,9 @@ import {
     Tabs,
     ListGroup,
     ButtonGroup,
-    Modal,
     Form,
     InputGroup,
+    Table,
 } from "react-bootstrap";
 import {
     Telephone,
@@ -26,36 +26,42 @@ import {
     Pencil,
     Chat,
     Phone,
-    Journal,
-    CreditCard,
-    ThreeDots,
     Eye,
     Search,
 } from "react-bootstrap-icons";
 
 import ErpLayout from "@/Layouts/ErpLayout";
-import { FaArrowCircleLeft } from "react-icons/fa";
+import { FaArrowCircleLeft, FaUser } from "react-icons/fa";
+import { formatCurrency, formatDate } from "@/Utils/helpers";
+import CallModal from "@/Components/Modals/CallModal";
+import SendSmsModal from "@/Components/Modals/SmsModal";
+import { toast } from "react-toastify";
+import { useErrorToast } from "@/Hooks/useErrorToast";
+import xios from "@/Utils/axios";
+import Swal from "sweetalert2";
+import CustomerModal from "@/Components/Modals/CustomerModal";
 
 export default function CustomerAccount({ customer }) {
-    const { auth } = usePage().props;
+    const { showErrorToast } = useErrorToast();
     const [activeTab, setActiveTab] = useState("overview");
-    const [showEditModal, setShowEditModal] = useState(false);
+    const [showCallModal, setShowCallModal] = useState(false);
+    const [showSendSmsModal, setShowSendSmsModal] = useState(false);
     const [showAddNoteModal, setShowAddNoteModal] = useState(false);
-    const [noteText, setNoteText] = useState("");
+    const [showCustomerModal, setShowCustomerModal] = useState(false);
 
-    // Format date for display
-    const formatDate = (dateString) => {
-        if (!dateString) return "N/A";
-        return new Date(dateString).toLocaleDateString();
-    };
+    const [callDetails, setCallDetails] = useState({
+        phoneNumber: customer.phone || "",
+        callType: "outgoing",
+        notes: "",
+        duration: "",
+        status: "completed",
+    });
 
-    // Format currency
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-        }).format(amount || 0);
-    };
+    const [smsDetails, setSmsDetails] = useState({
+        customerId: customer.id,
+        phoneNumber: customer?.phone || "",
+        message: "",
+    });
 
     // Get customer type badge color
     const getCustomerTypeBadge = (type) => {
@@ -71,28 +77,72 @@ export default function CustomerAccount({ customer }) {
         }
     };
 
-    // Get gender display text
-    const getGenderText = (gender) => {
-        switch (gender) {
-            case "male":
-                return "Male";
-            case "female":
-                return "Female";
-            case "other":
-                return "Other";
-            case "prefer_not_to_say":
-                return "Prefer not to say";
-            default:
-                return "Not specified";
+    const handleCallSubmit = async (e) => {
+        e.preventDefault();
+        // implement the place call
+    };
+
+    const handleSmsSubmit = async (e) => {
+        e.preventDefault();
+
+        const confirm = await Swal.fire({
+            title: "Send SMS?",
+            text: "This cannot be undone.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, send it!",
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        Swal.fire({
+            title: "Sending SMS...",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+        });
+
+        // Send SMS
+        try {
+            const response = await xios.post(route("send-sms"), smsDetails);
+
+            if (response.data.success === true) {
+                toast.success(response.data.message);
+            }
+        } catch (error) {
+            showErrorToast(error);
+        } finally {
+            Swal.close();
+            setShowSendSmsModal(false);
         }
     };
 
-    // Handle note submission
-    const handleAddNote = () => {
-        // In a real implementation, you would make an API call here
-        console.log("Adding note:", noteText);
-        setNoteText("");
-        setShowAddNoteModal(false);
+    const handleCallNow = async (e) => {
+        e.preventDefault();
+
+        const confirm = await Swal.fire({
+            title: "Call Now?",
+            text: "This cannot be undone.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, call it!",
+        });
+
+        if (!confirm.isConfirmed) {
+            return;
+        }
+
+        // 📞 Direct phone call via tel:
+        if (customer?.phone) {
+            window.location.href = `tel:${customer.phone}`;
+        } else {
+            Swal.fire("Error", "No phone number available.", "error");
+        }
     };
 
     return (
@@ -102,22 +152,21 @@ export default function CustomerAccount({ customer }) {
             {/* Header with back button and actions */}
             <div className="d-flex justify-content-between align-items-center">
                 <h2 className="h4 mb-0">Customer Account</h2>
-                <ButtonGroup>
+                <ButtonGroup className="gap-2">
                     <Button
                         variant="outline-secondary"
                         as={Link}
                         href={route("customers.index")}
+                        className="rounded"
                     >
                         <FaArrowCircleLeft className="me-1" /> Back
                     </Button>
                     <Button
                         variant="outline-primary"
-                        onClick={() => setShowEditModal(true)}
+                        onClick={() => setShowCustomerModal(true)}
+                        className="rounded"
                     >
                         <Pencil className="me-1" /> Edit
-                    </Button>
-                    <Button variant="outline-secondary">
-                        <ThreeDots />
                     </Button>
                 </ButtonGroup>
             </div>
@@ -271,34 +320,35 @@ export default function CustomerAccount({ customer }) {
                             <h6 className="mb-0">Quick Actions</h6>
                         </Card.Header>
                         <Card.Body>
-                            <div className="d-grid gap-2">
+                            <ButtonGroup className="d-grid gap-2">
                                 <Button
+                                    onClick={() => setShowCallModal(true)}
                                     variant="outline-primary"
-                                    className="d-flex align-items-center"
+                                    className="text-start rounded-pill"
                                 >
-                                    <Phone className="me-2" /> Call Customer
+                                    <Phone /> Call Customer
+                                </Button>
+                                <Button
+                                    onClick={() => setShowSendSmsModal(true)}
+                                    variant="outline-primary"
+                                    className="text-start rounded-pill"
+                                >
+                                    <Chat /> Send Message
+                                </Button>
+                                {/* <Button
+                                    variant="outline-primary"
+                                    className="text-start rounded-pill"
+                                >
+                                    <CreditCard /> Process Payment
                                 </Button>
                                 <Button
                                     variant="outline-primary"
-                                    className="d-flex align-items-center"
-                                >
-                                    <Chat className="me-2" /> Send Message
-                                </Button>
-                                <Button
-                                    variant="outline-primary"
-                                    className="d-flex align-items-center"
-                                >
-                                    <CreditCard className="me-2" /> Process
-                                    Payment
-                                </Button>
-                                <Button
-                                    variant="outline-primary"
-                                    className="d-flex align-items-center"
+                                    className="text-start rounded-pill"
                                     onClick={() => setShowAddNoteModal(true)}
                                 >
-                                    <Journal className="me-2" /> Add Note
-                                </Button>
-                            </div>
+                                    <Journal /> Add Note
+                                </Button> */}
+                            </ButtonGroup>
                         </Card.Body>
                     </Card>
                 </Col>
@@ -323,10 +373,7 @@ export default function CustomerAccount({ customer }) {
                                                             Full Name:
                                                         </span>
                                                         <span>
-                                                            {
-                                                                customer.first_name
-                                                            }{" "}
-                                                            {customer.last_name}
+                                                            {customer.full_name}
                                                         </span>
                                                     </ListGroup.Item>
                                                     <ListGroup.Item className="px-0 d-flex justify-content-between">
@@ -334,9 +381,8 @@ export default function CustomerAccount({ customer }) {
                                                             Gender:
                                                         </span>
                                                         <span>
-                                                            {getGenderText(
-                                                                customer.gender
-                                                            )}
+                                                            {customer.gender ||
+                                                                "Not Specified"}
                                                         </span>
                                                     </ListGroup.Item>
                                                     <ListGroup.Item className="px-0 d-flex justify-content-between">
@@ -362,14 +408,14 @@ export default function CustomerAccount({ customer }) {
                                             <Col md={6}>
                                                 <h5>Address Information</h5>
                                                 <ListGroup variant="flush">
-                                                    <ListGroup.Item className="px-0">
-                                                        <div className="text-muted mb-1">
+                                                    <ListGroup.Item className="px-0 d-flex justify-content-between">
+                                                        <span className="text-muted">
                                                             Address
-                                                        </div>
-                                                        <div>
+                                                        </span>
+                                                        <span>
                                                             {customer.address ||
                                                                 "N/A"}
-                                                        </div>
+                                                        </span>
                                                     </ListGroup.Item>
                                                     <ListGroup.Item className="px-0 d-flex justify-content-between">
                                                         <span className="text-muted">
@@ -410,90 +456,6 @@ export default function CustomerAccount({ customer }) {
                                                 </ListGroup>
                                             </Col>
                                         </Row>
-
-                                        <h5 className="mb-3">
-                                            Recent Activity
-                                        </h5>
-                                        {customer.orders &&
-                                        customer.orders.length > 0 ? (
-                                            <div className="table-responsive">
-                                                <Table hover>
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Order ID</th>
-                                                            <th>Date</th>
-                                                            <th>Amount</th>
-                                                            <th>Status</th>
-                                                            <th>Actions</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {customer.orders
-                                                            .slice(0, 5)
-                                                            .map((order) => (
-                                                                <tr
-                                                                    key={
-                                                                        order.id
-                                                                    }
-                                                                >
-                                                                    <td>
-                                                                        #
-                                                                        {
-                                                                            order.id
-                                                                        }
-                                                                    </td>
-                                                                    <td>
-                                                                        {formatDate(
-                                                                            order.created_at
-                                                                        )}
-                                                                    </td>
-                                                                    <td>
-                                                                        {formatCurrency(
-                                                                            order.total_amount
-                                                                        )}
-                                                                    </td>
-                                                                    <td>
-                                                                        <Badge
-                                                                            bg={
-                                                                                order.status ===
-                                                                                "completed"
-                                                                                    ? "success"
-                                                                                    : order.status ===
-                                                                                      "pending"
-                                                                                    ? "warning"
-                                                                                    : order.status ===
-                                                                                      "cancelled"
-                                                                                    ? "danger"
-                                                                                    : "secondary"
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                order.status
-                                                                            }
-                                                                        </Badge>
-                                                                    </td>
-                                                                    <td>
-                                                                        <Button
-                                                                            variant="outline-primary"
-                                                                            size="sm"
-                                                                        >
-                                                                            <Eye
-                                                                                size={
-                                                                                    14
-                                                                                }
-                                                                            />
-                                                                        </Button>
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                    </tbody>
-                                                </Table>
-                                            </div>
-                                        ) : (
-                                            <div className="text-center py-4 text-muted">
-                                                No recent orders found.
-                                            </div>
-                                        )}
                                     </div>
                                 </Tab>
 
@@ -811,154 +773,31 @@ export default function CustomerAccount({ customer }) {
                 </Col>
             </Row>
 
-            {/* Edit Customer Modal */}
-            <Modal
-                show={showEditModal}
-                onHide={() => setShowEditModal(false)}
-                size="lg"
-            >
-                <Modal.Header closeButton>
-                    <Modal.Title>Edit Customer</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Form>
-                        <Row>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>First Name</Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        defaultValue={customer.first_name}
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Last Name</Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        defaultValue={customer.last_name}
-                                    />
-                                </Form.Group>
-                            </Col>
-                        </Row>
+            <CallModal
+                showCallModal={showCallModal}
+                setShowCallModal={setShowCallModal}
+                customer={customer}
+                callDetails={callDetails}
+                setCallDetails={setCallDetails}
+                handleCallSubmit={handleCallSubmit}
+                handleCallNow={handleCallNow}
+            />
 
-                        <Form.Group className="mb-3">
-                            <Form.Label>Email</Form.Label>
-                            <Form.Control
-                                type="email"
-                                defaultValue={customer.email}
-                            />
-                        </Form.Group>
+            <SendSmsModal
+                showSendSmsModal={showSendSmsModal}
+                setShowSendSmsModal={setShowSendSmsModal}
+                customer={customer}
+                smsDetails={smsDetails}
+                setSmsDetails={setSmsDetails}
+                handleSmsSubmit={handleSmsSubmit}
+            />
 
-                        <Row>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Phone</Form.Label>
-                                    <Form.Control
-                                        type="tel"
-                                        defaultValue={customer.phone}
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Alternate Phone</Form.Label>
-                                    <Form.Control
-                                        type="tel"
-                                        defaultValue={customer.alternate_phone}
-                                    />
-                                </Form.Group>
-                            </Col>
-                        </Row>
-
-                        <Form.Group className="mb-3">
-                            <Form.Label>Address</Form.Label>
-                            <Form.Control
-                                type="text"
-                                defaultValue={customer.address}
-                            />
-                        </Form.Group>
-
-                        <Row>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>City</Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        defaultValue={customer.city}
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col md={3}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>State</Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        defaultValue={customer.state}
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col md={3}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Postal Code</Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        defaultValue={customer.postal_code}
-                                    />
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                    </Form>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button
-                        variant="secondary"
-                        onClick={() => setShowEditModal(false)}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="primary"
-                        onClick={() => setShowEditModal(false)}
-                    >
-                        Save Changes
-                    </Button>
-                </Modal.Footer>
-            </Modal>
-
-            {/* Add Note Modal */}
-            <Modal
-                show={showAddNoteModal}
-                onHide={() => setShowAddNoteModal(false)}
-            >
-                <Modal.Header closeButton>
-                    <Modal.Title>Add Note</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Form.Group>
-                        <Form.Label>Note</Form.Label>
-                        <Form.Control
-                            as="textarea"
-                            rows={4}
-                            value={noteText}
-                            onChange={(e) => setNoteText(e.target.value)}
-                            placeholder="Enter notes about this customer..."
-                        />
-                    </Form.Group>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button
-                        variant="secondary"
-                        onClick={() => setShowAddNoteModal(false)}
-                    >
-                        Cancel
-                    </Button>
-                    <Button variant="primary" onClick={handleAddNote}>
-                        Save Note
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            <CustomerModal
+                show={showCustomerModal}
+                customer={customer}
+                onHide={() => setShowCustomerModal(false)}
+                onClose={() => setShowCustomerModal(false)}
+            />
         </ErpLayout>
     );
 }

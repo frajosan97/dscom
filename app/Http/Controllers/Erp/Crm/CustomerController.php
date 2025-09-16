@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\StoreRequest;
 use App\Http\Requests\Customer\UpdateRequest;
 use App\Models\User;
+use App\Services\SmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -13,6 +14,23 @@ use Yajra\DataTables\Facades\DataTables;
 
 class CustomerController extends Controller
 {
+    /**
+     * SMS Service instance for sending notifications
+     * 
+     * @var SmsService
+     */
+    protected $smsService;
+
+    /**
+     * Constructor for dependency injection
+     *
+     * @param SmsService $smsService
+     */
+    public function __construct(SmsService $smsService)
+    {
+        $this->smsService = $smsService;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -172,6 +190,24 @@ class CustomerController extends Controller
                 'success' => false,
                 'message' => 'Deletion failed: ' . $e->getMessage(),
             ], 500);
+        }
+    }
+
+    public function sendSms(Request $request)
+    {
+        $validated = $request->validate([
+            'customerId' => 'required|exists:users,id',
+            'phoneNumber' => 'required',
+            'message' => 'required',
+        ]);
+
+        $customer = User::findOrFail($validated['customerId']);
+
+        try {
+            $this->smsService->sendSms($validated['phoneNumber'], $validated['message']);
+            return response()->json(['success' => true, 'message' => 'SMS sent successfully'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to send SMS: ' . $e->getMessage()], 500);
         }
     }
 }

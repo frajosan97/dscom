@@ -4,6 +4,7 @@ import * as Yup from "yup";
 import { toast } from "react-toastify";
 import { router } from "@inertiajs/react";
 import { useErrorToast } from "@/Hooks/useErrorToast";
+import { useEffect } from "react";
 
 import xios from "@/Utils/axios";
 
@@ -22,8 +23,9 @@ const validationSchema = Yup.object().shape({
     address: Yup.string().max(500, "Address must not exceed 500 characters"),
 });
 
-export default function CustomerModal({ show, onClose }) {
+export default function CustomerModal({ show, onClose, customer = null }) {
     const { showErrorToast } = useErrorToast();
+
     const formik = useFormik({
         initialValues: {
             name: "",
@@ -33,15 +35,23 @@ export default function CustomerModal({ show, onClose }) {
             address: "",
         },
         validationSchema,
-        onSubmit: async (values, { setSubmitting, resetForm }) => {
+        enableReinitialize: true, // allows form to reset when customer changes
+        onSubmit: async (values, { setSubmitting }) => {
             try {
-                const response = await xios.post(
-                    route("customers.store"),
-                    values
-                );
+                const url = customer
+                    ? route("customers.update", customer.id)
+                    : route("customers.store");
+
+                const method = customer ? "put" : "post";
+
+                const response = await xios[method](url, values);
 
                 if (response.data.success) {
-                    toast.success("Customer added successfully.");
+                    toast.success(
+                        customer
+                            ? "Customer updated successfully."
+                            : "Customer added successfully."
+                    );
                     onClose();
                     router.reload();
                 }
@@ -53,10 +63,27 @@ export default function CustomerModal({ show, onClose }) {
         },
     });
 
+    // Autofill form when editing
+    useEffect(() => {
+        if (customer) {
+            formik.setValues({
+                name: customer.name || "",
+                email: customer.email || "",
+                phone: customer.phone || "",
+                tax_number: customer.tax_number || "",
+                address: customer.address || "",
+            });
+        } else {
+            formik.resetForm();
+        }
+    }, [customer, show]);
+
     return (
         <Modal show={show} onHide={onClose} size="lg" centered>
             <Modal.Header closeButton className="border-bottom-0">
-                <Modal.Title className="h5">Add New Customer</Modal.Title>
+                <Modal.Title className="h5">
+                    {customer ? "Edit Customer" : "Add New Customer"}
+                </Modal.Title>
             </Modal.Header>
 
             <Form onSubmit={formik.handleSubmit} noValidate>
@@ -191,6 +218,8 @@ export default function CustomerModal({ show, onClose }) {
                                 ></span>
                                 Saving...
                             </>
+                        ) : customer ? (
+                            "Update Customer"
                         ) : (
                             "Save Customer"
                         )}

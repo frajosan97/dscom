@@ -689,3 +689,14 @@ a {
         background: none !important;
     }
 }
+
+.keypad button {
+    transition: all 0.1s ease;
+}
+.keypad button:active {
+    transform: scale(0.95);
+    background-color: #f8f9fa !important;
+}
+.keypad .btn-success {
+    box-shadow: 0 4px 8px rgba(25, 135, 84, 0.2);
+}

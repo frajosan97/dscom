@@ -92,5 +92,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'feedback' => CustomerController::class,
             'support' => CustomerController::class,
         ]);
+
+        Route::post('send-sms', [CustomerController::class, 'sendSms'])->name('send-sms');
     });
 });
