@@ -36,6 +36,12 @@ export default function ErpHeader() {
                     show: true,
                 },
                 {
+                    path: route("product.create"),
+                    icon: "bi bi-plus-square",
+                    label: "New Item",
+                    show: true,
+                },
+                {
                     path: route("sales.index"),
                     icon: "bi bi-receipt",
                     label: "Sales List",

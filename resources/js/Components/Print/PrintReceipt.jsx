@@ -14,32 +14,17 @@ export function printReceipt(order, options = {}) {
         `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
     );
 
-    const logoUrl = options.logoUrl || `/storage/images/logos/logo.png`;
-    const company = options.company || {
-        name: "DSCOM Technologies Ltd",
-        phone: "+243 (894) 779-059",
-        email: "info@dscomtechnologies.com",
-        address:
-            "Avenue Du Tchad, No.7 IMMEUBLE RENAISSANCE, Local 6<br />Ref. Opposite EQUITY BCDC HEAD OFFICE",
-    };
-
-    const orderDate = new Date(order.created_at).toLocaleString();
+    const orderDate = new Date(order.created_at).toLocaleDateString();
+    const orderTime = new Date(order.created_at).toLocaleTimeString();
 
     // Items
     const itemsRows = order.items
         .map(
-            (item, index) => `
+            (item) => `
         <tr>
-            <td>${index + 1}</td>
-            <td>${item.id || ""}</td>
-            <td>${item.hsn_code || "none"}</td>
             <td>${item.product_name}</td>
-            <td style="text-align:right;">${formatCurrency(item.price)}</td>
             <td style="text-align:center;">${item.quantity}</td>
-            <td style="text-align:right;">${formatCurrency(
-                item.price * item.quantity
-            )}</td>
-            <td style="text-align:center;">${item.gst || "0%"}</td>
+            <td style="text-align:right;">${formatCurrency(item.price)}</td>
             <td style="text-align:right;">${formatCurrency(
                 item.price * item.quantity
             )}</td>
@@ -47,136 +32,77 @@ export function printReceipt(order, options = {}) {
         )
         .join("");
 
-    // Payments
-    const paymentsRows =
-        order?.payments
-            ?.map(
-                (p, index) => `
-        <tr>
-            <td>${index + 1}</td>
-            <td>${p.payment_method_name}</td>
-            <td style="text-align:right;">${formatCurrency(p.amount)}</td>
-            <td>${new Date(p.created_at).toLocaleDateString()}</td>
-        </tr>`
-            )
-            .join("") || "";
-
     // Inject HTML
     printWindow.document.write(`
         <html>
             <head>
-                <title>Invoice ${order.invoice_number}</title>
+                <title>Receipt ${order.invoice_number}</title>
                 <style>
-                    body { font-family: Arial, sans-serif; margin: 15px; font-size: 14px; }
-                    .header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-                    .header img { max-width: 120px; }
-                    .company { text-align: right; }
-                    .company h2 { margin: 0; }
-                    .title { text-align: center; border: 1px solid #000; padding: 5px; font-weight: bold; margin: 10px 0; }
+                    body { font-family: 'DejaVu Sans', sans-serif; margin: 15px; font-size: 12pt; color: #333; }
+                    .header { text-align: center; margin-bottom: 10px; }
+                    .header h2, .header h3 { margin: 2px 0; }
                     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                    th, td { border: 1px solid #000; padding: 6px; text-align: left; }
-                    th { background: #f2f2f2; }
-                    .no-border td { border: none; }
-                    .summary td { font-weight: bold; }
-                    .footer { margin-top: 20px; text-align: center; font-size: 12px; }
+                    .border-top {border-top: 1px solid #000; }
+                    .border-bottom {border-bottom: 1px solid #000; }
+                    .padding-top-bottom { padding: 5px 0; }
+                    .summary td { border: none; padding: 5px; font-size: 11pt; }
+                    .footer { margin-top: 15px; text-align: center; font-size: 10pt; }
                 </style>
             </head>
             <body>
                 <div class="header">
-                    <div><img src="${logoUrl}" alt="Logo" /></div>
-                    <div class="company">
-                        <h2>${company.name}</h2>
-                        <p>Tel: ${company.phone}</p>
-                        <p>Email: ${company.email}</p>
-                        <p>${company.address}</p>
-                    </div>
+                    <h3>RCCM: ${order.rccm || "16-A-4685"}</h3>
+                    <h3>NIF: ${order.nif || "01622682Y"}</h3>
                 </div>
-
-                <div class="title">Sales Receipt</div>
 
                 <table>
                     <tr>
-                        <td>
-                            <strong>Name:</strong> ${
-                                order.customer?.name || ""
-                            }<br/>
-                            <strong>Phone:</strong> ${
-                                order.customer?.phone || ""
-                            }<br/>
-                            <strong>Address:</strong> ${
-                                order.customer?.address || ""
-                            }<br/>
-                            <strong>Other Information:</strong> ${
-                                order.customer?.info || ""
-                            }
-                        </td>
-                        <td>
-                            <strong>Invoice No:</strong> ${
-                                order.invoice_number
-                            }<br/>
-                            <strong>Date:</strong> ${orderDate}<br/>
-                            <strong>Remarks:</strong> ${
-                                order.remarks || ""
-                            }<br/>
-                            <strong>GST IN:</strong> ${order.gst_in || ""}<br/>
-                            <strong>Salesman:</strong> ${order.user?.name || ""}
-                        </td>
+                        <td><strong>Date:</strong> ${orderDate}</td>
+                        <td><strong>Heure:</strong> ${orderTime}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fact. N°:</strong> ${
+                            order.invoice_number
+                        }</td>
+                        <td><strong>Credit</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><strong>Client:</strong> ${
+                            order.customer?.name || ""
+                        }</td>
                     </tr>
                 </table>
 
                 <table>
-                    <thead>
+                    <thead class="border-top border-bottom">
                         <tr>
-                            <th>Sl No</th>
-                            <th>Item Code</th>
-                            <th>HSN Code</th>
-                            <th>Store Items Name</th>
-                            <th>Unit Price</th>
-                            <th>Qty</th>
-                            <th>Amount</th>
-                            <th>GST</th>
-                            <th>Total</th>
+                            <th class="padding-top-bottom" style="text-align:left;">Produit</th>
+                            <th class="padding-top-bottom">Qté</th>
+                            <th class="padding-top-bottom">Prix</th>
+                            <th class="padding-top-bottom">Total</th>
                         </tr>
                     </thead>
                     <tbody>${itemsRows}</tbody>
                 </table>
 
-                <table class="no-border" style="margin-top:10px;">
-                    <tr><td>Total Before TAX</td><td style="text-align:right;">${formatCurrency(
+                <table class="summary" style="margin-top:10px; width:100%;">
+                    <tr class="border-top"><td><strong>T.Fac :</strong></td><td style="text-align:right;">USD ${formatCurrency(
                         order.subtotal
                     )}</td></tr>
-                    <tr><td>CGST</td><td style="text-align:right;">${
-                        order.cgst || "0.00"
+                    <tr class="border-top"><td><strong>Remise :</strong></td><td style="text-align:right;">${
+                        order.discount || "0.00"
                     }</td></tr>
-                    <tr><td>SGST</td><td style="text-align:right;">${
-                        order.sgst || "0.00"
-                    }</td></tr>
-                    <tr class="summary"><td>Bill Total</td><td style="text-align:right;">${formatCurrency(
+                    <tr class="border-top"><td><strong>T.NET :</strong></td><td style="text-align:right;">USD ${formatCurrency(
                         order.total
                     )}</td></tr>
-                    <tr class="summary"><td>Net Total</td><td style="text-align:right;">${formatCurrency(
-                        order.total
+                    <tr class="border-top border-bottom"><td><strong>Ancien Solde :</strong></td><td style="text-align:right;">${formatCurrency(
+                        order.previous_balance || 0
                     )}</td></tr>
                 </table>
 
-                ${
-                    paymentsRows
-                        ? `<h3>Payments</h3>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Method</th>
-                                    <th>Amount</th>
-                                    <th>Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>${paymentsRows}</tbody>
-                        </table>`
-                        : ""
-                }
-
-                <div class="footer"><p>Thank you for shopping with us!</p></div>
+                <div class="footer">
+                    <p>LES MARCHANDISES VENDUES NE SONT NI REPRISES NI ECHANGEES</p>
+                </div>
             </body>
         </html>
     `);
