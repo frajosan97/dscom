@@ -1,16 +1,24 @@
-import { Head } from "@inertiajs/react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, ButtonGroup, Card, Table } from "react-bootstrap";
-
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Head, Link } from "@inertiajs/react";
+import {
+    Container,
+    Row,
+    Col,
+    Card,
+    Button,
+    ButtonGroup,
+    Table,
+    InputGroup,
+    Form,
+} from "react-bootstrap";
 import ErpLayout from "@/Layouts/ErpLayout";
-import CustomerModal from "@/Components/Modals/CustomerModal";
 
 export default function Customer() {
-    const [showCustomerModal, setShowCustomerModal] = useState(false);
-
+    const [search, setSearch] = useState("");
     const dataTableInitialized = useRef(false);
     const dataTable = useRef(null);
 
+    // Initialize DataTable
     const initializeDataTable = useCallback(() => {
         if (dataTableInitialized.current) return;
 
@@ -24,49 +32,42 @@ export default function Customer() {
             ajax: {
                 url: route("customers.index"),
                 type: "GET",
+                data: function (d) {
+                    d.search = search;
+                },
             },
             columns: [
                 {
                     data: "DT_RowIndex",
-                    name: "DT_RowIndex",
                     title: "#",
                     className: "text-center",
                     width: "1%",
                     orderable: false,
                     searchable: false,
                 },
-                {
-                    data: "name",
-                    title: "Name",
-                    className: "text-start",
-                },
-                {
-                    data: "email",
-                    title: "email",
-                    className: "text-start",
-                },
-                {
-                    data: "phone",
-                    title: "Phone",
-                    className: "text-start",
-                },
+                { data: "name", title: "Name", className: "text-start" },
+                { data: "email", title: "Email", className: "text-start" },
+                { data: "phone", title: "Phone", className: "text-start" },
                 {
                     data: "role",
                     title: "Type",
                     className: "text-start",
-                    width: "15%",
+                    width: "10%",
                 },
                 {
                     data: "status",
                     title: "Status",
                     className: "text-center",
-                    width: "10%",
+                    render: (data) =>
+                        `<span class="badge ${
+                            data === "active"
+                                ? "bg-success"
+                                : data === "pending"
+                                ? "bg-warning text-dark"
+                                : "bg-secondary"
+                        }">${data}</span>`,
                 },
-                {
-                    data: "balance",
-                    title: "Balance",
-                    className: "text-end",
-                },
+                { data: "balance", title: "Balance", className: "text-end" },
                 {
                     data: "action",
                     title: "Actions",
@@ -76,18 +77,19 @@ export default function Customer() {
                 },
             ],
             drawCallback: function () {
+                // Bind custom button actions
                 $(".edit-btn")
                     .off("click")
                     .on("click", function () {
                         const id = $(this).data("id");
-                        editEmployee(id);
+                        editCustomer(id);
                     });
 
                 $(".delete-btn")
                     .off("click")
                     .on("click", function () {
                         const id = $(this).data("id");
-                        deleteEmployee(id);
+                        deleteCustomer(id);
                     });
             },
             initComplete: function () {
@@ -97,7 +99,7 @@ export default function Customer() {
 
         dataTable.current = dt;
         return dt;
-    });
+    }, [search]);
 
     useEffect(() => {
         initializeDataTable();
@@ -109,55 +111,56 @@ export default function Customer() {
         };
     }, [initializeDataTable]);
 
-    const handleAddNewCustomer = useCallback(() => {
-        setShowCustomerModal(true);
-    }, []);
+    // Stub functions for edit/delete actions
+    const editCustomer = (id) => {
+        console.log("Edit customer:", id);
+    };
+    const deleteCustomer = (id) => {
+        console.log("Delete customer:", id);
+    };
 
     return (
         <ErpLayout>
             <Head title="Customer Management" />
 
-            <Card className="border-0 rounded-0 shadow-sm">
-                <Card.Header className="d-flex justify-content-between align-items-center bg-transparent">
-                    <h5 className="mb-0">
-                        <i className="bi bi-people-fill me-2"></i>
-                        Customer Management
-                    </h5>
-                    <ButtonGroup>
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={handleAddNewCustomer}
-                        >
-                            <i className="bi bi-person-plus me-1"></i> Add
-                            Customer
-                        </Button>
-                        <Button variant="outline-secondary" size="sm">
-                            <i className="bi bi-download me-1"></i> Export
-                        </Button>
-                        <Button variant="outline-secondary" size="sm">
-                            <i className="bi bi-arrow-clockwise"></i>
-                        </Button>
-                    </ButtonGroup>
-                </Card.Header>
-                <Card.Body className="px-0">
-                    <Table
-                        size="sm"
-                        bordered
-                        hover
-                        striped
-                        responsive
-                        id="customerTable"
-                    />
-                </Card.Body>
-            </Card>
+            <Container fluid className="py-4">
+                {/* Page Header */}
+                <Row className="mb-4">
+                    <Col>
+                        <h3 className="fw-bold text-primary">
+                            Customer Management
+                        </h3>
+                        <p className="text-muted mb-0">
+                            View, manage, and maintain all customer accounts.
+                        </p>
+                    </Col>
+                    <Col className="text-end">
+                        <ButtonGroup>
+                            <Button
+                                variant="outline-primary"
+                                as={Link}
+                                href={route("customers.create")}
+                            >
+                                <i className="bi bi-person-plus me-1"></i> Add
+                                Customer
+                            </Button>
+                        </ButtonGroup>
+                    </Col>
+                </Row>
 
-            {/* Customer Modal */}
-            <CustomerModal
-                show={showCustomerModal}
-                onHide={() => setShowCustomerModal(false)}
-                onClose={() => setShowCustomerModal(false)}
-            />
+                {/* Customer Table */}
+                <Card>
+                    <Card.Body>
+                        <Table
+                            bordered
+                            hover
+                            responsive
+                            id="customerTable"
+                            className="align-middle mb-0"
+                        />
+                    </Card.Body>
+                </Card>
+            </Container>
         </ErpLayout>
     );
 }

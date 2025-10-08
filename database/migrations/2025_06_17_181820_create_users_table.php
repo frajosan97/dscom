@@ -97,6 +97,7 @@ return new class extends Migration
             $table->enum('gender', ['Male', 'Female'])->nullable();
             $table->integer('age')->nullable();
             $table->date('birth_date')->nullable();
+            $table->date('date_of_birth')->nullable();
 
             // Contact Information
             $table->string('phone')->unique();

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\SmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -44,7 +45,8 @@ class CustomerController extends Controller
                     ->when($request->filled('is_active'), fn($q) => $q->where('is_active', $request->is_active))
                     ->when($request->filled('role'), function ($q) use ($request) {
                         $q->whereHas('roles', fn($query) => $query->where('name', $request->role));
-                    });
+                    })
+                    ->latest();
 
                 return DataTables::of($users)
                     ->addIndexColumn()
@@ -68,7 +70,7 @@ class CustomerController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Backend/ERP/CRM/CustomerCreate');
+        return Inertia::render('Backend/ERP/CRM/CustomerForm');
     }
 
     /**
@@ -81,10 +83,19 @@ class CustomerController extends Controller
         try {
             $validated = $request->validated();
 
+            // ✅ Handle profile image upload (if provided)
+            if ($request->hasFile('profile_image')) {
+                $file = $request->file('profile_image');
+                $path = $file->store('customers/profile_images', 'public');
+                $validated['profile_image'] = $path;
+            }
+
+            // ✅ Create the user with extra fields
             $user = User::create($validated + [
-                'ending_date' => now()->addYear()
+                'ending_date' => now()->addYear(),
             ]);
 
+            // ✅ Assign role safely
             $user->assignRole('customer');
 
             DB::commit();
@@ -92,8 +103,9 @@ class CustomerController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Customer created successfully',
-                'data' => $user
+                'data' => $user,
             ], 201);
+
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -128,7 +140,7 @@ class CustomerController extends Controller
         try {
             $customer = User::with(['branch', 'roles'])->findOrFail($id);
 
-            return Inertia::render('Backend/ERP/CRM/CustomerEdit', [
+            return Inertia::render('Backend/ERP/CRM/CustomerForm', [
                 'customer' => $customer
             ]);
         } catch (\Throwable $e) {
@@ -147,6 +159,14 @@ class CustomerController extends Controller
             $customer = User::findOrFail($id);
 
             $validated = $request->validated();
+
+            // ✅ Handle image upload correctly
+            if ($request->hasFile('profile_image')) {
+                $file = $request->file('profile_image');
+                $path = $file->store('customers/profile_images', 'public');
+                $validated['profile_image'] = $path;
+            }
+
             $customer->update($validated);
 
             DB::commit();
@@ -154,8 +174,9 @@ class CustomerController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Customer updated successfully',
-                'data' => $customer
+                'data' => $customer,
             ], 200);
+
         } catch (\Exception $e) {
             DB::rollBack();
 

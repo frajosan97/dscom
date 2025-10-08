@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -16,17 +17,22 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
      */
     protected $fillable = [
-        'first_name',
-        'last_name',
+        // Authentication
         'email',
         'password',
+        'username',
+
+        // Personal Information
+        'first_name',
+        'last_name',
         'gender',
+        'age',
         'birth_date',
-        'avatar',
+        'date_of_birth',
+
+        // Contact Information
         'phone',
         'alternate_phone',
         'address',
@@ -34,24 +40,45 @@ class User extends Authenticatable implements MustVerifyEmail
         'state',
         'country',
         'postal_code',
+
+        // Professional Information
+        'qualification',
+        'designation',
+        'salary_type',
+        'salary',
+        'role',
+        'branch_id',
+        'department_id',
+
+        // Medical Information
+        'blood_group',
+
+        // Financial Information
+        'opening_balance',
+        'balance',
+        'ending_date',
+
+        // Files & Documents
+        'profile_image',
+        'id_card',
+        'document',
+
+        // Additional Information
+        'description',
+        'status',
+
+        // Location
         'latitude',
         'longitude',
-        'branch_id',
-        'customer_id',
-        'loyalty_points',
-        'balance',
-        'customer_type',
-        'preferences',
+
+        // Flags
         'is_active',
         'is_verified',
         'last_login_at',
-        'ending_date',
     ];
 
     /**
      * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -60,27 +87,48 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * The attributes that should be cast.
-     *
-     * @var array<string, string>
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'birth_date' => 'date',
+        'date_of_birth' => 'date',
         'ending_date' => 'date',
-        'loyalty_points' => 'decimal:2',
+        'opening_balance' => 'decimal:2',
         'balance' => 'decimal:2',
-        'preferences' => 'array',
+        'latitude' => 'decimal:7',
+        'longitude' => 'decimal:7',
         'is_active' => 'boolean',
         'is_verified' => 'boolean',
         'last_login_at' => 'datetime',
-        'latitude' => 'decimal:7',
-        'longitude' => 'decimal:7',
     ];
 
     protected $appends = [
         'full_name',
-        'avatar_url',
+        'profile_image_url',
+        'computed_age',
     ];
+
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        if (!$this->profile_image) {
+            return asset('images/default-avatar.png');
+        }
+
+        if (filter_var($this->profile_image, FILTER_VALIDATE_URL)) {
+            return $this->profile_image;
+        }
+
+        return asset('storage/' . $this->profile_image);
+    }
+
+    public function getComputedAgeAttribute(): ?int
+    {
+        if (!$this->date_of_birth) {
+            return null;
+        }
+
+        return Carbon::parse($this->date_of_birth)->age;
+    }
 
     /**
      * Customer types constants
@@ -304,5 +352,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function attendance()
     {
         return $this->hasOne(Attendance::class);
+    }
+
+    public function getAgeAttribute()
+    {
+        return Carbon::parse($this->date_of_birth)->age;
     }
 }

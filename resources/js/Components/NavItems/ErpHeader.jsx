@@ -53,12 +53,12 @@ export default function ErpHeader() {
                     label: "New Sale",
                     show: true,
                 },
-                {
-                    path: route("sales.create"),
-                    icon: "bi bi-upc-scan",
-                    label: "Store Barcode Printing",
-                    show: true,
-                },
+                // {
+                //     path: route("sales.create"),
+                //     icon: "bi bi-upc-scan",
+                //     label: "Store Barcode Printing",
+                //     show: true,
+                // },
             ].filter((item) => item.show),
         },
         {
@@ -106,25 +106,13 @@ export default function ErpHeader() {
                 {
                     path: route("customers.index"),
                     icon: "bi bi-people",
-                    label: "Customer Management",
+                    label: "Customer/Supplier Mgnt",
                     show: true,
                 },
                 {
-                    path: route("supplier.index"),
-                    icon: "bi bi-truck",
-                    label: "Supplier Management",
-                    show: true,
-                },
-                {
-                    path: route("campaign.index"),
+                    path: route("promotion.index"),
                     icon: "bi bi-bullseye",
                     label: "Campaigns / Promotions",
-                    show: true,
-                },
-                {
-                    path: route("loyalty.index"),
-                    icon: "bi bi-gift",
-                    label: "Loyalty & Rewards",
                     show: true,
                 },
                 {
@@ -134,7 +122,7 @@ export default function ErpHeader() {
                     show: true,
                 },
                 {
-                    path: route("support.index"),
+                    path: route("ticket.index"),
                     icon: "bi bi-headset",
                     label: "Customer Support / Tickets",
                     show: true,
@@ -172,50 +160,68 @@ export default function ErpHeader() {
             show: canViewAccounts,
             children: [
                 {
-                    path: "",
+                    path: route("finance.reports"),
+                    icon: "bi bi-graph-up",
+                    label: "Financial Reports",
+                    show: true,
+                },
+                {
+                    path: route("finance.chart-of-accounts"),
                     icon: "bi bi-journal-text",
                     label: "Chart of Accounts",
                     show: true,
                 },
                 {
-                    path: "",
+                    path: route("finance.transactions"),
                     icon: "bi bi-arrow-left-right",
                     label: "Transactions",
                     show: true,
                 },
                 {
-                    path: "",
-                    icon: "bi bi-graph-up",
-                    label: "Financial Reports",
+                    path: route("finance.invoices"),
+                    icon: "bi bi-receipt-cutoff",
+                    label: "Invoices",
                     show: true,
                 },
-            ].filter((item) => item.show),
-        },
-        {
-            label: "Reports",
-            icon: "bi bi-bar-chart",
-            show: canViewReports,
-            children: [
                 {
-                    path: "",
+                    path: route("finance.payments"),
                     icon: "bi bi-currency-dollar",
-                    label: "Sales Reports",
+                    label: "Payments",
                     show: true,
                 },
                 {
-                    path: "",
-                    icon: "bi bi-box-seam",
-                    label: "Inventory Reports",
-                    show: true,
-                },
-                {
-                    path: "",
-                    icon: "bi bi-tools",
-                    label: "Service Reports",
+                    path: route("finance.bank-reconciliation"),
+                    icon: "bi bi-bank",
+                    label: "Bank Reconciliation",
                     show: true,
                 },
             ].filter((item) => item.show),
         },
+        // {
+        //     label: "Reports",
+        //     icon: "bi bi-bar-chart",
+        //     show: canViewReports,
+        //     children: [
+        //         {
+        //             path: "",
+        //             icon: "bi bi-currency-dollar",
+        //             label: "Sales Reports",
+        //             show: true,
+        //         },
+        //         {
+        //             path: "",
+        //             icon: "bi bi-box-seam",
+        //             label: "Inventory Reports",
+        //             show: true,
+        //         },
+        //         {
+        //             path: "",
+        //             icon: "bi bi-tools",
+        //             label: "Service Reports",
+        //             show: true,
+        //         },
+        //     ].filter((item) => item.show),
+        // },
         {
             label: "Settings",
             icon: "bi bi-gear-fill",

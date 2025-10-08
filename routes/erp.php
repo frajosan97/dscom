@@ -3,6 +3,9 @@
 use App\Http\Controllers\Erp\DashboardController;
 use App\Http\Controllers\Erp\Hrm\AttendanceController;
 use App\Http\Controllers\Erp\Crm\CustomerController;
+use App\Http\Controllers\Erp\Crm\FeedbackController;
+use App\Http\Controllers\Erp\Crm\PromotionController;
+use App\Http\Controllers\Erp\Crm\TicketController;
 use App\Http\Controllers\Erp\Hrm\EmployeeController;
 use App\Http\Controllers\Erp\Hrm\SalaryController;
 use App\Http\Controllers\Erp\Product\ProductController;
@@ -18,6 +21,7 @@ use App\Http\Controllers\Erp\Setting\SliderController;
 use App\Http\Controllers\Erp\Setting\SliderItemController;
 use App\Http\Controllers\Erp\Setting\WarehouseController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -85,14 +89,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('crm')->group(function () {
         Route::resources([
             'customers' => CustomerController::class,
-            'supplier' => CustomerController::class,
-            'lead' => CustomerController::class,
-            'campaign' => CustomerController::class,
-            'loyalty' => CustomerController::class,
-            'feedback' => CustomerController::class,
-            'support' => CustomerController::class,
+            'promotion' => PromotionController::class,
+            'feedback' => FeedbackController::class,
+            'ticket' => TicketController::class,
         ]);
 
         Route::post('send-sms', [CustomerController::class, 'sendSms'])->name('send-sms');
+    });
+
+    Route::prefix('finance')->group(function () {
+        Route::get('/chart-of-accounts', function () {
+            return Inertia::render('Backend/ERP/Finance/ChartOfAccounts');
+        })->name('finance.chart-of-accounts');
+        Route::get('/transactions', function () {
+            return Inertia::render('Backend/ERP/Finance/Transactions');
+        })->name('finance.transactions');
+        Route::get('/invoices', function () {
+            return Inertia::render('Backend/ERP/Finance/Invoices');
+        })->name('finance.invoices');
+        Route::get('/payments', function () {
+            return Inertia::render('Backend/ERP/Finance/Payments');
+        })->name('finance.payments');
+        Route::get('/bank-reconciliation', function () {
+            return Inertia::render('Backend/ERP/Finance/BankReconciliation');
+        })->name('finance.bank-reconciliation');
+         Route::get('/reports', function () {
+            return Inertia::render('Backend/ERP/Finance/Reports');
+        })->name('finance.reports');
     });
 });
