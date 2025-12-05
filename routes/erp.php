@@ -8,6 +8,7 @@ use App\Http\Controllers\Erp\Crm\PromotionController;
 use App\Http\Controllers\Erp\Crm\TicketController;
 use App\Http\Controllers\Erp\Hrm\EmployeeController;
 use App\Http\Controllers\Erp\Hrm\SalaryController;
+use App\Http\Controllers\Erp\Product\BarcodeController;
 use App\Http\Controllers\Erp\Product\ProductController;
 use App\Http\Controllers\Erp\Product\SaleController;
 use App\Http\Controllers\Erp\Service\DeviceTypeController;
@@ -62,6 +63,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('store')->group(function () {
         Route::resources([
             'product' => ProductController::class,
+            'barcode' => BarcodeController::class,
             'sales' => SaleController::class,
         ]);
     });
@@ -113,7 +115,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/bank-reconciliation', function () {
             return Inertia::render('Backend/ERP/Finance/BankReconciliation');
         })->name('finance.bank-reconciliation');
-         Route::get('/reports', function () {
+        Route::get('/reports', function () {
             return Inertia::render('Backend/ERP/Finance/Reports');
         })->name('finance.reports');
     });

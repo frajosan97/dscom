@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class Category extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -30,9 +31,11 @@ class Category extends Model
     protected $casts = [
         'is_featured' => 'boolean',
         'is_active' => 'boolean',
-        'additional_fields' => 'json',
+        'order' => 'integer',
+        'additional_fields' => 'array',
     ];
 
+    // Relationships
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'parent_id');
@@ -48,6 +51,38 @@ class Category extends Model
         return $this->hasMany(Product::class);
     }
 
+    /**
+     * Scope for active categories
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope for featured categories
+     */
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', true);
+    }
+
+    /**
+     * Scope for ordered categories
+     */
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('order')->orderBy('name');
+    }
+
+    /**
+     * Get all descendant categories
+     */
+    public function getAllDescendants()
+    {
+        return $this->children()->with('allDescendants');
+    }
+
     public function getProductsGroupedByChildren()
     {
         return $this->children->mapWithKeys(function ($child) {
@@ -58,21 +93,6 @@ class Category extends Model
                 ]
             ];
         });
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    public function scopeFeatured($query)
-    {
-        return $query->where('is_featured', true);
-    }
-
-    public function scopeOrdered($query)
-    {
-        return $query->orderBy('order');
     }
 
     protected static function boot()

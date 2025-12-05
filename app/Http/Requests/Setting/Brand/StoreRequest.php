@@ -16,7 +16,6 @@ class StoreRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255|unique:brands,name',
-            'slug' => 'sometimes|string|max:255|unique:brands,slug',
             'description' => 'nullable|string',
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
@@ -39,14 +38,5 @@ class StoreRequest extends FormRequest
             'is_featured' => filter_var($validated['is_featured'], FILTER_VALIDATE_BOOLEAN),
             'is_active' => filter_var($validated['is_active'], FILTER_VALIDATE_BOOLEAN),
         ]);
-    }
-
-    protected function prepareForValidation()
-    {
-        if (!$this->has('slug') && $this->has('name')) {
-            $this->merge([
-                'slug' => Str::slug($this->name),
-            ]);
-        }
     }
 }

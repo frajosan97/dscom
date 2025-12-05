@@ -25,7 +25,6 @@ export default function BrandModal({ show, onSuccess, onHide, brand }) {
         name: Yup.string()
             .required("Brand name is required")
             .max(255, "Brand name must not exceed 255 characters"),
-        slug: Yup.string().max(255, "Slug must not exceed 255 characters"),
         description: Yup.string().nullable(),
         meta_title: Yup.string().nullable(),
         meta_description: Yup.string().nullable(),
@@ -43,7 +42,6 @@ export default function BrandModal({ show, onSuccess, onHide, brand }) {
         enableReinitialize: true,
         initialValues: {
             name: brand?.name || "",
-            slug: brand?.slug || "",
             description: brand?.description || "",
             meta_title: brand?.meta_title || "",
             meta_description: brand?.meta_description || "",
@@ -137,30 +135,6 @@ export default function BrandModal({ show, onSuccess, onHide, brand }) {
                                     />
                                     <Form.Control.Feedback type="invalid">
                                         {formik.errors.name}
-                                    </Form.Control.Feedback>
-                                </InputGroup>
-                            </Form.Group>
-
-                            <Form.Group className="mb-3" controlId="slug">
-                                <Form.Label>Slug</Form.Label>
-                                <InputGroup>
-                                    <InputGroup.Text>
-                                        <i className="bi bi-link-45deg"></i>
-                                    </InputGroup.Text>
-                                    <Form.Control
-                                        type="text"
-                                        name="slug"
-                                        value={formik.values.slug}
-                                        onChange={formik.handleChange}
-                                        onBlur={formik.handleBlur}
-                                        isInvalid={
-                                            formik.touched.slug &&
-                                            !!formik.errors.slug
-                                        }
-                                        disabled={formik.isSubmitting}
-                                    />
-                                    <Form.Control.Feedback type="invalid">
-                                        {formik.errors.slug}
                                     </Form.Control.Feedback>
                                 </InputGroup>
                             </Form.Group>

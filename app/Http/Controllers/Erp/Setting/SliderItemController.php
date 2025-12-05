@@ -16,40 +16,66 @@ class SliderItemController extends Controller
 {
     public function index(Request $request)
     {
-        $request->validate(['slider' => 'required|exists:sliders,id']);
-        $slider = Slider::findOrFail($request->slider);
+        $slider = Slider::find($request->slider);
 
-        if ($request->ajax()) {
-            return $this->getItemsDataTableResponse($request, $slider);
+        try {
+            if ($request->has('draw')) {
+                return $this->getItemsDataTableResponse($request, $slider);
+            }
+
+            return Inertia::render('Backend/ERP/Setting/SlideItems', [
+                'slider' => $slider
+            ]);
+        } catch (\Throwable $th) {
+            return back()->with('error', 'Failed to load slider items.');
         }
+    }
 
-        return Inertia::render('Backend/ERP/Slide/Show', [
-            'slider' => $slider
+    public function create(Slider $slider)
+    {
+        return response()->json([
+            'slider' => $slider,
+            'defaults' => [
+                'text_color' => '#ffffff',
+                'order' => 0,
+                'is_active' => true
+            ]
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, Slider $slider)
     {
         $validated = $this->validateItemRequest($request);
-        $slider = Slider::findOrFail($validated['slider_id']);
 
         try {
             $data = $this->buildItemData($validated);
-            $data['image'] = $this->uploadItemImage($request->file('image'));
+            $data['slider_id'] = $request->slider_id;
+
+            if ($request->hasFile('image')) {
+                $data['image'] = $this->uploadItemImage($request->file('image'));
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Image is required.'
+                ], 422);
+            }
 
             if ($request->hasFile('mobile_image')) {
                 $data['mobile_image'] = $this->uploadItemImage($request->file('mobile_image'));
             }
 
-            $item = $slider->items()->create($data);
+            $sliderItem = SliderItem::create($data);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Slide item created successfully.',
-                'item' => $item
+                'item' => $sliderItem
             ]);
         } catch (\Exception $e) {
-            Log::error('Slide item creation failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('Slide item creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to create slide item. Please try again.'
@@ -57,12 +83,15 @@ class SliderItemController extends Controller
         }
     }
 
-    public function edit(Slider $slider, SliderItem $slider_item)
+    public function edit(SliderItem $sliderItem)
     {
-        return response()->json($slider_item);
+        return response()->json([
+            'item' => $sliderItem,
+            'slider' => $sliderItem->slider
+        ]);
     }
 
-    public function update(Request $request, Slider $slider, SliderItem $slider_item)
+    public function update(Request $request, SliderItem $sliderItem)
     {
         $validated = $this->validateItemRequest($request, true);
 
@@ -70,26 +99,29 @@ class SliderItemController extends Controller
             $data = $this->buildItemData($validated);
 
             if ($request->hasFile('image')) {
-                $this->deleteItemImage($slider_item->image);
+                $this->deleteItemImage($sliderItem->image);
                 $data['image'] = $this->uploadItemImage($request->file('image'));
             }
 
             if ($request->hasFile('mobile_image')) {
-                if ($slider_item->mobile_image) {
-                    $this->deleteItemImage($slider_item->mobile_image);
+                if ($sliderItem->mobile_image) {
+                    $this->deleteItemImage($sliderItem->mobile_image);
                 }
                 $data['mobile_image'] = $this->uploadItemImage($request->file('mobile_image'));
             }
 
-            $slider_item->update($data);
+            $sliderItem->update($data);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Slide item updated successfully.',
-                'item' => $slider_item->fresh()
+                'item' => $sliderItem->fresh()
             ]);
         } catch (\Exception $e) {
-            Log::error('Slide item update failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('Slide item update failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to update slide item. Please try again.'
@@ -97,17 +129,17 @@ class SliderItemController extends Controller
         }
     }
 
-    public function destroy(Slider $slider, SliderItem $slider_item)
+    public function destroy(SliderItem $sliderItem)
     {
         try {
-            if ($slider_item->image) {
-                $this->deleteItemImage($slider_item->image);
+            if ($sliderItem->image) {
+                $this->deleteItemImage($sliderItem->image);
             }
-            if ($slider_item->mobile_image) {
-                $this->deleteItemImage($slider_item->mobile_image);
+            if ($sliderItem->mobile_image) {
+                $this->deleteItemImage($sliderItem->mobile_image);
             }
 
-            $slider_item->delete();
+            $sliderItem->delete();
 
             return response()->json([
                 'success' => true,
@@ -131,10 +163,10 @@ class SliderItemController extends Controller
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('title', fn($row) => $row->title ?? 'Untitled Slide')
-            ->addColumn('subtitle', fn($row) => $row->subtitle ?? 'Untitled Slide')
+            ->addColumn('subtitle', fn($row) => $row->subtitle ?? 'N/A')
             ->addColumn('description', fn($row) => Str::limit($row->description ?? 'No description', 50))
             ->addColumn('image_preview', fn($row) => $row->image
-                ? '<img src="' . asset($row->image) . '" alt="Slide Image" class="img-thumbnail" style="max-width: 80px; max-height: 80px;">'
+                ? '<img src="' . asset('/' . $row->image) . '" alt="Slide Image" class="img-thumbnail" style="max-width: 80px; max-height: 80px;">'
                 : 'No Image')
             ->addColumn('status_badge', fn($row) => $row->is_active
                 ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Active</span>'
@@ -147,10 +179,10 @@ class SliderItemController extends Controller
     private function validateItemRequest(Request $request, $isUpdate = false): array
     {
         $rules = [
-            'slider_id' => 'required|exists:sliders,id',
             'title' => 'nullable|string|max:255',
             'subtitle' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'image' => $isUpdate ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048' : 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'mobile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'video_url' => 'nullable|url',
             'button_text' => 'nullable|string|max:50',
@@ -158,14 +190,14 @@ class SliderItemController extends Controller
             'secondary_button_text' => 'nullable|string|max:50',
             'secondary_button_url' => 'nullable|url',
             'order' => 'nullable|integer',
-            'is_active' => 'required|in:true,false,1,0,on,off',
-            'content_position' => 'nullable',
+            'is_active' => 'required|boolean',
+            'content_position' => 'nullable|array',
             'text_color' => 'nullable|string|max:20',
             'overlay_color' => 'nullable|string|max:20',
             'overlay_opacity' => 'nullable|integer|min:0|max:100',
             'start_at' => 'nullable|date',
             'end_at' => 'nullable|date|after_or_equal:start_at',
-            'custom_fields' => 'nullable',
+            'custom_fields' => 'nullable|array',
         ];
 
         return $request->validate($rules);
@@ -183,7 +215,7 @@ class SliderItemController extends Controller
             'secondary_button_text' => $validated['secondary_button_text'] ?? null,
             'secondary_button_url' => $validated['secondary_button_url'] ?? null,
             'order' => $validated['order'] ?? 0,
-            'is_active' => filter_var($validated['is_active'], FILTER_VALIDATE_BOOLEAN),
+            'is_active' => $validated['is_active'] ?? true,
             'content_position' => $validated['content_position'] ?? null,
             'text_color' => $validated['text_color'] ?? '#ffffff',
             'overlay_color' => $validated['overlay_color'] ?? null,
@@ -204,26 +236,26 @@ class SliderItemController extends Controller
     private function deleteItemImage(?string $path): void
     {
         if ($path) {
-            $storagePath = str_replace('/storage', 'public', $path);
-            if (Storage::exists($storagePath)) {
-                Storage::delete($storagePath);
+            $storagePath = str_replace('storage/', '', $path);
+            if (Storage::disk('public')->exists($storagePath)) {
+                Storage::disk('public')->delete($storagePath);
             }
         }
     }
 
-    private function getItemActionButtons(Slider $slider, SliderItem $item): string
+    private function getItemActionButtons(Slider $slider, SliderItem $sliderItem): string
     {
         return '
-            <div class="btn-group float-end text-nowrap gap-2">
-                <button class="btn btn-sm btn-outline-primary rounded edit-item-btn" 
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary edit-item-btn" 
                     data-slider="' . $slider->id . '" 
-                    data-id="' . $item->id . '">
-                    <i class="bi bi-pen me-1"></i> Edit
+                    data-id="' . $sliderItem->id . '">
+                    <i class="bi bi-pen"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-danger rounded delete-item-btn" 
+                <button class="btn btn-outline-danger delete-item-btn" 
                     data-slider="' . $slider->id . '" 
-                    data-id="' . $item->id . '">
-                    <i class="bi bi-trash me-1"></i> Delete
+                    data-id="' . $sliderItem->id . '">
+                    <i class="bi bi-trash"></i>
                 </button>
             </div>';
     }

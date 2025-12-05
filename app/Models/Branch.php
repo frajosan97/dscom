@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Branch extends Model
 {
@@ -43,28 +44,26 @@ class Branch extends Model
         'is_online' => 'boolean',
         'has_pickup' => 'boolean',
         'has_delivery' => 'boolean',
+        'latitude' => 'decimal:7',
+        'longitude' => 'decimal:7',
+        'delivery_fee' => 'decimal:2',
         'opening_time' => 'datetime:H:i',
         'closing_time' => 'datetime:H:i',
-        'delivery_fee' => 'decimal:2',
     ];
 
-    public function scopeActive($query)
+    // Relationships
+    public function users(): HasMany
     {
-        return $query->where('is_active', true);
+        return $this->hasMany(User::class);
     }
 
-    public function scopeOnline($query)
+    public function departments(): HasMany
     {
-        return $query->where('is_online', true);
+        return $this->hasMany(Department::class);
     }
 
-    public function scopeWithDelivery($query)
+    public function warehouses(): HasMany
     {
-        return $query->where('has_delivery', true);
-    }
-
-    public function scopeWithPickup($query)
-    {
-        return $query->where('has_pickup', true);
+        return $this->hasMany(Warehouse::class);
     }
 }

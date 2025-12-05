@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class RepairService extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -28,91 +29,101 @@ class RepairService extends Model
 
     protected $casts = [
         'base_price' => 'decimal:2',
+        'estimated_duration' => 'integer',
+        'warranty_days' => 'integer',
         'is_active' => 'boolean',
         'is_featured' => 'boolean',
         'metadata' => 'array',
     ];
 
-    /**
-     * Get the pricings for the repair service.
-     */
+    // Relationships
     public function pricings(): HasMany
     {
         return $this->hasMany(RepairServicePricing::class);
     }
 
-    /**
-     * Get the device types for the repair service.
-     */
-    // public function deviceTypes(): BelongsToMany
-    // {
-    //     return $this->belongsToMany(RepairServiceDeviceType::class, 'repair_service_pricings')
-    //         ->withPivot('price', 'min_price', 'max_price', 'is_flat_rate', 'price_notes')
-    //         ->withTimestamps();
-    // }
+    public function checklists(): HasMany
+    {
+        return $this->hasMany(RepairChecklist::class);
+    }
 
-    /**
-     * Get the checklists for the repair service.
-     */
-    // public function checklists(): HasMany
-    // {
-    //     return $this->hasMany(RepairChecklist::class);
-    // }
-
-    /**
-     * Get the repair orders for the repair service.
-     */
     public function repairOrders(): HasMany
     {
         return $this->hasMany(RepairOrder::class);
     }
 
-    /**
-     * Get the price for a specific device type.
-     */
-    public function getPriceForDeviceType($deviceTypeId): ?RepairServicePricing
+    public function deviceTypes(): BelongsToMany
     {
-        return $this->pricings()->where('device_type_id', $deviceTypeId)->first();
+        return $this->belongsToMany(
+            RepairServiceDeviceType::class,
+            'repair_service_pricings',
+            'repair_service_id',
+            'device_type_id'
+        )->withPivot('price', 'min_price', 'max_price', 'is_flat_rate', 'price_notes');
     }
 
-    /**
-     * Scope a query to only include active repair services.
-     */
+    // Computed Attributes
+    public function getPriceRangeAttribute()
+    {
+        $minPrice = $this->pricings()->min('price');
+        $maxPrice = $this->pricings()->max('price');
+
+        if ($minPrice && $maxPrice) {
+            return $minPrice == $maxPrice
+                ? format_currency($minPrice)
+                : format_currency($minPrice) . ' - ' . format_currency($maxPrice);
+        }
+
+        return format_currency($this->base_price);
+    }
+
+    public function getEstimatedDurationFormattedAttribute()
+    {
+        if (!$this->estimated_duration)
+            return null;
+
+        $hours = floor($this->estimated_duration / 60);
+        $minutes = $this->estimated_duration % 60;
+
+        if ($hours > 0 && $minutes > 0) {
+            return "{$hours}h {$minutes}m";
+        } elseif ($hours > 0) {
+            return "{$hours}h";
+        } else {
+            return "{$minutes}m";
+        }
+    }
+
+    // Business Logic Methods
+    public function getPriceForDeviceType($deviceTypeId)
+    {
+        $pricing = $this->pricings()->where('device_type_id', $deviceTypeId)->first();
+        return $pricing ? $pricing->price : $this->base_price;
+    }
+
+    // Scopes
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    /**
-     * Scope a query to only include featured repair services.
-     */
     public function scopeFeatured($query)
     {
         return $query->where('is_featured', true);
     }
 
-    /**
-     * Get the estimated duration in hours and minutes.
-     */
-    protected function estimatedDurationFormatted(): Attribute
+    public function scopeWithPricings($query)
     {
-        return Attribute::make(
-            get: function () {
-                if (!$this->estimated_duration) {
-                    return null;
-                }
-
-                $hours = floor($this->estimated_duration / 60);
-                $minutes = $this->estimated_duration % 60;
-
-                if ($hours > 0 && $minutes > 0) {
-                    return "{$hours}h {$minutes}m";
-                } elseif ($hours > 0) {
-                    return "{$hours}h";
-                } else {
-                    return "{$minutes}m";
-                }
+        return $query->with([
+            'pricings' => function ($q) {
+                $q->with('deviceType');
             }
-        );
+        ]);
+    }
+
+    public function scopeSearch($query, $search)
+    {
+        return $query->where('name', 'like', "%{$search}%")
+            ->orWhere('description', 'like', "%{$search}%");
     }
 }

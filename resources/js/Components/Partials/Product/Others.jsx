@@ -1,489 +1,1052 @@
-import React from "react";
-import { Card, Row, Col, Form } from "react-bootstrap";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import {
+    Card,
+    Col,
+    Form,
+    Row,
+    Badge,
+    Alert,
+    Button,
+    InputGroup,
+    Accordion,
+} from "react-bootstrap";
+import {
+    Gear,
+    GraphUp,
+    Search,
+    Tag,
+    Globe,
+    Truck,
+    Box,
+    Calendar,
+    InfoCircle,
+    ShieldCheck,
+    Lightning,
+    Star,
+    Eye,
+    Link45deg,
+} from "react-bootstrap-icons";
 import Select from "react-select";
-import { createFormHandlers } from "@/Utils/helpers";
 
-const OthersTab = ({
+export default function OthersTab({
     data,
-    setData,
+    updateFormData,
+    updateArrayField,
     errors,
-    setErrors,
-    selectedTags,
-    handleTagChange,
-    renderStatusBadge,
-}) => {
-    const { handleInput, handleSelect } = createFormHandlers(
-        setData,
-        errors,
-        setErrors
+}) {
+    const [activeAccordion, setActiveAccordion] = useState("0");
+    const [metadata, setMetadata] = useState(data.metadata || {});
+
+    // Initialize metadata
+    useEffect(() => {
+        if (data.metadata) {
+            setMetadata(data.metadata);
+        }
+    }, [data.metadata]);
+
+    // Update parent when metadata changes
+    useEffect(() => {
+        updateFormData("metadata", metadata);
+    }, [metadata, updateFormData]);
+
+    // Handle input changes
+    const handleInputChange = useCallback(
+        (field, value) => {
+            updateFormData(field, value);
+        },
+        [updateFormData]
     );
 
-    // Status options
-    const statusOptions = [
-        { value: "active", label: "Active" },
-        { value: "inactive", label: "Inactive" },
-    ];
-
-    // Weight unit options
-    const weightUnitOptions = [
-        { value: "kg", label: "kg" },
-        { value: "g", label: "g" },
-        { value: "lb", label: "lb" },
-        { value: "oz", label: "oz" },
-    ];
-
-    // Dimension unit options
-    const dimensionUnitOptions = [
-        { value: "cm", label: "cm" },
-        { value: "m", label: "m" },
-        { value: "in", label: "in" },
-        { value: "ft", label: "ft" },
-    ];
-
-    // Get current selected values
-    const selectedStatus = statusOptions.find(
-        (opt) => opt.value === (data.is_active ? "active" : "inactive")
+    // Handle switch toggles
+    const handleSwitchChange = useCallback(
+        (field, value) => {
+            updateFormData(field, value);
+        },
+        [updateFormData]
     );
-    const selectedWeightUnit =
-        weightUnitOptions.find((opt) => opt.value === data.weight_unit) ||
-        weightUnitOptions[0];
-    const selectedDimensionUnit =
-        dimensionUnitOptions.find((opt) => opt.value === data.dimension_unit) ||
-        dimensionUnitOptions[0];
+
+    // Handle date changes
+    const handleDateChange = useCallback(
+        (field, value) => {
+            updateFormData(field, value || "");
+        },
+        [updateFormData]
+    );
+
+    // Handle metadata changes
+    const handleMetadataChange = useCallback((key, value) => {
+        setMetadata((prev) => ({
+            ...prev,
+            [key]: value,
+        }));
+    }, []);
+
+    // Add new metadata field
+    const addMetadataField = useCallback(() => {
+        const newKey = `custom_field_${Object.keys(metadata).length + 1}`;
+        handleMetadataChange(newKey, "");
+    }, [metadata, handleMetadataChange]);
+
+    // Remove metadata field
+    const removeMetadataField = useCallback((key) => {
+        setMetadata((prev) => {
+            const newMetadata = { ...prev };
+            delete newMetadata[key];
+            return newMetadata;
+        });
+    }, []);
+
+    // Calculate product age for "New" status
+    const isProductNew = useMemo(() => {
+        if (!data.is_new) return false;
+        if (!data.new_until) return true;
+
+        const newUntil = new Date(data.new_until);
+        const today = new Date();
+        return newUntil >= today;
+    }, [data.is_new, data.new_until]);
+
+    // Product status summary
+    const statusSummary = useMemo(() => {
+        const statuses = [];
+
+        if (data.is_active)
+            statuses.push({
+                label: "Active",
+                color: "success",
+                icon: ShieldCheck,
+            });
+        if (data.is_featured)
+            statuses.push({ label: "Featured", color: "primary", icon: Star });
+        if (data.is_bestseller)
+            statuses.push({
+                label: "Bestseller",
+                color: "warning",
+                icon: GraphUp,
+            });
+        if (isProductNew)
+            statuses.push({ label: "New", color: "info", icon: Lightning });
+        if (data.stock_status === "out_of_stock")
+            statuses.push({
+                label: "Out of Stock",
+                color: "danger",
+                icon: Box,
+            });
+
+        return statuses.length > 0
+            ? statuses
+            : [{ label: "Inactive", color: "secondary", icon: Eye }];
+    }, [
+        data.is_active,
+        data.is_featured,
+        data.is_bestseller,
+        isProductNew,
+        data.stock_status,
+    ]);
+
+    // Shipping requirements based on product type
+    const shippingConfig = useMemo(() => {
+        if (data.is_digital) {
+            return {
+                requiresShipping: false,
+                message: "Digital products do not require shipping",
+                variant: "info",
+            };
+        }
+
+        if (!data.requires_shipping) {
+            return {
+                requiresShipping: false,
+                message: "Shipping is disabled for this product",
+                variant: "warning",
+            };
+        }
+
+        return {
+            requiresShipping: true,
+            message: "Shipping is required for this product",
+            variant: "success",
+        };
+    }, [data.is_digital, data.requires_shipping]);
 
     return (
-        <Card className="border-0 rounded-0 shadow-sm mb-3">
-            <Card.Header className="bg-transparent d-flex justify-content-between align-items-center py-3">
-                <h6 className="mb-0 fw-semibold text-capitalize">
-                    Additional Information
-                </h6>
-            </Card.Header>
+        <div className="others-tab">
+            {/* Header with Status Summary */}
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 className="fw-bold text-dark mb-1">
+                        <Gear className="me-2" />
+                        Additional Information & Settings
+                    </h4>
+                    <p className="text-muted mb-0">
+                        Configure product status, SEO, shipping, and custom
+                        metadata
+                    </p>
+                </div>
+                <div className="d-flex gap-2">
+                    {statusSummary.map((status, index) => {
+                        const StatusIcon = status.icon;
+                        return (
+                            <Badge
+                                key={index}
+                                bg={status.color}
+                                className="d-flex align-items-center gap-1 fs-6"
+                            >
+                                <StatusIcon size={14} />
+                                {status.label}
+                            </Badge>
+                        );
+                    })}
+                </div>
+            </div>
 
-            <Card.Body className="p-4">
-                <Row className="g-3">
-                    {/* Publish Section */}
-                    <Col md={6}>
-                        <Card className="h-100 border-0 shadow-sm">
-                            <Card.Header className="bg-white d-flex justify-content-between align-items-center py-3">
-                                <h6 className="mb-0 fw-semibold">
-                                    Publish Settings
-                                </h6>
-                                <div>{renderStatusBadge()}</div>
-                            </Card.Header>
-                            <Card.Body>
-                                <Form.Group className="mb-3">
-                                    <Form.Label className="fw-semibold">
-                                        Status
-                                    </Form.Label>
-                                    <Select
-                                        options={statusOptions}
-                                        value={selectedStatus}
-                                        onChange={(selected) =>
-                                            setData(
-                                                "is_active",
-                                                selected.value === "active"
-                                            )
-                                        }
-                                        isInvalid={!!errors.is_active}
-                                        styles={{
-                                            control: (base) => ({
-                                                ...base,
-                                                borderColor: errors.is_active
-                                                    ? "#dc3545"
-                                                    : base.borderColor,
-                                                minHeight: "44px",
-                                            }),
-                                        }}
-                                    />
-                                    {errors.is_active && (
-                                        <div className="text-danger small mt-1">
-                                            {errors.is_active}
-                                        </div>
-                                    )}
-                                </Form.Group>
-
-                                <Form.Group className="mb-3">
-                                    <Form.Check
-                                        type="switch"
-                                        id="isFeatured"
-                                        name="is_featured"
-                                        label={
-                                            <span className="fw-medium">
-                                                Featured Product
-                                            </span>
-                                        }
-                                        checked={data.is_featured || false}
-                                        onChange={handleInput}
-                                        className="fs-6"
-                                    />
-                                </Form.Group>
-
-                                <Form.Group className="mb-3">
-                                    <Form.Check
-                                        type="switch"
-                                        id="isBestseller"
-                                        name="is_bestseller"
-                                        label={
-                                            <span className="fw-medium">
-                                                Bestseller
-                                            </span>
-                                        }
-                                        checked={data.is_bestseller || false}
-                                        onChange={handleInput}
-                                        className="fs-6"
-                                    />
-                                </Form.Group>
-
-                                <Form.Group className="mb-3">
-                                    <Form.Check
-                                        type="switch"
-                                        id="isNew"
-                                        name="is_new"
-                                        label={
-                                            <span className="fw-medium">
-                                                Mark as New
-                                            </span>
-                                        }
-                                        checked={data.is_new || false}
-                                        onChange={handleInput}
-                                        className="fs-6"
-                                    />
-                                </Form.Group>
-
-                                {data.is_new && (
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="fw-semibold">
-                                            New Until Date
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="date"
-                                            name="new_until"
-                                            value={data.new_until || ""}
-                                            onChange={handleInput}
-                                            isInvalid={!!errors.new_until}
-                                            className="py-2"
-                                        />
-                                        <Form.Control.Feedback type="invalid">
-                                            {errors.new_until}
-                                        </Form.Control.Feedback>
-                                        <Form.Text className="text-muted">
-                                            Date until which the product will be
-                                            marked as new
-                                        </Form.Text>
-                                    </Form.Group>
-                                )}
-                            </Card.Body>
-                        </Card>
-                    </Col>
-
-                    {/* Product Type Section */}
-                    <Col md={6}>
-                        <Card className="h-100 border-0 shadow-sm">
-                            <Card.Header className="bg-white py-3">
-                                <h6 className="mb-0 fw-semibold">
-                                    Product Type
-                                </h6>
-                            </Card.Header>
-                            <Card.Body>
-                                <Form.Group className="mb-3">
-                                    <Form.Check
-                                        type="switch"
-                                        id="isDigital"
-                                        name="is_digital"
-                                        label={
-                                            <span className="fw-medium">
-                                                Digital Product
-                                            </span>
-                                        }
-                                        checked={data.is_digital || false}
-                                        onChange={handleInput}
-                                        className="fs-6"
-                                    />
-                                    <Form.Text className="text-muted">
-                                        Digital products are delivered
-                                        electronically
-                                    </Form.Text>
-                                </Form.Group>
-
-                                {!data.is_digital && (
-                                    <Form.Group className="mb-3">
-                                        <Form.Check
-                                            type="switch"
-                                            id="requiresShipping"
-                                            name="requires_shipping"
-                                            label={
-                                                <span className="fw-medium">
-                                                    Requires Shipping
-                                                </span>
-                                            }
-                                            checked={
-                                                data.requires_shipping || false
-                                            }
-                                            onChange={handleInput}
-                                            className="fs-6"
-                                        />
-                                        <Form.Text className="text-muted">
-                                            Physical products that need to be
-                                            shipped
-                                        </Form.Text>
-                                    </Form.Group>
-                                )}
-
-                                <Form.Group className="mb-3">
-                                    <Form.Check
-                                        type="switch"
-                                        id="hasVariants"
-                                        name="has_variants"
-                                        label={
-                                            <span className="fw-medium">
-                                                Product Has Variants
-                                            </span>
-                                        }
-                                        checked={data.has_variants || false}
-                                        onChange={handleInput}
-                                        className="fs-6"
-                                    />
-                                    <Form.Text className="text-muted">
-                                        Enable if product has different sizes,
-                                        colors, etc.
-                                    </Form.Text>
-                                </Form.Group>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-
-                    {/* Shipping Section */}
-                    <Col md={6}>
-                        <Card className="h-100 border-0 shadow-sm">
-                            <Card.Header className="bg-white py-3">
-                                <h6 className="mb-0 fw-semibold">
-                                    Shipping Information
-                                </h6>
-                            </Card.Header>
-                            <Card.Body>
-                                {!data.is_digital ? (
-                                    <>
-                                        <div className="mb-3">
-                                            <Form.Label className="fw-semibold">
-                                                Weight
-                                            </Form.Label>
-                                            <Row className="g-2 align-items-end">
-                                                <Col md={8}>
-                                                    <Form.Control
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        name="weight"
-                                                        value={data.weight || 0}
-                                                        onChange={handleInput}
-                                                        isInvalid={
-                                                            !!errors.weight
-                                                        }
-                                                        placeholder="0.00"
-                                                        className="py-2"
-                                                    />
-                                                    <Form.Control.Feedback type="invalid">
-                                                        {errors.weight}
-                                                    </Form.Control.Feedback>
-                                                </Col>
-                                                <Col md={4}>
-                                                    <Select
-                                                        options={
-                                                            weightUnitOptions
-                                                        }
-                                                        value={
-                                                            selectedWeightUnit
-                                                        }
-                                                        onChange={(selected) =>
-                                                            setData(
-                                                                "weight_unit",
-                                                                selected.value
-                                                            )
-                                                        }
-                                                        styles={{
-                                                            control: (
-                                                                base
-                                                            ) => ({
-                                                                ...base,
-                                                                minHeight:
-                                                                    "44px",
-                                                            }),
-                                                        }}
-                                                    />
-                                                </Col>
-                                            </Row>
-                                        </div>
-
-                                        <div className="mb-3">
-                                            <Form.Label className="fw-semibold">
-                                                Dimensions (L × W × H)
-                                            </Form.Label>
-                                            <Row className="g-2 mb-2">
-                                                <Col md={4}>
-                                                    <Form.Control
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        name="length"
-                                                        value={data.length || 0}
-                                                        onChange={handleInput}
-                                                        placeholder="Length"
-                                                        className="py-2"
-                                                    />
-                                                </Col>
-                                                <Col md={4}>
-                                                    <Form.Control
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        name="width"
-                                                        value={data.width || 0}
-                                                        onChange={handleInput}
-                                                        placeholder="Width"
-                                                        className="py-2"
-                                                    />
-                                                </Col>
-                                                <Col md={4}>
-                                                    <Form.Control
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        name="height"
-                                                        value={data.height || 0}
-                                                        onChange={handleInput}
-                                                        placeholder="Height"
-                                                        className="py-2"
-                                                    />
-                                                </Col>
-                                            </Row>
-                                            <Select
-                                                options={dimensionUnitOptions}
-                                                value={selectedDimensionUnit}
-                                                onChange={(selected) =>
-                                                    setData(
-                                                        "dimension_unit",
-                                                        selected.value
+            <Accordion
+                activeKey={activeAccordion}
+                onSelect={setActiveAccordion}
+            >
+                {/* Product Status & Flags */}
+                <Accordion.Item eventKey="0">
+                    <Accordion.Header>
+                        <div className="d-flex align-items-center">
+                            <ShieldCheck className="me-2 text-primary" />
+                            <span className="fw-semibold">
+                                Product Status & Flags
+                            </span>
+                        </div>
+                    </Accordion.Header>
+                    <Accordion.Body>
+                        <Row className="g-4">
+                            {/* Status Switches */}
+                            <Col md={6}>
+                                <Card className="border-0 bg-light">
+                                    <Card.Header className="bg-transparent py-3">
+                                        <h6 className="mb-0 fw-semibold">
+                                            Product Flags
+                                        </h6>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        <div className="space-y-3">
+                                            {/* Active Status */}
+                                            <Form.Check
+                                                type="switch"
+                                                id="is_active"
+                                                label={
+                                                    <div className="d-flex justify-content-between align-items-center w-100">
+                                                        <span className="fw-semibold">
+                                                            Active Product
+                                                        </span>
+                                                        <Badge
+                                                            bg={
+                                                                data.is_active
+                                                                    ? "success"
+                                                                    : "secondary"
+                                                            }
+                                                        >
+                                                            {data.is_active
+                                                                ? "Live"
+                                                                : "Hidden"}
+                                                        </Badge>
+                                                    </div>
+                                                }
+                                                checked={data.is_active}
+                                                onChange={(e) =>
+                                                    handleSwitchChange(
+                                                        "is_active",
+                                                        e.target.checked
                                                     )
                                                 }
-                                                styles={{
-                                                    control: (base) => ({
-                                                        ...base,
-                                                        minHeight: "44px",
-                                                    }),
-                                                }}
+                                                className="fs-6"
                                             />
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="text-center py-4 text-muted">
-                                        <i className="bi bi-cloud-download fs-1 d-block mb-2"></i>
-                                        <p className="mb-0">
-                                            Digital products don't require
-                                            shipping information
-                                        </p>
-                                    </div>
-                                )}
-                            </Card.Body>
-                        </Card>
-                    </Col>
+                                            <Form.Text className="text-muted">
+                                                When active, product is visible
+                                                to customers
+                                            </Form.Text>
 
-                    {/* SEO Section */}
-                    <Col md={6}>
-                        <Card className="h-100 border-0 shadow-sm">
-                            <Card.Header className="bg-white py-3">
-                                <h6 className="mb-0 fw-semibold">
-                                    SEO Settings
-                                </h6>
-                            </Card.Header>
-                            <Card.Body>
-                                <Form.Group className="mb-3">
+                                            {/* Featured Status */}
+                                            <Form.Check
+                                                type="switch"
+                                                id="is_featured"
+                                                label={
+                                                    <div className="d-flex justify-content-between align-items-center w-100">
+                                                        <span className="fw-semibold">
+                                                            Featured Product
+                                                        </span>
+                                                        <Badge
+                                                            bg={
+                                                                data.is_featured
+                                                                    ? "primary"
+                                                                    : "secondary"
+                                                            }
+                                                        >
+                                                            {data.is_featured
+                                                                ? "Featured"
+                                                                : "Standard"}
+                                                        </Badge>
+                                                    </div>
+                                                }
+                                                checked={data.is_featured}
+                                                onChange={(e) =>
+                                                    handleSwitchChange(
+                                                        "is_featured",
+                                                        e.target.checked
+                                                    )
+                                                }
+                                                className="fs-6"
+                                            />
+                                            <Form.Text className="text-muted">
+                                                Highlight this product in
+                                                featured sections
+                                            </Form.Text>
+
+                                            {/* Bestseller Status */}
+                                            <Form.Check
+                                                type="switch"
+                                                id="is_bestseller"
+                                                label={
+                                                    <div className="d-flex justify-content-between align-items-center w-100">
+                                                        <span className="fw-semibold">
+                                                            Bestseller
+                                                        </span>
+                                                        <Badge
+                                                            bg={
+                                                                data.is_bestseller
+                                                                    ? "warning"
+                                                                    : "secondary"
+                                                            }
+                                                        >
+                                                            {data.is_bestseller
+                                                                ? "Bestseller"
+                                                                : "Regular"}
+                                                        </Badge>
+                                                    </div>
+                                                }
+                                                checked={data.is_bestseller}
+                                                onChange={(e) =>
+                                                    handleSwitchChange(
+                                                        "is_bestseller",
+                                                        e.target.checked
+                                                    )
+                                                }
+                                                className="fs-6"
+                                            />
+                                            <Form.Text className="text-muted">
+                                                Mark as bestseller for
+                                                promotional displays
+                                            </Form.Text>
+
+                                            {/* New Product Status */}
+                                            <Form.Check
+                                                type="switch"
+                                                id="is_new"
+                                                label={
+                                                    <div className="d-flex justify-content-between align-items-center w-100">
+                                                        <span className="fw-semibold">
+                                                            New Product
+                                                        </span>
+                                                        <Badge
+                                                            bg={
+                                                                isProductNew
+                                                                    ? "info"
+                                                                    : "secondary"
+                                                            }
+                                                        >
+                                                            {isProductNew
+                                                                ? "New"
+                                                                : "Regular"}
+                                                        </Badge>
+                                                    </div>
+                                                }
+                                                checked={data.is_new}
+                                                onChange={(e) =>
+                                                    handleSwitchChange(
+                                                        "is_new",
+                                                        e.target.checked
+                                                    )
+                                                }
+                                                className="fs-6"
+                                            />
+                                            <Form.Text className="text-muted">
+                                                Show as new product with special
+                                                labeling
+                                            </Form.Text>
+                                        </div>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+
+                            {/* New Until Date & Digital Product */}
+                            <Col md={6}>
+                                <Card className="border-0 bg-light">
+                                    <Card.Header className="bg-transparent py-3">
+                                        <h6 className="mb-0 fw-semibold">
+                                            Product Configuration
+                                        </h6>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        {/* New Until Date */}
+                                        {data.is_new && (
+                                            <Form.Group className="mb-4">
+                                                <Form.Label className="fw-semibold">
+                                                    <Calendar className="me-2" />
+                                                    Mark as New Until
+                                                </Form.Label>
+                                                <Form.Control
+                                                    type="date"
+                                                    value={data.new_until || ""}
+                                                    onChange={(e) =>
+                                                        handleDateChange(
+                                                            "new_until",
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    min={
+                                                        new Date()
+                                                            .toISOString()
+                                                            .split("T")[0]
+                                                    }
+                                                />
+                                                <Form.Text className="text-muted">
+                                                    Product will show as "New"
+                                                    until this date
+                                                    {data.new_until && (
+                                                        <span className="ms-1">
+                                                            (
+                                                            {Math.ceil(
+                                                                (new Date(
+                                                                    data.new_until
+                                                                ) -
+                                                                    new Date()) /
+                                                                    (1000 *
+                                                                        60 *
+                                                                        60 *
+                                                                        24)
+                                                            )}{" "}
+                                                            days remaining)
+                                                        </span>
+                                                    )}
+                                                </Form.Text>
+                                            </Form.Group>
+                                        )}
+
+                                        {/* Digital Product */}
+                                        <Form.Check
+                                            type="switch"
+                                            id="is_digital"
+                                            label={
+                                                <div className="d-flex justify-content-between align-items-center w-100">
+                                                    <span className="fw-semibold">
+                                                        Digital Product
+                                                    </span>
+                                                    <Badge
+                                                        bg={
+                                                            data.is_digital
+                                                                ? "info"
+                                                                : "secondary"
+                                                        }
+                                                    >
+                                                        {data.is_digital
+                                                            ? "Digital"
+                                                            : "Physical"}
+                                                    </Badge>
+                                                </div>
+                                            }
+                                            checked={data.is_digital}
+                                            onChange={(e) =>
+                                                handleSwitchChange(
+                                                    "is_digital",
+                                                    e.target.checked
+                                                )
+                                            }
+                                            className="fs-6 mb-3"
+                                        />
+                                        <Form.Text className="text-muted">
+                                            Digital products don't require
+                                            shipping or physical inventory
+                                        </Form.Text>
+
+                                        {/* Shipping Requirement */}
+                                        {!data.is_digital && (
+                                            <Form.Check
+                                                type="switch"
+                                                id="requires_shipping"
+                                                label={
+                                                    <div className="d-flex justify-content-between align-items-center w-100">
+                                                        <span className="fw-semibold">
+                                                            Requires Shipping
+                                                        </span>
+                                                        <Badge
+                                                            bg={
+                                                                data.requires_shipping
+                                                                    ? "success"
+                                                                    : "warning"
+                                                            }
+                                                        >
+                                                            {data.requires_shipping
+                                                                ? "Yes"
+                                                                : "No"}
+                                                        </Badge>
+                                                    </div>
+                                                }
+                                                checked={data.requires_shipping}
+                                                onChange={(e) =>
+                                                    handleSwitchChange(
+                                                        "requires_shipping",
+                                                        e.target.checked
+                                                    )
+                                                }
+                                                className="fs-6 mt-3"
+                                            />
+                                        )}
+
+                                        {/* Shipping Alert */}
+                                        <Alert
+                                            variant={shippingConfig.variant}
+                                            className="mt-3 small py-2"
+                                        >
+                                            <Truck className="me-2" />
+                                            {shippingConfig.message}
+                                        </Alert>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        </Row>
+                    </Accordion.Body>
+                </Accordion.Item>
+
+                {/* SEO Configuration */}
+                <Accordion.Item eventKey="1">
+                    <Accordion.Header>
+                        <div className="d-flex align-items-center">
+                            <Globe className="me-2 text-success" />
+                            <span className="fw-semibold">
+                                SEO Configuration
+                            </span>
+                        </div>
+                    </Accordion.Header>
+                    <Accordion.Body>
+                        <Row className="g-3">
+                            <Col md={12}>
+                                <Alert variant="info" className="small">
+                                    <InfoCircle className="me-2" />
+                                    Optimize your product for search engines.
+                                    These fields help improve visibility in
+                                    search results.
+                                </Alert>
+                            </Col>
+
+                            {/* Meta Title */}
+                            <Col md={12}>
+                                <Form.Group>
                                     <Form.Label className="fw-semibold">
                                         Meta Title
+                                        <span className="text-muted fw-normal">
+                                            {" "}
+                                            (Recommended: 50-60 characters)
+                                        </span>
                                     </Form.Label>
                                     <Form.Control
                                         type="text"
-                                        name="meta_title"
                                         value={data.meta_title || ""}
-                                        onChange={handleInput}
+                                        onChange={(e) =>
+                                            handleInputChange(
+                                                "meta_title",
+                                                e.target.value
+                                            )
+                                        }
                                         isInvalid={!!errors.meta_title}
-                                        placeholder="Enter meta title for SEO"
+                                        placeholder="Optimized title for search engines..."
+                                        maxLength={60}
                                         className="py-2"
                                     />
-                                    <Form.Control.Feedback type="invalid">
-                                        {errors.meta_title}
-                                    </Form.Control.Feedback>
-                                    <Form.Text className="text-muted">
-                                        Recommended: 50-60 characters • Current:{" "}
-                                        {data.meta_title?.length || 0}
-                                    </Form.Text>
+                                    <div className="d-flex justify-content-between mt-1">
+                                        <Form.Text className="text-muted">
+                                            {data.meta_title?.length || 0}/60
+                                            characters
+                                        </Form.Text>
+                                        {errors.meta_title && (
+                                            <Form.Control.Feedback
+                                                type="invalid"
+                                                className="d-block"
+                                            >
+                                                {errors.meta_title}
+                                            </Form.Control.Feedback>
+                                        )}
+                                    </div>
                                 </Form.Group>
+                            </Col>
 
-                                <Form.Group className="mb-3">
+                            {/* Meta Description */}
+                            <Col md={12}>
+                                <Form.Group>
                                     <Form.Label className="fw-semibold">
                                         Meta Description
+                                        <span className="text-muted fw-normal">
+                                            {" "}
+                                            (Recommended: 150-160 characters)
+                                        </span>
                                     </Form.Label>
                                     <Form.Control
                                         as="textarea"
                                         rows={3}
-                                        name="meta_description"
                                         value={data.meta_description || ""}
-                                        onChange={handleInput}
+                                        onChange={(e) =>
+                                            handleInputChange(
+                                                "meta_description",
+                                                e.target.value
+                                            )
+                                        }
                                         isInvalid={!!errors.meta_description}
-                                        placeholder="Enter meta description for SEO"
+                                        placeholder="Compelling description that appears in search results..."
+                                        maxLength={160}
                                         className="py-2"
                                     />
-                                    <Form.Control.Feedback type="invalid">
-                                        {errors.meta_description}
-                                    </Form.Control.Feedback>
-                                    <Form.Text className="text-muted">
-                                        Recommended: 150-160 characters •
-                                        Current:{" "}
-                                        {data.meta_description?.length || 0}
-                                    </Form.Text>
+                                    <div className="d-flex justify-content-between mt-1">
+                                        <Form.Text className="text-muted">
+                                            {data.meta_description?.length || 0}
+                                            /160 characters
+                                        </Form.Text>
+                                        {errors.meta_description && (
+                                            <Form.Control.Feedback
+                                                type="invalid"
+                                                className="d-block"
+                                            >
+                                                {errors.meta_description}
+                                            </Form.Control.Feedback>
+                                        )}
+                                    </div>
                                 </Form.Group>
+                            </Col>
 
-                                <Form.Group className="mb-3">
-                                    <Form.Label className="fw-semibold">
-                                        Product Tags
-                                    </Form.Label>
-                                    <Select
-                                        isMulti
-                                        value={selectedTags}
-                                        onChange={handleTagChange}
-                                        options={[]}
-                                        placeholder="Type and press enter to add tags..."
-                                        noOptionsMessage={() =>
-                                            "Type to create new tags"
-                                        }
-                                        isClearable
-                                        isSearchable
-                                        styles={{
-                                            control: (base) => ({
-                                                ...base,
-                                                minHeight: "44px",
-                                                borderColor: errors.tags
-                                                    ? "#dc3545"
-                                                    : base.borderColor,
-                                            }),
-                                        }}
-                                    />
-                                    {errors.tags && (
-                                        <div className="text-danger small mt-1">
-                                            {errors.tags}
+                            {/* SEO Preview */}
+                            <Col md={12}>
+                                <Card className="border-0 bg-light">
+                                    <Card.Header className="bg-transparent py-2">
+                                        <h6 className="mb-0 fw-semibold">
+                                            Search Result Preview
+                                        </h6>
+                                    </Card.Header>
+                                    <Card.Body className="p-3">
+                                        <div className="bg-white border rounded p-3">
+                                            <div
+                                                className="text-primary mb-1"
+                                                style={{ fontSize: "18px" }}
+                                            >
+                                                {data.meta_title ||
+                                                    data.name ||
+                                                    "Product Title"}
+                                            </div>
+                                            <div
+                                                className="text-success mb-1"
+                                                style={{ fontSize: "14px" }}
+                                            >
+                                                https://yourstore.com/products/
+                                                {data.slug || "product-slug"}
+                                            </div>
+                                            <div
+                                                className="text-muted"
+                                                style={{ fontSize: "14px" }}
+                                            >
+                                                {data.meta_description ||
+                                                    data.short_description ||
+                                                    "Product description will appear here in search results..."}
+                                            </div>
                                         </div>
-                                    )}
-                                    <Form.Text className="text-muted">
-                                        Add tags to help customers find your
-                                        product
-                                    </Form.Text>
-                                </Form.Group>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-            </Card.Body>
-        </Card>
-    );
-};
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        </Row>
+                    </Accordion.Body>
+                </Accordion.Item>
 
-export default OthersTab;
+                {/* Shipping & Physical Properties */}
+                <Accordion.Item eventKey="2">
+                    <Accordion.Header>
+                        <div className="d-flex align-items-center">
+                            <Truck className="me-2 text-warning" />
+                            <span className="fw-semibold">
+                                Shipping & Physical Properties
+                            </span>
+                        </div>
+                    </Accordion.Header>
+                    <Accordion.Body>
+                        {data.is_digital ? (
+                            <Alert variant="info" className="text-center py-4">
+                                <Box size={32} className="mb-2" />
+                                <h5>Digital Product</h5>
+                                <p className="mb-0">
+                                    Shipping information is not required for
+                                    digital products.
+                                </p>
+                            </Alert>
+                        ) : (
+                            <Row className="g-3">
+                                <Col md={12}>
+                                    <Alert variant="info" className="small">
+                                        <InfoCircle className="me-2" />
+                                        These dimensions and weight are used for
+                                        shipping calculations and warehouse
+                                        planning.
+                                    </Alert>
+                                </Col>
+
+                                {/* Weight */}
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold">
+                                            Weight (kg)
+                                        </Form.Label>
+                                        <InputGroup>
+                                            <Form.Control
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={data.weight || 0}
+                                                onChange={(e) =>
+                                                    handleInputChange(
+                                                        "weight",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                isInvalid={!!errors.weight}
+                                                placeholder="0.00"
+                                                className="py-2"
+                                            />
+                                            <InputGroup.Text>
+                                                kg
+                                            </InputGroup.Text>
+                                        </InputGroup>
+                                        <Form.Control.Feedback type="invalid">
+                                            {errors.weight}
+                                        </Form.Control.Feedback>
+                                    </Form.Group>
+                                </Col>
+
+                                {/* Dimensions */}
+                                <Col md={2}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold">
+                                            Length (cm)
+                                        </Form.Label>
+                                        <InputGroup>
+                                            <Form.Control
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={data.length || 0}
+                                                onChange={(e) =>
+                                                    handleInputChange(
+                                                        "length",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                isInvalid={!!errors.length}
+                                                placeholder="0.00"
+                                                className="py-2"
+                                            />
+                                            <InputGroup.Text>
+                                                cm
+                                            </InputGroup.Text>
+                                        </InputGroup>
+                                    </Form.Group>
+                                </Col>
+
+                                <Col md={2}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold">
+                                            Width (cm)
+                                        </Form.Label>
+                                        <InputGroup>
+                                            <Form.Control
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={data.width || 0}
+                                                onChange={(e) =>
+                                                    handleInputChange(
+                                                        "width",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                isInvalid={!!errors.width}
+                                                placeholder="0.00"
+                                                className="py-2"
+                                            />
+                                            <InputGroup.Text>
+                                                cm
+                                            </InputGroup.Text>
+                                        </InputGroup>
+                                    </Form.Group>
+                                </Col>
+
+                                <Col md={2}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold">
+                                            Height (cm)
+                                        </Form.Label>
+                                        <InputGroup>
+                                            <Form.Control
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={data.height || 0}
+                                                onChange={(e) =>
+                                                    handleInputChange(
+                                                        "height",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                isInvalid={!!errors.height}
+                                                placeholder="0.00"
+                                                className="py-2"
+                                            />
+                                            <InputGroup.Text>
+                                                cm
+                                            </InputGroup.Text>
+                                        </InputGroup>
+                                    </Form.Group>
+                                </Col>
+
+                                {/* Volume Calculation */}
+                                <Col md={12}>
+                                    <Card className="border-0 bg-light">
+                                        <Card.Body className="py-2">
+                                            <div className="d-flex justify-content-between align-items-center">
+                                                <small className="text-muted">
+                                                    Calculated Volume:
+                                                </small>
+                                                <Badge
+                                                    bg="outline-dark"
+                                                    text="dark"
+                                                >
+                                                    {(
+                                                        (data.length *
+                                                            data.width *
+                                                            data.height) /
+                                                        1000000
+                                                    ).toFixed(4)}{" "}
+                                                    m³
+                                                </Badge>
+                                            </div>
+                                        </Card.Body>
+                                    </Card>
+                                </Col>
+                            </Row>
+                        )}
+                    </Accordion.Body>
+                </Accordion.Item>
+
+                {/* Custom Metadata */}
+                <Accordion.Item eventKey="3">
+                    <Accordion.Header>
+                        <div className="d-flex align-items-center">
+                            <Tag className="me-2 text-info" />
+                            <span className="fw-semibold">
+                                Custom Metadata & Fields
+                            </span>
+                        </div>
+                    </Accordion.Header>
+                    <Accordion.Body>
+                        <Row className="g-3">
+                            <Col md={12}>
+                                <Alert variant="info" className="small">
+                                    <InfoCircle className="me-2" />
+                                    Add custom fields for additional product
+                                    information, specifications, or integration
+                                    data.
+                                </Alert>
+                            </Col>
+
+                            {/* Metadata Fields */}
+                            <Col md={12}>
+                                <div className="space-y-3">
+                                    {Object.entries(metadata).map(
+                                        ([key, value]) => (
+                                            <div
+                                                key={key}
+                                                className="d-flex gap-2 align-items-start"
+                                            >
+                                                <Form.Group className="flex-grow-1">
+                                                    <InputGroup>
+                                                        <Form.Control
+                                                            placeholder="Field name"
+                                                            value={key}
+                                                            onChange={(e) => {
+                                                                const newKey =
+                                                                    e.target
+                                                                        .value;
+                                                                if (
+                                                                    newKey !==
+                                                                    key
+                                                                ) {
+                                                                    const newMetadata =
+                                                                        {
+                                                                            ...metadata,
+                                                                        };
+                                                                    newMetadata[
+                                                                        newKey
+                                                                    ] = value;
+                                                                    delete newMetadata[
+                                                                        key
+                                                                    ];
+                                                                    setMetadata(
+                                                                        newMetadata
+                                                                    );
+                                                                }
+                                                            }}
+                                                            className="py-2"
+                                                        />
+                                                        <Form.Control
+                                                            placeholder="Field value"
+                                                            value={value}
+                                                            onChange={(e) =>
+                                                                handleMetadataChange(
+                                                                    key,
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
+                                                            className="py-2"
+                                                        />
+                                                        <Button
+                                                            variant="outline-danger"
+                                                            onClick={() =>
+                                                                removeMetadataField(
+                                                                    key
+                                                                )
+                                                            }
+                                                        >
+                                                            <Trash size={14} />
+                                                        </Button>
+                                                    </InputGroup>
+                                                </Form.Group>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+
+                                {/* Add Metadata Field Button */}
+                                <Button
+                                    variant="outline-primary"
+                                    size="sm"
+                                    onClick={addMetadataField}
+                                    className="mt-3"
+                                >
+                                    <Plus className="me-1" />
+                                    Add Custom Field
+                                </Button>
+
+                                {/* Metadata Summary */}
+                                {Object.keys(metadata).length > 0 && (
+                                    <Card className="border-0 bg-light mt-3">
+                                        <Card.Body className="py-2">
+                                            <div className="d-flex justify-content-between align-items-center">
+                                                <small className="text-muted">
+                                                    {
+                                                        Object.keys(metadata)
+                                                            .length
+                                                    }{" "}
+                                                    custom field(s) defined
+                                                </small>
+                                                <Badge
+                                                    bg="outline-info"
+                                                    text="dark"
+                                                >
+                                                    {
+                                                        JSON.stringify(metadata)
+                                                            .length
+                                                    }{" "}
+                                                    bytes
+                                                </Badge>
+                                            </div>
+                                        </Card.Body>
+                                    </Card>
+                                )}
+                            </Col>
+                        </Row>
+                    </Accordion.Body>
+                </Accordion.Item>
+            </Accordion>
+
+            {/* Summary Card */}
+            <Card className="border-0 shadow-sm mt-4">
+                <Card.Header className="bg-light py-3">
+                    <h6 className="mb-0 fw-semibold">
+                        Product Configuration Summary
+                    </h6>
+                </Card.Header>
+                <Card.Body>
+                    <Row className="g-3">
+                        <Col md={3}>
+                            <div className="text-center">
+                                <div className="h5 mb-1 text-dark">
+                                    {statusSummary.length}
+                                </div>
+                                <small className="text-muted">
+                                    Active Statuses
+                                </small>
+                            </div>
+                        </Col>
+                        <Col md={3}>
+                            <div className="text-center">
+                                <div className="h5 mb-1 text-dark">
+                                    {data.is_digital ? "Digital" : "Physical"}
+                                </div>
+                                <small className="text-muted">
+                                    Product Type
+                                </small>
+                            </div>
+                        </Col>
+                        <Col md={3}>
+                            <div className="text-center">
+                                <div className="h5 mb-1 text-dark">
+                                    {data.meta_title ? "Optimized" : "Basic"}
+                                </div>
+                                <small className="text-muted">SEO Status</small>
+                            </div>
+                        </Col>
+                        <Col md={3}>
+                            <div className="text-center">
+                                <div className="h5 mb-1 text-dark">
+                                    {Object.keys(metadata).length}
+                                </div>
+                                <small className="text-muted">
+                                    Custom Fields
+                                </small>
+                            </div>
+                        </Col>
+                    </Row>
+                </Card.Body>
+            </Card>
+        </div>
+    );
+}
+
+// Helper component for the plus icon
+const Plus = ({ className, size = 14 }) => (
+    <svg
+        width={size}
+        height={size}
+        fill="currentColor"
+        viewBox="0 0 16 16"
+        className={className}
+    >
+        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+    </svg>
+);
+
+// Helper component for the trash icon
+const Trash = ({ className, size = 14 }) => (
+    <svg
+        width={size}
+        height={size}
+        fill="currentColor"
+        viewBox="0 0 16 16"
+        className={className}
+    >
+        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
+        <path
+            fillRule="evenodd"
+            d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+        />
+    </svg>
+);

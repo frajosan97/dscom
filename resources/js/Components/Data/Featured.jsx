@@ -90,7 +90,7 @@ export default function FeatureList() {
                                 )}
                             </div>
                         </Col>
-                        <Col>
+                        <Col className="text-capitalize">
                             <Stack gap={1}>
                                 <h6 className="mb-0 text-truncate">
                                     {product.name}
@@ -105,7 +105,7 @@ export default function FeatureList() {
                                 </div>
                                 <div>
                                     <span className="fw-bold text-primary me-2">
-                                        ${product.price}
+                                        ${product.base_price}
                                     </span>
                                     {product.compare_price && (
                                         <del className="text-muted small">

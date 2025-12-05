@@ -7,12 +7,19 @@ export default function ErpHeader() {
     const { hasRole, hasPermission } = useRolePermissions();
 
     // Permission checks
-    const canViewServices = hasPermission("view services") || hasRole("admin");
-    const canViewStore = hasPermission("view store") || hasRole("admin");
-    const canViewAccounts = hasPermission("view accounts") || hasRole("admin");
-    const canViewHR = hasPermission("view hr") || hasRole("admin");
-    const canViewReports = hasPermission("view reports") || hasRole("admin");
-    const canViewSettings = hasRole("admin");
+    const canViewServices =
+        hasPermission("view services") ||
+        hasRole("director", "admin", "technician");
+    const canViewStore =
+        hasPermission("view store") || hasRole("director", "admin");
+    const canViewAccounts =
+        hasPermission("view accounts") ||
+        hasRole("director", "admin", "finance");
+    const canViewHR =
+        hasPermission("view hr") || hasRole("director", "admin", "hr");
+    const canViewReports =
+        hasPermission("view reports") || hasRole("director", "admin");
+    const canViewSettings = hasRole("director", "admin");
 
     const baseItems = [
         {
@@ -53,12 +60,12 @@ export default function ErpHeader() {
                     label: "New Sale",
                     show: true,
                 },
-                // {
-                //     path: route("sales.create"),
-                //     icon: "bi bi-upc-scan",
-                //     label: "Store Barcode Printing",
-                //     show: true,
-                // },
+                {
+                    path: route("barcode.index"),
+                    icon: "bi bi-upc-scan",
+                    label: "Store Barcode Printing",
+                    show: true,
+                },
             ].filter((item) => item.show),
         },
         {
@@ -132,7 +139,7 @@ export default function ErpHeader() {
         {
             label: "HRM",
             icon: "bi bi-people-fill",
-            show: true,
+            show: canViewHR,
             children: [
                 {
                     path: route("employee.index"),
@@ -197,31 +204,31 @@ export default function ErpHeader() {
                 },
             ].filter((item) => item.show),
         },
-        // {
-        //     label: "Reports",
-        //     icon: "bi bi-bar-chart",
-        //     show: canViewReports,
-        //     children: [
-        //         {
-        //             path: "",
-        //             icon: "bi bi-currency-dollar",
-        //             label: "Sales Reports",
-        //             show: true,
-        //         },
-        //         {
-        //             path: "",
-        //             icon: "bi bi-box-seam",
-        //             label: "Inventory Reports",
-        //             show: true,
-        //         },
-        //         {
-        //             path: "",
-        //             icon: "bi bi-tools",
-        //             label: "Service Reports",
-        //             show: true,
-        //         },
-        //     ].filter((item) => item.show),
-        // },
+        {
+            label: "Reports",
+            icon: "bi bi-bar-chart",
+            show: canViewReports,
+            children: [
+                {
+                    path: "",
+                    icon: "bi bi-currency-dollar",
+                    label: "Sales Reports",
+                    show: true,
+                },
+                {
+                    path: "",
+                    icon: "bi bi-box-seam",
+                    label: "Inventory Reports",
+                    show: true,
+                },
+                {
+                    path: "",
+                    icon: "bi bi-tools",
+                    label: "Service Reports",
+                    show: true,
+                },
+            ].filter((item) => item.show),
+        },
         {
             label: "Settings",
             icon: "bi bi-gear-fill",

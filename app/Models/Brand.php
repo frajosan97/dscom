@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Brand extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -29,8 +31,46 @@ class Brand extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'is_featured' => 'boolean',
+        'order' => 'integer',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Auto-generate slug on create
+        static::creating(function ($brand) {
+            if (empty($brand->slug)) {
+                $brand->slug = static::generateSlug($brand->name);
+            }
+        });
+
+        // Auto-update slug if name changes
+        static::updating(function ($brand) {
+            if ($brand->isDirty('name')) {
+                $brand->slug = static::generateSlug($brand->name);
+            }
+        });
+    }
+
+    /**
+     * Generate a unique slug
+     */
+    protected static function generateSlug($name)
+    {
+        $slug = Str::slug($name);
+        $original = $slug;
+        $count = 1;
+
+        // Ensure uniqueness
+        while (static::where('slug', $slug)->exists()) {
+            $slug = $original . '-' . $count++;
+        }
+
+        return $slug;
+    }
+
+    // Relationships
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
@@ -46,13 +86,8 @@ class Brand extends Model
         return $query->where('is_featured', true);
     }
 
-    public function getSocialLinksAttribute(): array
+    public function scopeOrdered($query)
     {
-        return [
-            'website' => $this->website_url,
-            'facebook' => $this->facebook_url,
-            'instagram' => $this->instagram_url,
-            'twitter' => $this->twitter_url,
-        ];
+        return $query->orderBy('order')->orderBy('name');
     }
 }

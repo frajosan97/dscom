@@ -10,76 +10,25 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        // 1. First create independent tables (no foreign key dependencies)
-
-        // Shipping Methods Table
-        Schema::create('shipping_methods', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('slug')->unique();
-            $table->text('description')->nullable();
-            $table->decimal('base_cost', 12, 2)->default(0);
-            $table->decimal('free_shipping_threshold', 12, 2)->nullable();
-            $table->boolean('is_free')->default(false);
-            $table->integer('delivery_days_min')->nullable();
-            $table->integer('delivery_days_max')->nullable();
-            $table->string('delivery_timeframe')->nullable();
-            $table->string('carrier_name')->nullable();
-            $table->string('carrier_service')->nullable();
-            $table->string('tracking_url_template')->nullable();
-            $table->json('configuration')->nullable();
-            $table->json('supported_countries')->nullable();
-            $table->json('supported_states')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->integer('order')->default(0);
-            $table->timestamps();
-
-            $table->index(['is_active', 'order']);
-        });
-
-        // Coupons Table
-        Schema::create('coupons', function (Blueprint $table) {
-            $table->id();
-            $table->string('code')->unique();
-            $table->string('name')->nullable();
-            $table->text('description')->nullable();
-            $table->enum('type', [
-                'percentage',
-                'fixed_amount',
-                'free_shipping'
-            ]);
-            $table->decimal('value', 12, 2);
-            $table->decimal('min_order_amount', 12, 2)->nullable();
-            $table->decimal('max_discount_amount', 12, 2)->nullable();
-            $table->dateTime('start_date');
-            $table->dateTime('end_date');
-            $table->boolean('is_active')->default(true);
-            $table->integer('usage_limit')->nullable();
-            $table->integer('usage_limit_per_user')->nullable();
-            $table->integer('usage_count')->default(0);
-            $table->boolean('apply_to_all_products')->default(true);
-            $table->json('product_ids')->nullable();
-            $table->json('excluded_product_ids')->nullable();
-            $table->json('category_ids')->nullable();
-            $table->boolean('apply_to_all_customers')->default(true);
-            $table->json('customer_ids')->nullable();
-            $table->timestamps();
-
-            $table->index(['code', 'is_active']);
-            $table->index('start_date');
-            $table->index('end_date');
-        });
-
-        // 2. Now create tables with foreign key dependencies
-
-        // Orders Table
+        // Orders Table - Core Order Management
         Schema::create('orders', function (Blueprint $table) {
+            // Primary Key
             $table->id();
+
+            // Order Identification
             $table->string('order_number')->unique();
             $table->string('invoice_number')->nullable()->unique();
+
+            // Relationships
             $table->foreignId('branch_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('warehouse_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('customer_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('payment_method_id')->nullable()->constrained('payment_methods')->onDelete('set null');
+            $table->foreignId('shipping_method_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('coupon_id')->nullable()->constrained()->onDelete('set null');
+
+            // Order Status
             $table->enum('status', [
                 'pending',
                 'confirmed',
@@ -91,13 +40,16 @@ return new class extends Migration {
                 'partially_refunded',
                 'on_hold',
                 'failed',
-                'completed',
+                'completed'
             ])->default('pending');
+
             $table->enum('fulfillment_status', [
                 'unfulfilled',
                 'partially_fulfilled',
                 'fulfilled'
             ])->default('unfulfilled');
+
+            // Financial Information
             $table->decimal('subtotal', 12, 2);
             $table->decimal('tax', 12, 2)->default(0);
             $table->decimal('shipping_cost', 12, 2)->default(0);
@@ -106,7 +58,8 @@ return new class extends Migration {
             $table->decimal('total_paid', 12, 2)->default(0);
             $table->decimal('total_refunded', 12, 2)->default(0);
             $table->string('currency')->default('$');
-            $table->foreignId('payment_method_id')->nullable()->constrained('payment_methods')->onDelete('set null');
+
+            // Payment Information
             $table->enum('payment_status', [
                 'pending',
                 'paid',
@@ -116,17 +69,23 @@ return new class extends Migration {
             ])->default('pending');
             $table->string('payment_reference')->nullable();
             $table->timestamp('payment_date')->nullable();
-            $table->foreignId('shipping_method_id')->nullable()->constrained()->onDelete('set null');
+
+            // Shipping Information
             $table->string('tracking_number')->nullable();
             $table->string('tracking_url')->nullable();
             $table->timestamp('shipped_at')->nullable();
             $table->timestamp('delivered_at')->nullable();
-            $table->foreignId('coupon_id')->nullable()->constrained()->onDelete('set null');
+
+            // Coupon Information
             $table->string('coupon_code')->nullable();
             $table->decimal('coupon_value', 12, 2)->nullable();
+
+            // Notes & Additional Information
             $table->text('customer_note')->nullable();
             $table->text('private_notes')->nullable();
             $table->json('custom_fields')->nullable();
+
+            // Technical Information
             $table->string('ip_address')->nullable();
             $table->string('user_agent')->nullable();
             $table->timestamps();
@@ -135,57 +94,130 @@ return new class extends Migration {
             // Indexes
             $table->index(['order_number', 'status']);
             $table->index(['user_id', 'created_at']);
+            $table->index(['customer_id', 'created_at']);
             $table->index(['payment_status', 'fulfillment_status']);
+            $table->index(['status', 'created_at']);
             $table->index('created_at');
         });
 
-        // Order Items Table
+        // Order Items Table - Individual Order Line Items
         Schema::create('order_items', function (Blueprint $table) {
+            // Primary Key
             $table->id();
+
+            // Relationships
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
-            $table->foreignId('product_id')->nullable()->constrained()->onDelete('set null');
-            $table->foreignId('product_variant_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('product_id')->constrained()->onDelete('cascade');
+            $table->foreignId('product_item_id')->nullable()->constrained()->onDelete('set null');
+
+            // Product Information
             $table->string('product_name');
             $table->text('description')->nullable();
-            $table->decimal('price', 12, 2);
+            $table->string('sku')->nullable();
+            $table->string('barcode')->nullable();
+
+            // Pricing Information
+            $table->decimal('unit_price', 12, 2);
             $table->decimal('original_price', 12, 2)->nullable();
             $table->decimal('tax_amount', 12, 2)->default(0);
             $table->decimal('discount_amount', 12, 2)->default(0);
             $table->integer('quantity');
-            $table->integer('quantity_shipped')->default(0);
             $table->decimal('total', 12, 2);
-            $table->json('options')->nullable();
+
+            // Item Specifications
+            $table->string('size')->nullable();
+            $table->string('color')->nullable();
+            $table->string('material')->nullable();
             $table->json('attributes')->nullable();
+
+            // Fulfillment Information
+            $table->integer('quantity_shipped')->default(0);
+            $table->integer('quantity_delivered')->default(0);
             $table->boolean('inventory_updated')->default(false);
             $table->timestamp('inventory_updated_at')->nullable();
+
+            // Item Status
             $table->enum('status', [
                 'pending',
                 'shipped',
                 'delivered',
                 'cancelled',
                 'returned',
-                'refunded'
+                'refunded',
+                'partially_shipped'
             ])->default('pending');
+
             $table->timestamps();
 
             // Indexes
             $table->index(['order_id', 'product_id']);
+            $table->index(['product_id', 'status']);
+            $table->index('sku');
+            $table->index('barcode');
         });
 
-        // Payments Table
-        Schema::create('payments', function (Blueprint $table) {
+        // Order Addresses Table - Separate billing and shipping addresses
+        Schema::create('order_addresses', function (Blueprint $table) {
+            // Primary Key
             $table->id();
+
+            // Relationships
+            $table->foreignId('order_id')->constrained()->onDelete('cascade');
+
+            // Address Type
+            $table->enum('type', ['billing', 'shipping']);
+
+            // Contact Information
+            $table->string('first_name');
+            $table->string('last_name');
+            $table->string('email');
+            $table->string('phone');
+
+            // Address Information
+            $table->text('address_line_1');
+            $table->string('address_line_2')->nullable();
+            $table->string('city');
+            $table->string('state');
+            $table->string('country');
+            $table->string('postal_code');
+
+            // Company Information
+            $table->string('company_name')->nullable();
+            $table->string('tax_number')->nullable();
+
+            $table->timestamps();
+
+            // Indexes
+            $table->index(['order_id', 'type']);
+            $table->index(['country', 'state']);
+        });
+
+        // Payments Table - Payment Transaction Records
+        Schema::create('order_payments', function (Blueprint $table) {
+            // Primary Key
+            $table->id();
+
+            // Relationships
             $table->foreignId('branch_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('warehouse_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('payment_method_id')->nullable()->constrained('payment_methods')->onDelete('set null');
+
+            // Payment Identification
             $table->string('transaction_id')->unique();
             $table->string('reference')->nullable();
+
+            // Payment Amounts
             $table->decimal('amount', 12, 2);
             $table->decimal('fee', 12, 2)->default(0);
             $table->string('currency')->default('KES');
+
+            // Payment Method Details
             $table->string('payment_method_code')->nullable();
             $table->string('payment_method_name')->nullable();
+
+            // Payment Status
             $table->enum('status', [
                 'pending',
                 'completed',
@@ -194,37 +226,45 @@ return new class extends Migration {
                 'partially_refunded',
                 'cancelled'
             ])->default('pending');
+
+            // Gateway Information
             $table->text('gateway_response')->nullable();
             $table->json('gateway_parameters')->nullable();
             $table->json('metadata')->nullable();
+
+            // Timestamps
             $table->timestamp('paid_at')->nullable();
             $table->timestamps();
+
+            // Indexes
             $table->index(['order_id', 'status']);
-            $table->index('transaction_id');
+            $table->index(['transaction_id', 'status']);
+            $table->index(['user_id', 'created_at']);
+            $table->index('paid_at');
             $table->index('created_at');
         });
 
-        // Coupon Usage Tracking
-        Schema::create('coupon_user', function (Blueprint $table) {
-            $table->foreignId('coupon_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->integer('usage_count')->default(0);
-            $table->primary(['coupon_id', 'user_id']);
-
-            $table->index('usage_count');
-        });
-
-        // Order Status History
+        // Order Status History - Audit Trail for Order Status Changes
         Schema::create('order_status_history', function (Blueprint $table) {
+            // Primary Key
             $table->id();
+
+            // Relationships
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
+
+            // Status Information
             $table->string('status');
+            $table->string('previous_status')->nullable();
             $table->text('notes')->nullable();
             $table->json('metadata')->nullable();
+
             $table->timestamps();
 
+            // Indexes
             $table->index(['order_id', 'created_at']);
+            $table->index(['status', 'created_at']);
+            $table->index('created_at');
         });
     }
 
@@ -234,11 +274,9 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::dropIfExists('order_status_history');
-        Schema::dropIfExists('coupon_user');
-        Schema::dropIfExists('payments');
+        Schema::dropIfExists('order_payments');
+        Schema::dropIfExists('order_addresses');
         Schema::dropIfExists('order_items');
         Schema::dropIfExists('orders');
-        Schema::dropIfExists('coupons');
-        Schema::dropIfExists('shipping_methods');
     }
 };

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Warehouse extends Model
 {
@@ -31,19 +32,22 @@ class Warehouse extends Model
         'is_primary',
         'is_active',
         'notes',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
         'working_days' => 'array',
-        'metadata' => 'array',
         'is_primary' => 'boolean',
         'is_active' => 'boolean',
+        'latitude' => 'decimal:7',
+        'longitude' => 'decimal:7',
+        'metadata' => 'array',
         'opening_time' => 'datetime:H:i',
         'closing_time' => 'datetime:H:i',
     ];
 
-    public function branch()
+    // Relationships
+    public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
     }

@@ -14,7 +14,7 @@ export default function AddToCartBtn({ product, quantity = 1 }) {
         addToCart({
             id: product.id,
             name: product.name,
-            price: product.price,
+            price: product.base_price,
             image: `/storage/${product.default_image?.image_path}`,
             quantity: quantity,
         });

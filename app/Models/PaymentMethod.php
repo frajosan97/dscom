@@ -22,7 +22,7 @@ class PaymentMethod extends Model
         'account_number',
         'account_name',
         'bank_name',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
@@ -30,11 +30,37 @@ class PaymentMethod extends Model
         'is_default' => 'boolean',
         'requires_approval' => 'boolean',
         'processing_fee' => 'decimal:2',
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
 
-    public function payments()
+    // Relationships
+    // Payment methods can be used in orders, transactions, etc.
+
+    /**
+     * Calculate processing fee for an amount
+     */
+    public function calculateFee($amount)
     {
-        return $this->hasMany(Payment::class);
+        if ($this->fee_type === 'percentage') {
+            return ($amount * $this->processing_fee) / 100;
+        }
+
+        return $this->processing_fee;
+    }
+
+    /**
+     * Scope for active payment methods
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope for default payment method
+     */
+    public function scopeDefault($query)
+    {
+        return $query->where('is_default', true);
     }
 }

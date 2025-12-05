@@ -2,16 +2,18 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RepairOrderStatusHistory extends Model
 {
-    protected $table = "repair_order_status_history";
+    use HasFactory;
 
     protected $fillable = [
         'repair_order_id',
         'status',
+        'previous_status',
         'notes',
         'changed_by',
         'metadata',
@@ -21,19 +23,40 @@ class RepairOrderStatusHistory extends Model
         'metadata' => 'array',
     ];
 
-    /**
-     * Get the repair order that owns the status history.
-     */
+    // Relationships
     public function repairOrder(): BelongsTo
     {
         return $this->belongsTo(RepairOrder::class);
     }
 
-    /**
-     * Get the user who changed the status.
-     */
     public function changedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'changed_by');
+    }
+
+    // Computed Attributes
+    public function getStatusChangeDescriptionAttribute()
+    {
+        if ($this->previous_status) {
+            return "Changed from {$this->previous_status} to {$this->status}";
+        }
+
+        return "Set to {$this->status}";
+    }
+
+    // Scopes
+    public function scopeForRepairOrder($query, $repairOrderId)
+    {
+        return $query->where('repair_order_id', $repairOrderId);
+    }
+
+    public function scopeByStatus($query, $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    public function scopeRecent($query, $days = 7)
+    {
+        return $query->where('created_at', '>=', now()->subDays($days));
     }
 }

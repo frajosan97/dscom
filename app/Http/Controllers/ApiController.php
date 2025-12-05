@@ -190,12 +190,12 @@ class ApiController extends Controller
     public function products(Request $request)
     {
         try {
-            $products = Product::with(['category', 'brand'])
+            $products = Product::with(['category', 'brand','defaultImage'])
                 ->active()->get();
 
             return response()->json($products);
         } catch (\Throwable $th) {
-            return response()->json(['message' => 'Taxes not found']);
+            return response()->json(['message' => 'Products not found']);
         }
     }
 

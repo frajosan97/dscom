@@ -15,7 +15,10 @@ class UsersTableSeeder extends Seeder
     public function run(): void
     {
         // First, ensure the admin role exists
-        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $adminRole = Role::firstOrCreate([
+            'name' => 'director',
+            'guard_name' => 'web'
+        ]);
 
         // Define plain password for dev use
         $plainPassword = 'password123';
@@ -28,7 +31,7 @@ class UsersTableSeeder extends Seeder
             'first_name' => 'System',
             'last_name' => 'Admin',
             'gender' => 'male',
-            'birth_date' => '1980-01-01',
+            'date_of_birth' => '1980-01-01',
             'phone' => '+243810000100',
             'address' => '123 Admin Street, Gombe',
             'city' => 'Kinshasa',
@@ -37,9 +40,6 @@ class UsersTableSeeder extends Seeder
             'postal_code' => '00100',
             'branch_id' => 1,
             'ending_date' => now()->addYears(1),
-            // 'customer_id' => 'CUST-ADMIN-001',
-            // 'loyalty_points' => 0,
-            // 'customer_type' => 'retail',
             'is_active' => true,
             'is_verified' => true,
         ]);

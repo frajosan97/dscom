@@ -59,12 +59,14 @@ export default function SliderItemModal({
         validationSchema,
         enableReinitialize: true,
         onSubmit: (values) => {
+            console.log("Form submitted:", values);
             handleSubmit(values);
         },
     });
 
     useEffect(() => {
         if (formData && showModal) {
+            console.log("Setting form data in modal:", formData);
             formik.setValues({
                 ...initialValues,
                 ...formData,
@@ -72,12 +74,39 @@ export default function SliderItemModal({
                     formData.is_active !== undefined
                         ? formData.is_active
                         : true,
+                image: formData.image || null,
+                mobile_image: formData.mobile_image || null,
+                // Ensure date fields are properly formatted for datetime-local input
+                start_at: formData.start_at
+                    ? formatDateForInput(formData.start_at)
+                    : "",
+                end_at: formData.end_at
+                    ? formatDateForInput(formData.end_at)
+                    : "",
             });
         }
-    }, [formData, showModal]);
+    }, [formData, showModal, initialValues]);
+
+    // Helper function to format dates for datetime-local input
+    const formatDateForInput = (dateString) => {
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        return date.toISOString().slice(0, 16);
+    };
 
     const handleFileChange = (e, fieldName) => {
-        formik.setFieldValue(fieldName, e.target.files[0]);
+        const file = e.target.files[0];
+        formik.setFieldValue(fieldName, file);
+
+        // Create preview for new files
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                // You can store preview URL if needed
+                console.log("File preview loaded");
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const handleModalClose = () => {
@@ -85,7 +114,7 @@ export default function SliderItemModal({
             setShowModal(false);
             setTimeout(() => {
                 formik.resetForm();
-            }, 300); // Delay reset to allow modal animation to complete
+            }, 300);
         }
     };
 
@@ -127,6 +156,7 @@ export default function SliderItemModal({
                                             !!formik.errors.title
                                         }
                                         disabled={isSubmitting}
+                                        placeholder="Enter title"
                                     />
                                     <Form.Control.Feedback type="invalid">
                                         {formik.errors.title}
@@ -153,6 +183,7 @@ export default function SliderItemModal({
                                             !!formik.errors.subtitle
                                         }
                                         disabled={isSubmitting}
+                                        placeholder="Enter subtitle"
                                     />
                                     <Form.Control.Feedback type="invalid">
                                         {formik.errors.subtitle}
@@ -160,28 +191,6 @@ export default function SliderItemModal({
                                 </InputGroup>
                             </Form.Group>
                         </Col>
-
-                        {/* <Col md={12}>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Description</Form.Label>
-                                <Form.Control
-                                    as="textarea"
-                                    rows={3}
-                                    name="description"
-                                    value={formik.values.description}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    isInvalid={
-                                        formik.touched.description &&
-                                        !!formik.errors.description
-                                    }
-                                    disabled={isSubmitting}
-                                />
-                                <Form.Control.Feedback type="invalid">
-                                    {formik.errors.description}
-                                </Form.Control.Feedback>
-                            </Form.Group>
-                        </Col> */}
 
                         <Col md={6}>
                             <Form.Group className="mb-3">
@@ -205,6 +214,11 @@ export default function SliderItemModal({
                                     }
                                     disabled={isSubmitting}
                                 />
+                                <Form.Text className="text-muted">
+                                    {formik.values.id
+                                        ? "Leave empty to keep current image"
+                                        : "Required for new items"}
+                                </Form.Text>
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.image}
                                 </Form.Control.Feedback>
@@ -275,6 +289,7 @@ export default function SliderItemModal({
                                             !!formik.errors.button_text
                                         }
                                         disabled={isSubmitting}
+                                        placeholder="Button text"
                                     />
                                     <Form.Control.Feedback type="invalid">
                                         {formik.errors.button_text}
@@ -332,6 +347,7 @@ export default function SliderItemModal({
                                                 .secondary_button_text
                                         }
                                         disabled={isSubmitting}
+                                        placeholder="Secondary button text"
                                     />
                                     <Form.Control.Feedback type="invalid">
                                         {formik.errors.secondary_button_text}

@@ -13,15 +13,14 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         $roles = [
-            // administration based roles
+            'director',
             'admin',
-            'manager',
+            'hr',
+            'finance',
             'technician',
+            'supplier',
             'receptionist',
-            'supervisor',
             'sales',
-            'agent',
-            'wholesaler',
             'customer',
         ];
 

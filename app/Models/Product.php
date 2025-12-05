@@ -2,71 +2,66 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Product extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'branch_id',
+        'category_id',
+        'brand_id',
+        'tax_id',
         'name',
         'slug',
         'short_description',
         'description',
-        'meta_title',
-        'meta_description',
-        'category_id',
-        'brand_id',
-        'price',
+        'sku',
+        'product_type',
+        'sizes',
+        'colors',
+        'materials',
+        'variations',
+        'base_price',
         'agent_price',
         'wholesaler_price',
         'compare_price',
         'cost_per_item',
-        'tax_amount',
-        'tax_id',
-        'sku',
-        'barcode',
-        'quantity',
-        'low_stock_threshold',
-        'stock_status',
-        'track_inventory',
+        'total_quantity',
+        'low_stock_alert',
+        'track_quantity',
         'allow_backorders',
+        'stock_status',
         'is_digital',
         'requires_shipping',
         'weight',
-        'weight_unit',
         'length',
         'width',
         'height',
-        'dimension_unit',
         'is_featured',
         'is_active',
         'is_bestseller',
         'is_new',
         'new_until',
-        'has_variants',
-        'tags',
-        'specifications',
-        'custom_fields',
-        'related_products',
+        'meta_title',
+        'meta_description',
+        'metadata',
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
+        'base_price' => 'decimal:2',
         'agent_price' => 'decimal:2',
         'wholesaler_price' => 'decimal:2',
         'compare_price' => 'decimal:2',
         'cost_per_item' => 'decimal:2',
-        'tax_amount' => 'decimal:2',
-        'quantity' => 'integer',
-        'low_stock_threshold' => 'integer',
-        'track_inventory' => 'boolean',
+        'total_quantity' => 'integer',
+        'low_stock_alert' => 'integer',
+        'track_quantity' => 'boolean',
         'allow_backorders' => 'boolean',
         'is_digital' => 'boolean',
         'requires_shipping' => 'boolean',
@@ -78,21 +73,15 @@ class Product extends Model
         'is_active' => 'boolean',
         'is_bestseller' => 'boolean',
         'is_new' => 'boolean',
-        'has_variants' => 'boolean',
-        'tags' => 'json',
-        'specifications' => 'json',
-        'custom_fields' => 'json',
-        'related_products' => 'json',
         'new_until' => 'date',
+        'sizes' => 'array',
+        'colors' => 'array',
+        'materials' => 'array',
+        'variations' => 'array',
+        'metadata' => 'array',
     ];
 
-    protected $appends = [
-        'default_image',
-        'is_on_sale',
-        'discount_percentage',
-        'stock_percentage',
-    ];
-
+    // Relationships
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
@@ -101,11 +90,6 @@ class Product extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
-    }
-
-    public function branch(): BelongsTo
-    {
-        return $this->belongsTo(Branch::class);
     }
 
     public function tax(): BelongsTo
@@ -118,119 +102,107 @@ class Product extends Model
         return $this->hasMany(ProductImage::class);
     }
 
-    public function variants(): HasMany
+    public function items(): HasMany
     {
-        return $this->hasMany(ProductVariant::class);
+        return $this->hasMany(ProductItem::class);
     }
 
-    public function attributes(): BelongsToMany
+    public function stockMovements(): HasMany
     {
-        return $this->belongsToMany(
-            ProductAttribute::class,
-            'product_product_attr_values',
-            'product_id',
-            'product_attribute_id'
-        );
+        return $this->hasMany(StockMovement::class);
     }
 
-    public function attributeValues(): BelongsToMany
+    public function defaultImage(): HasOne
     {
-        return $this->belongsToMany(
-            ProductAttributeValue::class,
-            'product_product_attr_values',
-            'product_id',
-            'product_attr_value_id'
-        )->withPivot('product_attribute_id');
+        return $this->hasOne(ProductImage::class)->where('is_default', true);
     }
 
-    public function reviews(): HasMany
+    /**
+     * Calculate discount percentage
+     */
+    public function getDiscountPercentageAttribute()
     {
-        return $this->hasMany(ProductReview::class);
+        if (!$this->compare_price || $this->compare_price <= $this->base_price) {
+            return 0;
+        }
+
+        return round((($this->compare_price - $this->base_price) / $this->compare_price) * 100);
     }
 
+    /**
+     * Check if product is in stock
+     */
+    public function getIsInStockAttribute()
+    {
+        if (!$this->track_quantity) {
+            return true;
+        }
+
+        return $this->total_quantity > 0 || $this->allow_backorders;
+    }
+
+    /**
+     * Check if product is on sale
+     */
+    public function getIsOnSaleAttribute()
+    {
+        return $this->compare_price && $this->compare_price > $this->base_price;
+    }
+
+    /**
+     * Scope for active products
+     */
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
+    /**
+     * Scope for featured products
+     */
     public function scopeFeatured($query)
     {
         return $query->where('is_featured', true);
     }
 
+    /**
+     * Scope for bestseller products
+     */
     public function scopeBestseller($query)
     {
         return $query->where('is_bestseller', true);
     }
 
+    /**
+     * Scope for new products
+     */
     public function scopeNew($query)
     {
         return $query->where('is_new', true)
-            ->orWhere(function ($query) {
-                $query->whereNotNull('new_until')
-                    ->where('new_until', '>=', now());
+            ->where(function ($q) {
+                $q->whereNull('new_until')
+                    ->orWhere('new_until', '>=', now());
             });
     }
 
-    public function getDefaultImageAttribute()
+    /**
+     * Scope for in-stock products
+     */
+    public function scopeInStock($query)
     {
-        return $this->images()->where('is_default', true)->first()
-            ?? $this->images()->first();
-    }
-
-    public function getIsOnSaleAttribute(): bool
-    {
-        return $this->compare_price > 0
-            && $this->compare_price > $this->price;
-    }
-
-    public function getDiscountPercentageAttribute(): ?float
-    {
-        if (!$this->is_on_sale) {
-            return null;
-        }
-
-        return round(100 - ($this->price / $this->compare_price * 100), 2);
-    }
-
-    public function getStockPercentageAttribute(): ?float
-    {
-        if ($this->low_stock_threshold <= 0) {
-            return null;
-        }
-
-        return min(100, round($this->quantity / $this->low_stock_threshold * 100, 2));
-    }
-
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($product) {
-            $product->slug = $product->generateUniqueSlug($product->name);
-        });
-
-        static::updating(function ($product) {
-            if ($product->isDirty('name')) {
-                $product->slug = $product->generateUniqueSlug($product->name);
-            }
+        return $query->where(function ($q) {
+            $q->where('track_quantity', false)
+                ->orWhere('total_quantity', '>', 0)
+                ->orWhere('allow_backorders', true);
         });
     }
 
-    public function generateUniqueSlug(string $name): string
+    /**
+     * Update total quantity based on items
+     */
+    public function updateTotalQuantity()
     {
-        $slug = Str::slug($name);
-        $originalSlug = $slug;
-        $count = 1;
-
-        while (static::where('slug', $slug)
-            ->when($this->exists, fn($query) => $query->where('id', '!=', $this->id))
-            ->exists()
-        ) {
-            $slug = "{$originalSlug}-{$count}";
-            $count++;
-        }
-
-        return $slug;
+        $total = $this->items()->where('status', 'available')->count();
+        $this->update(['total_quantity' => $total]);
     }
 }

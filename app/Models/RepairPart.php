@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RepairPart extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'repair_order_id',
         'product_id',
@@ -25,58 +28,88 @@ class RepairPart extends Model
         'cost_price' => 'decimal:2',
         'selling_price' => 'decimal:2',
         'total' => 'decimal:2',
+        'quantity' => 'integer',
     ];
 
-    // Status constants
-    const STATUS_ORDERED = 'ordered';
-    const STATUS_INSTALLED = 'installed';
-    const STATUS_RETURNED = 'returned';
-
-    /**
-     * Get the repair order that owns the part.
-     */
+    // Relationships
     public function repairOrder(): BelongsTo
     {
         return $this->belongsTo(RepairOrder::class);
     }
 
-    /**
-     * Get the product associated with the part.
-     */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
-    /**
-     * Scope a query to only include installed parts.
-     */
+    // Computed Attributes
+    public function getProfitMarginAttribute()
+    {
+        if (!$this->cost_price)
+            return null;
+
+        return $this->selling_price - $this->cost_price;
+    }
+
+    public function getProfitMarginPercentageAttribute()
+    {
+        if (!$this->cost_price || $this->cost_price == 0)
+            return null;
+
+        return (($this->selling_price - $this->cost_price) / $this->cost_price) * 100;
+    }
+
+    public function getIsInstalledAttribute()
+    {
+        return $this->status === 'installed';
+    }
+
+    public function getIsReturnedAttribute()
+    {
+        return $this->status === 'returned';
+    }
+
+    // Business Logic Methods
+    public function markAsInstalled()
+    {
+        $this->update(['status' => 'installed']);
+    }
+
+    public function markAsReturned($notes = null)
+    {
+        $this->update([
+            'status' => 'returned',
+            'notes' => $notes ?: $this->notes
+        ]);
+    }
+
+    public function updateTotal()
+    {
+        $total = $this->selling_price * $this->quantity;
+        $this->update(['total' => $total]);
+
+        // Update repair order total
+        $this->repairOrder->calculateTotalAmount();
+    }
+
+    // Scopes
     public function scopeInstalled($query)
     {
-        return $query->where('status', self::STATUS_INSTALLED);
+        return $query->where('status', 'installed');
     }
 
-    /**
-     * Scope a query to only include ordered parts.
-     */
     public function scopeOrdered($query)
     {
-        return $query->where('status', self::STATUS_ORDERED);
+        return $query->where('status', 'ordered');
     }
 
-    /**
-     * Mark the part as installed.
-     */
-    public function markAsInstalled(): bool
+    public function scopeReturned($query)
     {
-        return $this->update(['status' => self::STATUS_INSTALLED]);
+        return $query->where('status', 'returned');
     }
 
-    /**
-     * Mark the part as returned.
-     */
-    public function markAsReturned(): bool
+    public function scopeDefective($query)
     {
-        return $this->update(['status' => self::STATUS_RETURNED]);
+        return $query->where('status', 'defective');
     }
 }

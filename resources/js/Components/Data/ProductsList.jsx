@@ -22,7 +22,7 @@ const autofillItems = (items, minCount) => {
 };
 
 export default function ProductsList({
-    categoryName = null,
+    categorySlug = null,
     brandId = null,
     withBanner = false,
 }) {
@@ -35,18 +35,20 @@ export default function ProductsList({
             try {
                 let result = [...products];
 
-                // Filter by category if provided
-                if (categoryName) {
+                // Filter by category slug if provided
+                if (categorySlug) {
                     result = result.filter(
-                        (item) =>
-                            item.category?.slug.toLowerCase() ===
-                            categoryName.toLowerCase()
+                        (product) =>
+                            product.category?.slug?.toLowerCase() ===
+                            categorySlug.toLowerCase()
                     );
                 }
 
                 // Filter by brand if provided
                 if (brandId) {
-                    result = result.filter((item) => item.brand_id == brandId);
+                    result = result.filter(
+                        (product) => product.brand_id == brandId
+                    );
                 }
 
                 setFilteredProducts(result);
@@ -55,7 +57,7 @@ export default function ProductsList({
                 console.error(error);
             }
         }
-    }, [products, isLoading, categoryName, brandId]);
+    }, [products, isLoading, categorySlug, brandId]);
 
     if (isLoading) {
         return (
@@ -75,15 +77,15 @@ export default function ProductsList({
     }
 
     const displayProducts =
-        brandId || categoryName ? filteredProducts : products;
+        brandId || categorySlug ? filteredProducts : products;
 
     if (!displayProducts?.length) {
         return (
             <Alert variant="info" className="text-center">
-                {categoryName
+                {categorySlug
                     ? `No products found${
                           brandId ? " for this brand" : ""
-                      } in ${categoryName}`
+                      } in ${categorySlug} category`
                     : "No products available"}
             </Alert>
         );
@@ -122,9 +124,9 @@ export default function ProductsList({
 
     return (
         <SlickSlider {...sliderSettings}>
-            {displayedProducts.map((item) => (
-                <div className="px-1">
-                    <ProductCard key={item.id} item={item} />
+            {displayedProducts.map((product) => (
+                <div key={product.id} className="px-1">
+                    <ProductCard product={product} />
                 </div>
             ))}
         </SlickSlider>
