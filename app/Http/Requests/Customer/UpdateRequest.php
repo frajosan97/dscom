@@ -35,7 +35,7 @@ class UpdateRequest extends FormRequest
             ],
             'alternate_phone' => 'nullable|string|max:20',
             'date_of_birth' => 'required|date',
-            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            // 'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',

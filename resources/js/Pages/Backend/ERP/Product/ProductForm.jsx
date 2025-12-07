@@ -72,8 +72,7 @@ const DEFAULT_PRODUCT_DATA = {
 };
 
 export default function ProductForm({ product = null }) {
-    const { branches, warehouses, categories, brands, taxes } =
-        useFilterOptions();
+    const { warehouses, categories, brands, taxes } = useFilterOptions();
     const isEdit = !!product;
     const [activeKey, setActiveKey] = useState("basic");
 

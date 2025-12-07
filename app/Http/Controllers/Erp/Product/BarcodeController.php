@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Erp\Product;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class BarcodeController extends Controller
 {
@@ -12,7 +13,7 @@ class BarcodeController extends Controller
      */
     public function index()
     {
-        //
+        return Inertia::render('Backend/ERP/Product/Barcode');
     }
 
     /**

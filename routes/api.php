@@ -25,6 +25,7 @@ Route::prefix('/data')->group(function () {
     Route::get('/customers', [ApiController::class, 'customers'])->name('api.customers');
     Route::get('/technicians', [ApiController::class, 'technicians'])->name('api.technicians');
     Route::get('/staff', [ApiController::class, 'staff'])->name('api.staff');
+    Route::get('/employees', [ApiController::class, 'employees'])->name('api.employees');
     Route::get('/products', [ApiController::class, 'products'])->name('api.products');
     Route::get('/services', [ApiController::class, 'services'])->name('api.services');
     Route::get('/device-types', [ApiController::class, 'deviceTypes'])->name('api.device-types');

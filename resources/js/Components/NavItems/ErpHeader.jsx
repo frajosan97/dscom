@@ -63,7 +63,7 @@ export default function ErpHeader() {
                 {
                     path: route("barcode.index"),
                     icon: "bi bi-upc-scan",
-                    label: "Store Barcode Printing",
+                    label: "Barcode Printing",
                     show: true,
                 },
             ].filter((item) => item.show),
@@ -117,6 +117,12 @@ export default function ErpHeader() {
                     show: true,
                 },
                 {
+                    path: route("customers.create"),
+                    icon: "bi bi-person-plus",
+                    label: "New Customer/Supplier",
+                    show: true,
+                },
+                {
                     path: route("promotion.index"),
                     icon: "bi bi-bullseye",
                     label: "Campaigns / Promotions",
@@ -144,19 +150,25 @@ export default function ErpHeader() {
                 {
                     path: route("employee.index"),
                     icon: "bi bi-person-gear",
-                    label: "User Management",
+                    label: "Employee Mgnt",
+                    show: true,
+                },
+                {
+                    path: route("employee.create"),
+                    icon: "bi bi-person-plus",
+                    label: "New Employee",
                     show: true,
                 },
                 {
                     path: route("attendance.index"),
                     icon: "bi bi-clock-history",
-                    label: "Attendance",
+                    label: "Attendance Mgnt",
                     show: true,
                 },
                 {
                     path: route("salary.index"),
                     icon: "bi bi-cash-coin",
-                    label: "Salary Payment",
+                    label: "Salaries Mgnt",
                     show: true,
                 },
             ].filter((item) => item.show),
@@ -204,31 +216,31 @@ export default function ErpHeader() {
                 },
             ].filter((item) => item.show),
         },
-        {
-            label: "Reports",
-            icon: "bi bi-bar-chart",
-            show: canViewReports,
-            children: [
-                {
-                    path: "",
-                    icon: "bi bi-currency-dollar",
-                    label: "Sales Reports",
-                    show: true,
-                },
-                {
-                    path: "",
-                    icon: "bi bi-box-seam",
-                    label: "Inventory Reports",
-                    show: true,
-                },
-                {
-                    path: "",
-                    icon: "bi bi-tools",
-                    label: "Service Reports",
-                    show: true,
-                },
-            ].filter((item) => item.show),
-        },
+        // {
+        //     label: "Reports",
+        //     icon: "bi bi-bar-chart",
+        //     show: canViewReports,
+        //     children: [
+        //         {
+        //             path: "",
+        //             icon: "bi bi-currency-dollar",
+        //             label: "Sales Reports",
+        //             show: true,
+        //         },
+        //         {
+        //             path: "",
+        //             icon: "bi bi-box-seam",
+        //             label: "Inventory Reports",
+        //             show: true,
+        //         },
+        //         {
+        //             path: "",
+        //             icon: "bi bi-tools",
+        //             label: "Service Reports",
+        //             show: true,
+        //         },
+        //     ].filter((item) => item.show),
+        // },
         {
             label: "Settings",
             icon: "bi bi-gear-fill",

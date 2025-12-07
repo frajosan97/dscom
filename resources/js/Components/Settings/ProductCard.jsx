@@ -10,6 +10,7 @@ export default function ProductCard({
     showCategory = false,
     showStockStatus = false,
     showActions = true,
+    showComparePrice = true,
     className = "",
     ...props
 }) {
@@ -30,11 +31,11 @@ export default function ProductCard({
 
     // Get product image URL
     const getImageUrl = () => {
-        if (product.default_image?.image_path) {
-            return `/storage/${product.default_image.image_path}`;
+        if (product?.default_image?.image_path) {
+            return `/storage/${product?.default_image?.image_path}`;
         }
-        if (product.images?.length > 0) {
-            return `/storage/${product.images[0].image_path}`;
+        if (product?.images?.length > 0) {
+            return `/storage/${product?.images[0].image_path}`;
         }
         return "/images/default-product.jpg";
     };
@@ -193,7 +194,7 @@ export default function ProductCard({
                 <div className="position-relative overflow-hidden">
                     <div
                         className="product-image-wrapper"
-                        style={{ height: "200px" }}
+                        style={{ height: "150px" }}
                     >
                         <Card.Img
                             src={getImageUrl()}
@@ -227,7 +228,7 @@ export default function ProductCard({
                     </div>
                 </div>
 
-                <Card.Body className="p-3">
+                <Card.Body>
                     {/* Category */}
                     {showCategory && product.category && (
                         <small className="text-muted text-uppercase d-block mb-1">
@@ -237,7 +238,7 @@ export default function ProductCard({
 
                     {/* Product Name */}
                     <Card.Title
-                        className="product-name fs-6 fw-semibold mb-2 text-truncate"
+                        className="product-name fs-6 fw-semibold mb-1 text-truncate"
                         title={product.name}
                     >
                         {product.name}
@@ -245,14 +246,14 @@ export default function ProductCard({
 
                     {/* Short Description */}
                     {product.short_description && (
-                        <Card.Text className="text-muted small mb-2 line-clamp-2">
+                        <Card.Text className="text-muted small mb-1 line-clamp-2">
                             {product.short_description}
                         </Card.Text>
                     )}
 
                     {/* Variants Preview */}
                     {(product.sizes || product.colors) && (
-                        <div className="d-flex gap-1 mb-3">
+                        <div className="d-flex gap-1 mb-1">
                             {product.sizes?.slice(0, 3).map((size, idx) => (
                                 <Badge
                                     key={`size-${idx}`}
@@ -282,12 +283,13 @@ export default function ProductCard({
                     )}
 
                     {/* Pricing */}
-                    <div className="d-flex align-items-center justify-content-between mb-3">
+                    <div className="d-flex align-items-center justify-content-between mb-1">
                         <div>
                             <div className="fs-5 fw-bold text-primary">
                                 {formatCurrency(product.base_price)}
                             </div>
-                            {product.compare_price &&
+                            {showComparePrice &&
+                                product.compare_price &&
                                 product.compare_price > product.base_price && (
                                     <del className="text-muted small">
                                         {formatCurrency(product.compare_price)}
@@ -308,7 +310,7 @@ export default function ProductCard({
 
             {/* Actions */}
             {showActions && (
-                <Card.Footer className="border-0 bg-transparent p-3 pt-0">
+                <Card.Footer className="border-0 bg-transparent pt-0">
                     <AddToCartBtn
                         product={product}
                         variant="primary"
@@ -321,46 +323,4 @@ export default function ProductCard({
     );
 
     return systemMode === "erp" ? renderERPCard() : renderStorefrontCard();
-}
-
-// Add CSS styles for hover effects (can be moved to a CSS file)
-const cardStyles = `
-    .product-card {
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    
-    .product-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-    }
-    
-    .product-image {
-        transition: transform 0.3s;
-    }
-    
-    .product-card:hover .product-image {
-        transform: scale(1.05);
-    }
-    
-    .line-clamp-2 {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    
-    .hover-shadow {
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
-    
-    .hover-shadow:hover {
-        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-    }
-`;
-
-// Add styles to document head
-if (typeof document !== "undefined") {
-    const styleSheet = document.createElement("style");
-    styleSheet.textContent = cardStyles;
-    document.head.appendChild(styleSheet);
 }

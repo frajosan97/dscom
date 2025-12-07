@@ -15,6 +15,7 @@ use App\Models\Tax;
 use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
 
 class ApiController extends Controller
@@ -143,6 +144,20 @@ class ApiController extends Controller
         }
     }
 
+    public function employees()
+    {
+        try {
+            $employees = User::withoutRole('customer')
+                ->with('roles:id,name')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json($employees);
+        } catch (\Throwable $th) {
+            return response()->json(['message' => 'employees not found']);
+        }
+    }
+
     public function customerSearch(Request $request)
     {
         try {
@@ -190,7 +205,12 @@ class ApiController extends Controller
     public function products(Request $request)
     {
         try {
-            $products = Product::with(['category', 'brand','defaultImage'])
+            $products = Product::with([
+                'category',
+                'brand',
+                'defaultImage',
+                'items'
+            ])
                 ->active()->get();
 
             return response()->json($products);

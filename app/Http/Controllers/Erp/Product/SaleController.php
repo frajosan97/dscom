@@ -7,6 +7,7 @@ use App\Http\Requests\Sale\StoreRequest;
 use App\Http\Requests\Sale\UpdateRequest;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderPayment;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use Illuminate\Http\JsonResponse;
@@ -58,8 +59,10 @@ class SaleController extends Controller
         }
     }
 
-    public function store(StoreRequest $request): JsonResponse
+
+    public function store(Request $request): JsonResponse
     {
+        Log::info($request);
         try {
             DB::beginTransaction();
 
@@ -123,7 +126,7 @@ class SaleController extends Controller
                 foreach ($paymentMethods as $paymentMethod) {
                     if (isset($paymentData[$paymentMethod->code]) && $paymentData[$paymentMethod->code] > 0) {
                         foreach ($paymentData[$paymentMethod->code] as $payment) {
-                            Payment::create([
+                            OrderPayment::create([
                                 'order_id' => $order->id,
                                 'user_id' => Auth::id(),
                                 'branch_id' => 1,
@@ -252,7 +255,7 @@ class SaleController extends Controller
                     foreach ($paymentMethods as $paymentMethod) {
                         if (isset($paymentData[$paymentMethod->code]) && $paymentData[$paymentMethod->code] > 0) {
                             foreach ($paymentData[$paymentMethod->code] as $payment) {
-                                Payment::create([
+                                OrderPayment::create([
                                     'order_id' => $sale->id,
                                     'user_id' => Auth::id(),
                                     'branch_id' => 1,

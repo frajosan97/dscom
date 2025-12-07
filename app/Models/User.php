@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use GuzzleHttp\Psr7\ServerRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +12,8 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -38,7 +41,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'designation',
         'salary_type',
         'salary',
-        'role',
         'branch_id',
         'department_id',
         'blood_group',
@@ -76,6 +78,128 @@ class User extends Authenticatable implements MustVerifyEmail
         'longitude' => 'decimal:7',
     ];
 
+    protected $appends = ['profile_image_url'];
+
+    // Add this accessor method for profile image URL with fallback
+    public function getProfileImageUrlAttribute()
+    {
+        // Check if profile_image field exists and is not empty
+        if (!empty($this->profile_image)) {
+            try {
+                // dd(asset('/storage/'.$this->profile_image));
+                // Check if the file exists in storage
+                if (asset('/storage/' . $this->profile_image)) {
+                    return Storage::url($this->profile_image);
+                }
+
+                // If it's a full URL, return as is
+                if (filter_var($this->profile_image, FILTER_VALIDATE_URL)) {
+                    return $this->profile_image;
+                }
+
+                // If it's a relative path that doesn't exist in storage, fall through
+            } catch (\Exception $e) {
+                // Do nothing
+            }
+        }
+
+        // Return fallback image based on gender or default
+        return $this->getFallbackImage();
+    }
+
+    // Helper method to get fallback image
+    protected function getFallbackImage()
+    {
+        // You can customize fallback images based on gender
+        $fallbackImages = [
+            'male' => asset('storage/images/avatars/avatar.png'),
+            'female' => asset('storage/images/avatars/avatar.png'),
+            'default' => asset('storage/images/avatars/avatar.png'),
+        ];
+
+        // Check if gender-specific fallback exists
+        if (isset($this->gender) && array_key_exists(strtolower($this->gender), $fallbackImages)) {
+            return $fallbackImages[strtolower($this->gender)];
+        }
+
+        // Fallback based on initials for avatar generation
+        return $this->generateInitialsAvatar();
+    }
+
+    // Generate avatar with initials as fallback
+    protected function generateInitialsAvatar()
+    {
+        $initials = '';
+
+        if (!empty($this->first_name)) {
+            $initials .= strtoupper(substr($this->first_name, 0, 1));
+        }
+
+        if (!empty($this->last_name)) {
+            $initials .= strtoupper(substr($this->last_name, 0, 1));
+        }
+
+        // If no initials from name, use username or email
+        if (empty($initials)) {
+            if (!empty($this->username)) {
+                $initials = strtoupper(substr($this->username, 0, 2));
+            } elseif (!empty($this->email)) {
+                $initials = strtoupper(substr($this->email, 0, 2));
+            } else {
+                $initials = 'U'; // Default for User
+            }
+        }
+
+        // Create a simple initials-based avatar URL using a service or local generation
+        // Option 1: Use UI Avatars service
+        $backgroundColor = $this->getAvatarBackgroundColor();
+        return "https://ui-avatars.com/api/?name=" . urlencode($initials) .
+            "&color=FFFFFF&background=" . $backgroundColor .
+            "&bold=true&size=256";
+
+        // Option 2: Use local generation (you would need to implement this)
+        // return route('avatar.initials', ['initials' => $initials, 'id' => $this->id]);
+    }
+
+    // Helper to get consistent background color based on user ID
+    protected function getAvatarBackgroundColor()
+    {
+        $colors = [
+            '6366F1', // Indigo
+            '8B5CF6', // Violet
+            'EC4899', // Pink
+            '10B981', // Emerald
+            'F59E0B', // Amber
+            'EF4444', // Red
+            '3B82F6', // Blue
+            '14B8A6', // Teal
+        ];
+
+        // Use user ID to pick a consistent color for each user
+        $index = $this->id ? ($this->id % count($colors)) : 0;
+        return $colors[$index];
+    }
+
+    // You might also want this helper method to check if image exists
+    public function hasProfileImage()
+    {
+        if (empty($this->profile_image)) {
+            return false;
+        }
+
+        try {
+            if (filter_var($this->profile_image, FILTER_VALIDATE_URL)) {
+                // For URLs, you might want to do a head request to check
+                // This is optional as it could be slow
+                return true;
+            }
+
+            return Storage::exists($this->profile_image);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
     // Relationships
     public function branch(): BelongsTo
     {
@@ -100,5 +224,26 @@ class User extends Authenticatable implements MustVerifyEmail
     public function managedDepartments(): HasMany
     {
         return $this->hasMany(Department::class, 'user_id');
+    }
+
+    // For customers
+    public function orders(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function payments(): BelongsTo
+    {
+        return $this->belongsTo(OrderPayment::class);
+    }
+
+    public function services(): BelongsTo
+    {
+        return $this->belongsTo(RepairOrder::class);
+    }
+
+    public function attendance(): BelongsTo
+    {
+        return $this->belongsTo(Attendance::class);
     }
 }

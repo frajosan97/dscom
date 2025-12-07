@@ -10,6 +10,7 @@ export default function useData() {
     const [customers, setCustomers] = useState([]);
     const [technicians, setTechnicians] = useState([]);
     const [staff, setStaff] = useState([]);
+    const [employees, setEmployees] = useState([]);
     const [products, setProducts] = useState([]);
     const [services, setServices] = useState([]);
     const [deviceTypes, setDeviceTypes] = useState([]);
@@ -27,11 +28,11 @@ export default function useData() {
             }
             const data = await response.json();
             setter(data);
-            return true;
+            return { success: true, data };
         } catch (error) {
             console.error(`Error fetching ${endpoint}:`, error);
             setError(error.message || `Failed to fetch ${endpoint}`);
-            return false;
+            return { success: false, error };
         }
     };
 
@@ -40,7 +41,7 @@ export default function useData() {
             setIsLoading(true);
             setError(null);
 
-            await Promise.all([
+            const promises = [
                 fetchData("api.roles", setRoles),
                 fetchData("api.categories", setCategories),
                 fetchData("api.brands", setBrands),
@@ -49,12 +50,25 @@ export default function useData() {
                 fetchData("api.taxes", setTaxes),
                 fetchData("api.customers", setCustomers),
                 fetchData("api.staff", setStaff),
+                fetchData("api.employees", setEmployees), // Added employees
                 fetchData("api.technicians", setTechnicians),
                 fetchData("api.products", setProducts),
                 fetchData("api.services", setServices),
                 fetchData("api.device-types", setDeviceTypes),
                 fetchData("api.payment-methods", setPaymentMethods),
-            ]);
+            ];
+
+            const results = await Promise.allSettled(promises);
+
+            // Log any failed requests for debugging
+            results.forEach((result, index) => {
+                if (result.status === "rejected") {
+                    console.error(`Request ${index} failed:`, result.reason);
+                }
+            });
+        } catch (error) {
+            console.error("Error in fetchAll:", error);
+            setError(error.message || "Failed to fetch all data");
         } finally {
             setIsLoading(false);
         }
@@ -71,6 +85,7 @@ export default function useData() {
     const refreshTechnicians = () =>
         fetchData("api.technicians", setTechnicians);
     const refreshStaff = () => fetchData("api.staff", setStaff);
+    const refreshEmployees = () => fetchData("api.employees", setEmployees);
     const refreshProducts = () => fetchData("api.products", setProducts);
     const refreshServices = () => fetchData("api.services", setServices);
     const refreshDeviceTypes = () =>
@@ -83,6 +98,7 @@ export default function useData() {
     }, []);
 
     return {
+        // Data states
         roles,
         categories,
         brands,
@@ -92,12 +108,17 @@ export default function useData() {
         customers,
         technicians,
         staff,
+        employees, // Added to return object
         products,
         services,
         deviceTypes,
         paymentMethods,
+
+        // Loading states
         isLoading,
         error,
+
+        // Refresh functions
         refreshRoles,
         refreshCategories,
         refreshBrands,
@@ -107,9 +128,13 @@ export default function useData() {
         refreshCustomers,
         refreshTechnicians,
         refreshStaff,
+        refreshEmployees, // Added to return object
         refreshProducts,
         refreshServices,
         refreshDeviceTypes,
         refreshPaymentMethods,
+
+        // Bulk refresh
+        refreshAll: fetchAll,
     };
 }
