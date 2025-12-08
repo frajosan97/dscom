@@ -66,13 +66,6 @@ export default function CategoryExplore() {
     return (
         <Container fluid className="py-4">
             <Card className="bg-transparent border-0 shadow-none">
-                {/* <Card.Header className="bg-transparent border-0 text-center">
-                    <h2 className="section-title">Explore by Categories</h2>
-                    <p className="section-subtitle">
-                        Discover products in our popular categories
-                    </p>
-                </Card.Header> */}
-
                 <Card.Body>
                     <SlickSlider {...sliderSettings}>
                         {displayedCategories.map((category) => (
@@ -96,7 +89,7 @@ export default function CategoryExplore() {
                                         <Card.Text className="category-count">
                                             {category.products_count} items
                                         </Card.Text>
-                                        <Link className="action-link text-white px-3">
+                                        <Link className="action-link text-white text-nowrap text-truncate px-3">
                                             Explore
                                         </Link>
                                     </CardBody>
