@@ -7,7 +7,7 @@ const ReceptionistDashboard = () => {
 
     return (
         <ErpLayout>
-            <Head title="Admin Dashboard" />
+            <Head title="Dashboard" />
 
         </ErpLayout>
     );
