@@ -258,7 +258,7 @@ export default function Category({ category }) {
                             filtersVisible ? "d-block" : "d-none d-lg-block"
                         }`}
                     >
-                        <Card style={{ top: "20px" }}>
+                        <Card>
                             <Card.Header className="bg-white border-bottom">
                                 <h5 className="mb-0 d-flex align-items-center">
                                     <FiFilter className="me-2" />
@@ -357,7 +357,7 @@ export default function Category({ category }) {
                                         }
                                     >
                                         <ProductCard
-                                            item={item}
+                                            product={item}
                                             viewMode={viewMode}
                                             showRating={true}
                                             showQuickView={true}
