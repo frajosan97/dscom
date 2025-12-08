@@ -6,21 +6,45 @@ export default function ErpHeader() {
     const { auth } = usePage().props;
     const { hasRole, hasPermission } = useRolePermissions();
 
-    // Permission checks
-    const canViewServices =
-        hasPermission("view services") ||
-        hasRole("director", "admin", "technician");
-    const canViewStore =
-        hasPermission("view store") || hasRole("director", "admin");
-    const canViewAccounts =
-        hasPermission("view accounts") ||
-        hasRole("director", "admin", "finance");
-    const canViewHR =
-        hasPermission("view hr") || hasRole("director", "admin", "hr");
-    const canViewReports =
-        hasPermission("view reports") || hasRole("director", "admin");
-    const canViewSettings = hasRole("director", "admin");
+    // Roles
+    const isDirector = hasRole("director");
+    const isAdmin = hasRole("admin");
+    const isHR = hasRole("hr");
+    const isFinance = hasRole("finance");
+    const isSales = hasRole("sales");
+    const isReceptionist = hasRole("receptionist");
+    const isTechnician = hasRole("technician");
+    const isCustomer = hasRole("customer");
 
+    // Admin & Director override everything
+    const isSuper = isDirector || isAdmin;
+
+    // Permissions
+    const canViewServices =
+        isSuper || isTechnician || hasPermission("view services");
+
+    const canViewStore =
+        isSuper || isSales || isReceptionist || hasPermission("view store");
+
+    const canViewAccounts =
+        isSuper || isFinance || hasPermission("view accounts");
+
+    const canViewHR = isSuper || isHR || hasPermission("view hr");
+
+    const canViewReports = isSuper || hasPermission("view reports");
+
+    const canViewSettings = isSuper;
+
+    // HR-only mode
+    const showOnlyHR = isHR && !isSuper;
+
+    // Finance-only mode
+    const showOnlyAccounts = isFinance && !isSuper;
+
+    // CRM horizontal mode
+    const showCRMHorizontal = isSales || isReceptionist;
+
+    // Base Items
     const baseItems = [
         {
             path: route("dashboard"),
@@ -30,11 +54,46 @@ export default function ErpHeader() {
         },
     ];
 
+    // CRM menu items
+    const crmMenuItems = [
+        {
+            path: route("customers.index"),
+            icon: "bi bi-people",
+            label: "Customer",
+            show: !isCustomer,
+        },
+        {
+            path: route("customers.create"),
+            icon: "bi bi-person-plus",
+            label: "New Customer",
+            show: !isCustomer,
+        },
+        {
+            path: route("promotion.index"),
+            icon: "bi bi-bullseye",
+            label: "Campaigns & Promotions",
+            show: true,
+        },
+        {
+            path: route("feedback.index"),
+            icon: "bi bi-chat-dots",
+            label: "Feedback",
+            show: true,
+        },
+        {
+            path: route("ticket.index"),
+            icon: "bi bi-headset",
+            label: "Support Tickets",
+            show: true,
+        },
+    ].filter((i) => i.show);
+
+    // Main Menu
     const menuItems = [
         {
             label: "Store",
             icon: "bi bi-cart3",
-            show: canViewStore,
+            show: (canViewStore || isSuper) && !showOnlyHR && !showOnlyAccounts,
             children: [
                 {
                     path: route("product.index"),
@@ -46,7 +105,7 @@ export default function ErpHeader() {
                     path: route("product.create"),
                     icon: "bi bi-plus-square",
                     label: "New Item",
-                    show: true,
+                    show: !isSales && !isReceptionist,
                 },
                 {
                     path: route("sales.index"),
@@ -58,38 +117,42 @@ export default function ErpHeader() {
                     path: route("sales.create"),
                     icon: "bi bi-cart-plus",
                     label: "New Sale",
-                    show: true,
+                    show: isSales || isReceptionist || isSuper,
                 },
                 {
                     path: route("barcode.index"),
                     icon: "bi bi-upc-scan",
                     label: "Barcode Printing",
-                    show: true,
+                    show: !isSales && !isReceptionist,
                 },
-            ].filter((item) => item.show),
+            ].filter((i) => i.show),
         },
+
         {
             label: "Services",
             icon: "bi bi-tools",
-            show: canViewServices,
+            show:
+                (canViewServices || isSuper) &&
+                !showOnlyHR &&
+                !showOnlyAccounts,
             children: [
                 {
                     path: route("device-type.index"),
                     icon: "bi bi-hdd-stack",
                     label: "Device Types",
-                    show: true,
+                    show: isTechnician || isSuper,
                 },
                 {
                     path: route("repair-service.index"),
                     icon: "bi bi-wrench-adjustable",
                     label: "Repair Services",
-                    show: true,
+                    show: isTechnician || isSuper,
                 },
                 {
                     path: route("repair-orders.create"),
                     icon: "bi bi-clipboard-plus",
                     label: "Service Job Entry",
-                    show: true,
+                    show: isReceptionist || isTechnician || isSuper,
                 },
                 {
                     path: route("repair-orders.index"),
@@ -101,51 +164,22 @@ export default function ErpHeader() {
                     path: route("repair-orders.assign-technician"),
                     icon: "bi bi-person-badge",
                     label: "Assign Technician",
-                    show: true,
+                    show: isSuper || isReceptionist,
                 },
-            ].filter((item) => item.show),
+            ].filter((i) => i.show),
         },
+
         {
             label: "CRM",
             icon: "bi bi-people-fill",
-            show: true,
-            children: [
-                {
-                    path: route("customers.index"),
-                    icon: "bi bi-people",
-                    label: "Customer/Supplier Mgnt",
-                    show: true,
-                },
-                {
-                    path: route("customers.create"),
-                    icon: "bi bi-person-plus",
-                    label: "New Customer/Supplier",
-                    show: true,
-                },
-                {
-                    path: route("promotion.index"),
-                    icon: "bi bi-bullseye",
-                    label: "Campaigns / Promotions",
-                    show: true,
-                },
-                {
-                    path: route("feedback.index"),
-                    icon: "bi bi-chat-dots",
-                    label: "Customer Feedback",
-                    show: true,
-                },
-                {
-                    path: route("ticket.index"),
-                    icon: "bi bi-headset",
-                    label: "Customer Support / Tickets",
-                    show: true,
-                },
-            ].filter((item) => item.show),
+            show: !showOnlyHR && !showOnlyAccounts && !showCRMHorizontal,
+            children: crmMenuItems,
         },
+
         {
             label: "HRM",
             icon: "bi bi-people-fill",
-            show: canViewHR,
+            show: canViewHR || isSuper,
             children: [
                 {
                     path: route("employee.index"),
@@ -157,7 +191,7 @@ export default function ErpHeader() {
                     path: route("employee.create"),
                     icon: "bi bi-person-plus",
                     label: "New Employee",
-                    show: true,
+                    show: isSuper || isHR,
                 },
                 {
                     path: route("attendance.index"),
@@ -169,14 +203,15 @@ export default function ErpHeader() {
                     path: route("salary.index"),
                     icon: "bi bi-cash-coin",
                     label: "Salaries Mgnt",
-                    show: true,
+                    show: isSuper || isHR || isFinance,
                 },
-            ].filter((item) => item.show),
+            ].filter((i) => i.show),
         },
+
         {
             label: "Accounts",
             icon: "bi bi-journal-arrow-down",
-            show: canViewAccounts,
+            show: canViewAccounts || isSuper,
             children: [
                 {
                     path: route("finance.reports"),
@@ -188,7 +223,7 @@ export default function ErpHeader() {
                     path: route("finance.chart-of-accounts"),
                     icon: "bi bi-journal-text",
                     label: "Chart of Accounts",
-                    show: true,
+                    show: isFinance || isSuper,
                 },
                 {
                     path: route("finance.transactions"),
@@ -212,39 +247,15 @@ export default function ErpHeader() {
                     path: route("finance.bank-reconciliation"),
                     icon: "bi bi-bank",
                     label: "Bank Reconciliation",
-                    show: true,
+                    show: isFinance || isSuper,
                 },
-            ].filter((item) => item.show),
+            ].filter((i) => i.show),
         },
-        // {
-        //     label: "Reports",
-        //     icon: "bi bi-bar-chart",
-        //     show: canViewReports,
-        //     children: [
-        //         {
-        //             path: "",
-        //             icon: "bi bi-currency-dollar",
-        //             label: "Sales Reports",
-        //             show: true,
-        //         },
-        //         {
-        //             path: "",
-        //             icon: "bi bi-box-seam",
-        //             label: "Inventory Reports",
-        //             show: true,
-        //         },
-        //         {
-        //             path: "",
-        //             icon: "bi bi-tools",
-        //             label: "Service Reports",
-        //             show: true,
-        //         },
-        //     ].filter((item) => item.show),
-        // },
+
         {
             label: "Settings",
             icon: "bi bi-gear-fill",
-            show: canViewSettings,
+            show: canViewSettings || isSuper,
             children: [
                 {
                     path: route("slider.index"),
@@ -282,16 +293,37 @@ export default function ErpHeader() {
                     label: "Brands List",
                     show: true,
                 },
-            ].filter((item) => item.show),
+            ].filter((i) => i.show),
         },
     ];
 
-    const navItems = [
-        ...baseItems.filter((item) => item.show),
-        ...menuItems.filter(
-            (item) => item.show && (!item.children || item.children.length > 0)
-        ),
+    // Final nav items
+    let navItems = [
+        ...baseItems,
+        ...menuItems.filter((i) => i.show && i.children.length > 0),
     ];
 
-    return <NavBar variant="erp" NavItems={navItems} />;
+    // HR-only
+    if (showOnlyHR && !isSuper) {
+        navItems = [
+            ...baseItems,
+            ...menuItems.filter((i) => i.label === "HRM"),
+        ];
+    }
+
+    // Finance-only
+    if (showOnlyAccounts && !isSuper) {
+        navItems = [
+            ...baseItems,
+            ...menuItems.filter((i) => i.label === "Accounts"),
+        ];
+    }
+
+    return (
+        <NavBar
+            variant="erp"
+            NavItems={navItems}
+            horizontalCRMItems={showCRMHorizontal ? crmMenuItems : []}
+        />
+    );
 }

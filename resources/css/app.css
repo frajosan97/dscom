@@ -700,3 +700,7 @@ a {
 .keypad .btn-success {
     box-shadow: 0 4px 8px rgba(25, 135, 84, 0.2);
 }
+
+.main-navbar a {
+    padding: 10px;
+}

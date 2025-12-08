@@ -32,9 +32,9 @@ class DashboardController extends Controller
         } elseif ($user->hasRole('supplier')) {
             return Inertia::render('Backend/ERP/Dashboard/Supplier');
         } elseif ($user->hasRole('receptionist')) {
-            return Inertia::render('Backend/ERP/Dashboard/Receptionist');
+            return Inertia::render('Backend/ERP/Sale/SaleForm');
         } elseif ($user->hasRole('sales')) {
-            return Inertia::render('Backend/ERP/Dashboard/Sales');
+            return Inertia::render('Backend/ERP/Sale/SaleForm');
         } else {
             return Inertia::render('Backend/ERP/Dashboard/Customer');
         }

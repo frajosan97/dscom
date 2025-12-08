@@ -1,9 +1,17 @@
 import { Container, Navbar, Nav, Button, Dropdown } from "react-bootstrap";
 import { ChevronDown } from "react-feather";
 
-export default function NavBar({ variant = "ecommerce", NavItems }) {
+export default function NavBar({
+    variant = "ecommerce",
+    NavItems,
+    horizontalCRMItems = [],
+}) {
     return (
-        <Navbar variant="light" expand="lg" className="sticky-top py-3">
+        <Navbar
+            variant="light"
+            expand="lg"
+            className="main-navbar sticky-top py-3"
+        >
             <Container fluid>
                 {variant === "ecommerce" ? (
                     <>
@@ -33,6 +41,20 @@ export default function NavBar({ variant = "ecommerce", NavItems }) {
                                         variant={variant}
                                     />
                                 ))}
+
+                                {horizontalCRMItems.length > 0 && (
+                                    <>
+                                        {horizontalCRMItems.map(
+                                            (item, index) => (
+                                                <NavItem
+                                                    key={index}
+                                                    item={item}
+                                                    variant={variant}
+                                                />
+                                            )
+                                        )}
+                                    </>
+                                )}
                             </Nav>
                         </Navbar.Collapse>
                     </>
@@ -62,7 +84,7 @@ function NavItem({ item, variant = "ecommerce" }) {
 
     if (variant === "erp") {
         return (
-            <Dropdown.Item href={item.path} className="py-2 px-3">
+            <Dropdown.Item href={item.path}>
                 <i className={`${item.icon} me-2`}></i>
                 {item.label}
             </Dropdown.Item>
