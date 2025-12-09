@@ -22,7 +22,9 @@ class DashboardController extends Controller
                 'dashboardData' => $dashboardData,
             ]);
         } elseif ($user->hasRole('admin')) {
-            return Inertia::render('Backend/ERP/Dashboard/Admin');
+            return Inertia::render('Backend/ERP/Dashboard/Admin', [
+                'dashboardData' => $dashboardData,
+            ]);
         } elseif ($user->hasRole('hr')) {
             return Inertia::render('Backend/ERP/Dashboard/HR');
         } elseif ($user->hasRole('finance')) {
