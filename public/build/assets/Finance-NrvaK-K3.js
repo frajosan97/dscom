@@ -1,0 +1,1 @@
+import{q as t,j as r,$ as o}from"./app-D_CKxB3x.js";import{E as s}from"./ErpLayout-CcC4mq35.js";import"./Footer-4j-U2EsI.js";import"./Image-BD4Nolsn.js";import"./CloseButton-hotSFq8D.js";import"./Form-BIQdSXL5.js";/* empty css                      */const c=()=>{const{auth:a}=t().props;return r.jsx(s,{children:r.jsx(o,{title:"Dashboard"})})};export{c as default};

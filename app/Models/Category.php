@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class Category extends Model
@@ -118,8 +119,8 @@ class Category extends Model
 
         while (
             static::where('slug', $slug)
-            ->when($this->exists, fn($query) => $query->where('id', '!=', $this->id))
-            ->exists()
+                ->when($this->exists, fn($query) => $query->where('id', '!=', $this->id))
+                ->exists()
         ) {
             $slug = "{$originalSlug}-{$count}";
             $count++;

@@ -51,15 +51,30 @@ class ApiController extends Controller
     {
         try {
             $categories = Category::with(['children', 'parent'])
-                ->withCount('products')
                 ->whereNull('parent_id')
                 ->orderBy('order')
                 ->get();
+
+            // Add product count including children's products
+            $categories->each(function ($category) {
+                $category->products_count = $this->countProductsRecursively($category);
+            });
 
             return response()->json($categories);
         } catch (\Throwable $th) {
             return response()->json(['message' => 'Categories not found']);
         }
+    }
+
+    private function countProductsRecursively($category)
+    {
+        $count = $category->products()->count();
+
+        foreach ($category->children as $child) {
+            $count += $this->countProductsRecursively($child);
+        }
+
+        return $count;
     }
 
     public function brands()

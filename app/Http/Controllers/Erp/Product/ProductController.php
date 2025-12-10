@@ -59,13 +59,9 @@ class ProductController extends Controller
     public function create()
     {
         $categories = Category::where('is_active', true)->get();
-        $brands = Brand::where('is_active', true)->get();
-        $warehouses = Warehouse::where('is_active', true)->get();
 
         return Inertia::render('Backend/ERP/Product/ProductForm', [
             'categories' => $categories,
-            'brands' => $brands,
-            'warehouses' => $warehouses,
         ]);
     }
 
@@ -136,14 +132,10 @@ class ProductController extends Controller
         $product->load(['images', 'items.warehouse']);
 
         $categories = Category::where('is_active', true)->get();
-        $brands = Brand::where('is_active', true)->get();
-        $warehouses = Warehouse::where('is_active', true)->get();
 
         return Inertia::render('Backend/ERP/Product/ProductForm', [
             'product' => $product,
             'categories' => $categories,
-            'brands' => $brands,
-            'warehouses' => $warehouses,
         ]);
     }
 

@@ -1,0 +1,1 @@
+import{u as l,c as x}from"./Image-BD4Nolsn.js";import{r as c,j as m}from"./app-D_CKxB3x.js";const n=c.forwardRef(({bsPrefix:t,size:s,vertical:a=!1,className:e,role:p="group",as:u="div",...f},i)=>{const r=l(t,"btn-group");let o=r;return a&&(o=`${r}-vertical`),m.jsx(u,{...f,ref:i,role:p,className:x(e,o,s&&`${r}-${s}`)})});n.displayName="ButtonGroup";export{n as B};

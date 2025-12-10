@@ -81,6 +81,18 @@ class Product extends Model
         'metadata' => 'array',
     ];
 
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = [
+        'default_image_url',
+        'discount_percentage',
+        'is_in_stock',
+        'is_on_sale',
+    ];
+
     // Relationships
     public function category(): BelongsTo
     {
@@ -115,6 +127,27 @@ class Product extends Model
     public function defaultImage(): HasOne
     {
         return $this->hasOne(ProductImage::class)->where('is_default', true);
+    }
+
+    /**
+     * Get the default image URL attribute
+     */
+    public function getDefaultImageUrlAttribute()
+    {
+        // First, try to get the default image from the relationship
+        if ($defaultImage = $this->defaultImage) {
+            return $defaultImage->image_url;
+        }
+
+        // If no default image is set, get the first image
+        $firstImage = $this->images()->first();
+
+        if ($firstImage) {
+            return $firstImage->image_url;
+        }
+
+        // Return a placeholder image if no images exist
+        return asset('storage/images/default-product-image.jpg');
     }
 
     /**
@@ -204,5 +237,39 @@ class Product extends Model
     {
         $total = $this->items()->where('status', 'available')->count();
         $this->update(['total_quantity' => $total]);
+    }
+
+    /**
+     * Eager load the default image relationship
+     * This optimizes performance when accessing default_image_url
+     */
+    public function scopeWithDefaultImage($query)
+    {
+        return $query->with([
+            'defaultImage',
+            'images' => function ($query) {
+                $query->orderBy('is_default', 'desc')->limit(1);
+            }
+        ]);
+    }
+
+    /**
+     * Get the thumbnail image URL (if you need a smaller version)
+     */
+    public function getThumbnailUrlAttribute()
+    {
+        // You can modify this to return a thumbnail version
+        // For example, if your ProductImage model has a 'thumbnail_url' attribute
+        if ($defaultImage = $this->defaultImage) {
+            return $defaultImage->thumbnail_url ?? $defaultImage->image_url;
+        }
+
+        $firstImage = $this->images()->first();
+
+        if ($firstImage) {
+            return $firstImage->thumbnail_url ?? $firstImage->image_url;
+        }
+
+        return asset('storage/images/default-product-thumbnail.jpg');
     }
 }
