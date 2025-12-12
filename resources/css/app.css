@@ -75,6 +75,7 @@ body {
     background-attachment: fixed;
     min-height: 100vh;
     background-color: var(--main-bg);
+    top: 0 !important;
 }
 
 .text-primary {
@@ -705,14 +706,30 @@ a {
     padding: 10px;
 }
 
-/* .main-menu {
-    display: ;
-    .category-wrapper {
-        .category-item {
-        }
+.goog-te-gadget-simple {
+    border: none !important;
+}
 
-        .submenu {
-            display: absolute;
-        }
-    }
-} */
+.goog-te-gadget-simple a {
+    background-color: var(--primary-light);
+    border-radius: 6px;
+    padding: 20px;
+    width: 30px;
+}
+
+.goog-te-gadget-simple a span,
+.goog-te-gadget-simple img {
+    display: none !important;
+}
+
+.goog-te-gadget-simple a span:first-of-type {
+    display: inline-block !important;
+}
+
+.goog-te-gadget-icon {
+    display: none !important;
+}
+
+.skiptranslate iframe {
+    display: none !important;
+}
