@@ -61,13 +61,15 @@ export default function TopHead() {
 
                 {/* Right Section - Actions */}
                 <div className="d-flex align-items-center ms-auto">
-                    <GoogleTranslate />
                     {systemMode === "erp" ? (
                         <>
                             <UserProfileDropdown user={auth?.user} />
                         </>
                     ) : (
-                        <ContactSupport />
+                        <>
+                            <GoogleTranslate />
+                            <ContactSupport />
+                        </>
                     )}
                 </div>
             </Container>
