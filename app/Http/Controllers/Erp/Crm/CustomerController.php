@@ -147,15 +147,6 @@ class CustomerController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Customer created successfully',
-                'data' => [
-                    'id' => $user->id,
-                    'name' => $user->full_name ?? "{$user->first_name} {$user->last_name}",
-                    'email' => $user->email,
-                    'username' => $user->username,
-                    'phone' => $user->phone,
-                    'role' => $role,
-                ],
-                'redirect' => route('customers.show', $user),
             ], 201);
 
         } catch (Throwable $e) {

@@ -119,4 +119,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             return Inertia::render('Backend/ERP/Finance/Reports');
         })->name('finance.reports');
     });
+
+    // routes/web.php
+    Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employee.import');
+    Route::get('/employees/import/template', [EmployeeController::class, 'downloadTemplate'])->name('employee.import.template');
 });
