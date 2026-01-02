@@ -1,33 +1,75 @@
-import { Head, router, useForm } from "@inertiajs/react";
-import { useState } from "react";
+import ErpLayout from "@/Layouts/ErpLayout";
+import { Head, router } from "@inertiajs/react";
 import {
-    Row,
-    Col,
-    Card,
-    Form,
     Button,
+    Card,
+    Col,
+    Form,
+    Row,
     Tab,
     Nav,
     Spinner,
+    Container,
 } from "react-bootstrap";
+import {
+    BiInfoCircle,
+    BiTag,
+    BiCog,
+    BiChevronRight,
+    BiChevronLeft,
+    BiSave,
+} from "react-icons/bi";
+import Swal from "sweetalert2";
 import { toast } from "react-toastify";
-
-import ErpLayout from "@/Layouts/ErpLayout";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import xios from "@/Utils/axios";
+import { useErrorToast } from "@/Hooks/useErrorToast";
+import useFilterOptions from "@/Hooks/useData";
 import BasicInfoTab from "@/Components/Partials/Product/BasicInfo";
 import PricingTab from "@/Components/Partials/Product/PricingInfo";
 import ItemsTab from "@/Components/Partials/Product/Items";
 import MediaTab from "@/Components/Partials/Product/Media";
 import OthersTab from "@/Components/Partials/Product/Others";
-import useFilterOptions from "@/Hooks/useData";
-import Swal from "sweetalert2";
-import xios from "@/Utils/axios";
+import { BsCollectionPlay, BsFillBoxSeamFill } from "react-icons/bs";
 
 const TABS = [
-    { key: "basic", label: "Basic Info", icon: "bi-info-circle" },
-    { key: "pricing", label: "Pricing", icon: "bi-tag" },
-    { key: "items", label: "Items", icon: "bi-box-seam" },
-    { key: "media", label: "Media", icon: "bi-collection-play" },
-    { key: "other-info", label: "Other Info", icon: "bi-gear" },
+    {
+        key: "basic",
+        label: "Basic Info",
+        icon: <BiInfoCircle />,
+        color: "#4f46e5",
+        description: "Product basic information",
+    },
+    {
+        key: "pricing",
+        label: "Pricing",
+        icon: <BiTag />,
+        color: "#059669",
+        description: "Pricing and cost details",
+    },
+    {
+        key: "items",
+        label: "Items",
+        icon: <BsFillBoxSeamFill />,
+        color: "#dc2626",
+        description: "Inventory and stock management",
+    },
+    {
+        key: "media",
+        label: "Media",
+        icon: <BsCollectionPlay />,
+        color: "#7c3aed",
+        description: "Images and media files",
+    },
+    {
+        key: "other-info",
+        label: "Other Info",
+        icon: <BiCog />,
+        color: "#f59e0b",
+        description: "Additional product information",
+    },
 ];
 
 const DEFAULT_PRODUCT_DATA = {
@@ -71,199 +113,312 @@ const DEFAULT_PRODUCT_DATA = {
     items: [],
 };
 
+const validationSchema = Yup.object({
+    name: Yup.string()
+        .required("Product name is required")
+        .min(3, "Product name must be at least 3 characters"),
+    category_id: Yup.string().required("Category is required"),
+    sku: Yup.string().nullable(),
+    base_price: Yup.number()
+        .min(0, "Base price cannot be negative")
+        .required("Base price is required"),
+    total_quantity: Yup.number()
+        .min(0, "Quantity cannot be negative")
+        .integer("Quantity must be a whole number"),
+    is_active: Yup.boolean(),
+});
+
 export default function ProductForm({ product = null, categories = [] }) {
+    const { showErrorToast } = useErrorToast();
     const { warehouses, brands, taxes } = useFilterOptions();
     const isEdit = !!product;
     const [activeKey, setActiveKey] = useState("basic");
+    const [loading, setLoading] = useState(false);
+    const [imagePreviews, setImagePreviews] = useState([]);
+    const formRef = useRef(null);
+    const [isFormSubmitting, setIsFormSubmitting] = useState(false);
 
-    const { data, setData, errors, processing } = useForm(
-        isEdit ? { ...DEFAULT_PRODUCT_DATA, ...product } : DEFAULT_PRODUCT_DATA
-    );
+    // Initialize formik
+    const formik = useFormik({
+        initialValues: isEdit
+            ? {
+                  ...DEFAULT_PRODUCT_DATA,
+                  ...product,
+                  images: product.images || [],
+                  items: product.items || [],
+                  variations: product.variations || [],
+                  sizes: product.sizes || [],
+                  colors: product.colors || [],
+                  materials: product.materials || [],
+              }
+            : DEFAULT_PRODUCT_DATA,
+        validationSchema,
+        enableReinitialize: true,
+        onSubmit: async (values) => {
+            if (isFormSubmitting) return;
 
-    const handleNext = () => {
-        const currentIndex = TABS.findIndex((tab) => tab.key === activeKey);
-        if (currentIndex < TABS.length - 1) {
-            setActiveKey(TABS[currentIndex + 1].key);
+            try {
+                setIsFormSubmitting(true);
+                const result = await Swal.fire({
+                    title: isEdit ? "Update Product?" : "Create Product?",
+                    text: isEdit
+                        ? "This will update the existing product record."
+                        : "You won't be able to revert this action!",
+                    icon: "question",
+                    showCancelButton: true,
+                    confirmButtonColor: "#4f46e5",
+                    cancelButtonColor: "#6b7280",
+                    confirmButtonText: isEdit
+                        ? "Yes, update it!"
+                        : "Yes, create it!",
+                    cancelButtonText: "Cancel",
+                    reverseButtons: true,
+                });
+
+                if (!result.isConfirmed) {
+                    setIsFormSubmitting(false);
+                    return;
+                }
+
+                setLoading(true);
+
+                const formData = new FormData();
+
+                // Append all fields
+                for (const key in values) {
+                    if (values[key] !== null && values[key] !== undefined) {
+                        // Handle arrays and objects
+                        if (
+                            Array.isArray(values[key]) ||
+                            typeof values[key] === "object"
+                        ) {
+                            // Skip images array for now (handled separately)
+                            if (key === "images") continue;
+                            formData.append(key, JSON.stringify(values[key]));
+                        } else {
+                            formData.append(key, values[key]);
+                        }
+                    }
+                }
+
+                // Handle images
+                if (values.images && values.images.length > 0) {
+                    values.images.forEach((image, index) => {
+                        if (image instanceof File) {
+                            formData.append(`images[${index}]`, image);
+                        } else if (image.file) {
+                            formData.append(`images[${index}]`, image.file);
+                        } else if (image.id && image.isNew !== true) {
+                            // Existing image
+                            formData.append(
+                                `existing_images[${index}][id]`,
+                                image.id
+                            );
+                            formData.append(
+                                `existing_images[${index}][is_default]`,
+                                image.is_default ? "1" : "0"
+                            );
+                        }
+                    });
+                }
+
+                // Handle product items
+                if (values.items && values.items.length > 0) {
+                    values.items.forEach((item, index) => {
+                        Object.keys(item).forEach((key) => {
+                            const value = item[key];
+                            if (value !== null && value !== undefined) {
+                                formData.append(
+                                    `items[${index}][${key}]`,
+                                    value
+                                );
+                            }
+                        });
+                    });
+                }
+
+                const url = isEdit
+                    ? route("product.update", product.id)
+                    : route("product.store");
+
+                const method = "post";
+                if (isEdit) formData.append("_method", "PUT");
+
+                const response = await xios[method](url, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+
+                toast.success(
+                    isEdit
+                        ? "Product updated successfully!"
+                        : "Product created successfully!"
+                );
+
+                setTimeout(() => {
+                    window.location.href = route("product.index");
+                }, 1500);
+            } catch (err) {
+                showErrorToast(err);
+                setIsFormSubmitting(false);
+            } finally {
+                setLoading(false);
+            }
+        },
+    });
+
+    // Initialize previews when component mounts or product data changes
+    useEffect(() => {
+        if (isEdit && product && product.images) {
+            const previews = product.images.map((img) => ({
+                id: img.id,
+                url: img.image_path,
+                is_default: img.is_default,
+                isNew: false,
+            }));
+            setImagePreviews(previews);
         }
-    };
+    }, [product, isEdit]);
 
-    const handlePrevious = () => {
-        const currentIndex = TABS.findIndex((tab) => tab.key === activeKey);
-        if (currentIndex > 0) {
-            setActiveKey(TABS[currentIndex - 1].key);
-        }
-    };
+    // Clean up object URLs to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            imagePreviews.forEach((preview) => {
+                if (
+                    preview.url &&
+                    preview.url.startsWith("blob:") &&
+                    preview.isNew
+                ) {
+                    URL.revokeObjectURL(preview.url);
+                }
+            });
+        };
+    }, [imagePreviews]);
 
-    const updateFormData = (key, value) => {
-        setData(key, value);
+    const handleImagesUpdate = (images) => {
+        formik.setFieldValue("images", images);
+        setImagePreviews(images);
     };
 
     const handleItemsUpdate = (items) => {
-        setData("items", items);
+        formik.setFieldValue("items", items);
         const totalQuantity = items.reduce(
             (sum, item) => sum + (item.quantity || 0),
             0
         );
-        setData("total_quantity", totalQuantity);
+        formik.setFieldValue("total_quantity", totalQuantity);
     };
 
-    const handleImagesUpdate = (images) => {
-        setData("images", images);
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        // Basic validation
-        if (!data.name || !data.category_id) {
-            toast.error("Please fill in all required fields");
-            return;
-        }
-
-        const result = await Swal.fire({
-            title: isEdit ? "Update Product?" : "Create Product?",
-            text: isEdit
-                ? "This will update the existing product."
-                : "This will create a new product in the system.",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonColor: "#3085d6",
-            cancelButtonColor: "#d33",
-            confirmButtonText: isEdit ? "Yes, update it!" : "Yes, create it!",
-        });
-
-        if (!result.isConfirmed) return;
-
-        const formData = new FormData();
-
-        // Append all basic fields
-        Object.keys(data).forEach((key) => {
-            if (key === "images" || key === "items") return;
-
-            const value = data[key];
-            if (value === null || value === undefined) {
-                formData.append(key, "");
-            } else if (typeof value === "object") {
-                formData.append(key, JSON.stringify(value));
-            } else {
-                formData.append(key, value);
-            }
-        });
-
-        // Handle images
-        if (data.images && data.images.length > 0) {
-            data.images.forEach((image, index) => {
-                // Check if it has a file property that's actually a File object
-                if (image.file && image.file instanceof File) {
-                    formData.append(`images[${index}]`, image.file);
-                }
-                // Check if it's a new image with blob URL (your case)
-                else if (
-                    image.isNew &&
-                    image.image_path &&
-                    image.image_path.startsWith("blob:")
-                ) {
-                    fetch(image.image_path)
-                        .then((res) => res.blob())
-                        .then((blob) => {
-                            const file = new File(
-                                [blob],
-                                `image_${index}.jpg`,
-                                { type: blob.type }
-                            );
-                            formData.append(`images[${index}]`, file);
-                        });
-                }
-                // Handle existing images from database
-                else if (image.id && !image.isNew) {
-                    formData.append(`existing_images[${index}][id]`, image.id);
-                    formData.append(
-                        `existing_images[${index}][is_default]`,
-                        image.is_default ? "1" : "0"
-                    );
-                }
-            });
-        }
-
-        // Handle product items
-        if (data.items && data.items.length > 0) {
-            data.items.forEach((item, index) => {
-                Object.keys(item).forEach((key) => {
-                    const value = item[key];
-                    if (value !== null && value !== undefined) {
-                        formData.append(`items[${index}][${key}]`, value);
-                    }
-                });
-            });
-        }
-
-        // Add method to form data
-        formData.append("_method", isEdit ? "put" : "post");
-
-        try {
-            const url = isEdit
-                ? route("product.update", product.id)
-                : route("product.store");
-
-            const response = await xios.post(url, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-            });
-
-            if (response.data.success) {
-                toast.success(response.data.message);
-                router.visit(route("product.index"));
-            }
-        } catch (error) {
-            const errorMessage =
-                error.response?.data?.message ||
-                error.message ||
-                "An error occurred";
-            toast.error(errorMessage);
-        }
+    const updateFormData = (key, value) => {
+        formik.setFieldValue(key, value);
     };
 
     const isFirstTab = activeKey === TABS[0].key;
     const isLastTab = activeKey === TABS[TABS.length - 1].key;
 
+    const handleNext = useCallback(() => {
+        const index = TABS.findIndex((t) => t.key === activeKey);
+        if (index < TABS.length - 1) setActiveKey(TABS[index + 1].key);
+    }, [activeKey]);
+
+    const handlePrevious = useCallback(() => {
+        const index = TABS.findIndex((t) => t.key === activeKey);
+        if (index > 0) setActiveKey(TABS[index - 1].key);
+    }, [activeKey]);
+
+    const handleTabSelect = (key) => {
+        if (key !== activeKey) {
+            setActiveKey(key);
+        }
+    };
+
     return (
         <ErpLayout>
-            <Head
-                title={isEdit ? `Edit ${product.name}` : "Create New Product"}
-            />
+            <Head title={isEdit ? "Edit Product" : "Create Product"} />
 
-            <div className="container-fluid">
-                <Form onSubmit={handleSubmit}>
+            <Container fluid>
+                <Form
+                    ref={formRef}
+                    onSubmit={formik.handleSubmit}
+                    encType="multipart/form-data"
+                >
                     <Tab.Container
                         activeKey={activeKey}
-                        onSelect={setActiveKey}
+                        onSelect={(k) => setActiveKey(k)}
                     >
-                        <Row>
-                            {/* Sidebar Navigation */}
-                            <Col lg={3} xl={2} className="mb-4">
-                                <Card className="border-0 shadow-sm">
-                                    <Card.Body className="p-3">
+                        <Row className="g-4">
+                            {/* Sidebar */}
+                            <Col lg={3}>
+                                <Card className="shadow-sm border-0 h-100">
+                                    <Card.Body>
                                         <Nav
                                             variant="pills"
-                                            className="flex-column"
+                                            className="flex-column gap-2"
                                         >
                                             {TABS.map(
-                                                ({ key, label, icon }) => (
-                                                    <Nav.Item
-                                                        key={key}
-                                                        className="mb-2"
-                                                    >
+                                                ({
+                                                    key,
+                                                    label,
+                                                    icon,
+                                                    color,
+                                                    description,
+                                                }) => (
+                                                    <Nav.Item key={key}>
                                                         <Nav.Link
                                                             eventKey={key}
-                                                            className="d-flex align-items-center py-2 px-3 rounded"
+                                                            className="d-flex align-items-center py-3 px-3 rounded-3"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    activeKey ===
+                                                                    key
+                                                                        ? `${color}15`
+                                                                        : "transparent",
+                                                                color:
+                                                                    activeKey ===
+                                                                    key
+                                                                        ? color
+                                                                        : "#6b7280",
+                                                                fontWeight:
+                                                                    activeKey ===
+                                                                    key
+                                                                        ? 600
+                                                                        : 400,
+                                                                borderLeft:
+                                                                    activeKey ===
+                                                                    key
+                                                                        ? `4px solid ${color}`
+                                                                        : "4px solid transparent",
+                                                            }}
                                                         >
-                                                            <i
-                                                                className={`${icon} me-2`}
-                                                            ></i>
-                                                            <span className="fw-medium">
-                                                                {label}
-                                                            </span>
+                                                            <div
+                                                                className="rounded-circle d-flex align-items-center justify-content-center me-3"
+                                                                style={{
+                                                                    width: 40,
+                                                                    height: 40,
+                                                                    backgroundColor:
+                                                                        activeKey ===
+                                                                        key
+                                                                            ? color
+                                                                            : "#f3f4f6",
+                                                                    color:
+                                                                        activeKey ===
+                                                                        key
+                                                                            ? "#fff"
+                                                                            : "#9ca3af",
+                                                                }}
+                                                            >
+                                                                {icon}
+                                                            </div>
+
+                                                            <div>
+                                                                <div className="fw-semibold">
+                                                                    {label}
+                                                                </div>
+                                                                <small className="text-muted">
+                                                                    {
+                                                                        description
+                                                                    }
+                                                                </small>
+                                                            </div>
                                                         </Nav.Link>
                                                     </Nav.Item>
                                                 )
@@ -273,18 +428,14 @@ export default function ProductForm({ product = null, categories = [] }) {
                                 </Card>
                             </Col>
 
-                            {/* Main Content */}
-                            <Col lg={9} xl={10}>
-                                <Card className="border-0 shadow-sm">
-                                    <Card.Body className="p-4">
+                            {/* Content */}
+                            <Col lg={9}>
+                                <Card className="shadow-sm border-0">
+                                    <Card.Body>
                                         <Tab.Content>
                                             <Tab.Pane eventKey="basic">
                                                 <BasicInfoTab
-                                                    data={data}
-                                                    updateFormData={
-                                                        updateFormData
-                                                    }
-                                                    errors={errors}
+                                                    formik={formik}
                                                     categories={categories}
                                                     brands={brands}
                                                 />
@@ -292,100 +443,88 @@ export default function ProductForm({ product = null, categories = [] }) {
 
                                             <Tab.Pane eventKey="pricing">
                                                 <PricingTab
-                                                    data={data}
-                                                    updateFormData={
-                                                        updateFormData
-                                                    }
-                                                    errors={errors}
+                                                    formik={formik}
                                                     taxes={taxes}
                                                 />
                                             </Tab.Pane>
 
                                             <Tab.Pane eventKey="items">
                                                 <ItemsTab
-                                                    data={data}
-                                                    updateFormData={
-                                                        updateFormData
-                                                    }
+                                                    formik={formik}
                                                     handleItemsUpdate={
                                                         handleItemsUpdate
                                                     }
-                                                    errors={errors}
                                                     warehouses={warehouses}
                                                     productType={
-                                                        data.product_type
+                                                        formik.values
+                                                            .product_type
                                                     }
                                                 />
                                             </Tab.Pane>
 
                                             <Tab.Pane eventKey="media">
                                                 <MediaTab
-                                                    data={data}
-                                                    updateFormData={
-                                                        updateFormData
-                                                    }
+                                                    formik={formik}
                                                     handleImagesUpdate={
                                                         handleImagesUpdate
                                                     }
-                                                    errors={errors}
+                                                    imagePreviews={
+                                                        imagePreviews
+                                                    }
+                                                    setImagePreviews={
+                                                        setImagePreviews
+                                                    }
                                                 />
                                             </Tab.Pane>
 
                                             <Tab.Pane eventKey="other-info">
-                                                <OthersTab
-                                                    data={data}
-                                                    updateFormData={
-                                                        updateFormData
-                                                    }
-                                                    errors={errors}
-                                                />
+                                                <OthersTab formik={formik} />
                                             </Tab.Pane>
                                         </Tab.Content>
+                                    </Card.Body>
 
-                                        {/* Navigation Buttons */}
-                                        <div className="d-flex justify-content-between align-items-center mt-4 pt-4 border-top">
+                                    {/* Footer */}
+                                    <Card.Footer className="bg-light border-0 py-4">
+                                        <div className="d-flex justify-content-between align-items-center">
                                             <Button
+                                                type="button"
                                                 variant="outline-secondary"
+                                                disabled={isFirstTab || loading}
                                                 onClick={handlePrevious}
-                                                disabled={
-                                                    isFirstTab || processing
-                                                }
+                                                className="d-flex align-items-center px-4"
                                             >
-                                                <i className="bi bi-chevron-left me-2"></i>
+                                                <BiChevronLeft className="me-2" />
                                                 Previous
                                             </Button>
 
                                             <div className="d-flex align-items-center">
-                                                <span className="text-muted me-3">
+                                                <span className="text-muted me-3 small">
                                                     Step{" "}
                                                     {TABS.findIndex(
-                                                        (tab) =>
-                                                            tab.key ===
-                                                            activeKey
+                                                        (t) =>
+                                                            t.key === activeKey
                                                     ) + 1}{" "}
                                                     of {TABS.length}
                                                 </span>
 
                                                 {isLastTab ? (
                                                     <Button
-                                                        variant="primary"
                                                         type="submit"
-                                                        disabled={processing}
+                                                        variant="primary"
+                                                        disabled={loading}
+                                                        className="d-flex align-items-center px-4"
                                                     >
-                                                        {processing ? (
+                                                        {loading ? (
                                                             <>
                                                                 <Spinner
-                                                                    animation="border"
                                                                     size="sm"
                                                                     className="me-2"
                                                                 />
-                                                                {isEdit
-                                                                    ? "Updating..."
-                                                                    : "Creating..."}
+                                                                Saving...
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <i className="bi bi-check-circle me-2"></i>
+                                                                <BiSave className="me-2" />
                                                                 {isEdit
                                                                     ? "Update Product"
                                                                     : "Create Product"}
@@ -394,22 +533,24 @@ export default function ProductForm({ product = null, categories = [] }) {
                                                     </Button>
                                                 ) : (
                                                     <Button
+                                                        type="button"
                                                         variant="primary"
                                                         onClick={handleNext}
+                                                        className="d-flex align-items-center px-4"
                                                     >
                                                         Next
-                                                        <i className="bi bi-chevron-right ms-2"></i>
+                                                        <BiChevronRight className="ms-2" />
                                                     </Button>
                                                 )}
                                             </div>
                                         </div>
-                                    </Card.Body>
+                                    </Card.Footer>
                                 </Card>
                             </Col>
                         </Row>
                     </Tab.Container>
                 </Form>
-            </div>
+            </Container>
         </ErpLayout>
     );
 }

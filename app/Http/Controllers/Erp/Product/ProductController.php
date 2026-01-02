@@ -5,17 +5,15 @@ namespace App\Http\Controllers\Erp\Product;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\StoreRequest;
 use App\Http\Requests\Product\UpdateRequest;
+use App\Imports\ProductsImport;
 use App\Models\Product;
 use App\Models\ProductImage;
-use App\Models\ProductItem;
 use App\Models\Category;
-use App\Models\Brand;
-use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\DataTables;
 
 class ProductController extends Controller
@@ -559,5 +557,47 @@ class ProductController extends Controller
             'available' => !$exists,
             'message' => $exists ? 'Slug already exists' : 'Slug is available'
         ]);
+    }
+
+    /**
+     * Handle Excel import
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:5120'
+        ]);
+
+        try {
+            $import = new ProductsImport();
+
+            Excel::import($import, $request->file('file'));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Products imported successfully',
+            ]);
+
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errors = [];
+
+            foreach ($failures as $failure) {
+                $errors[] = "Row {$failure->row()}: " . implode(', ', $failure->errors());
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation errors occurred',
+                'errors' => $errors
+            ], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error importing file: ' . $e->getMessage(),
+                'error_details' => $e->getMessage()
+            ], 500);
+        }
     }
 }

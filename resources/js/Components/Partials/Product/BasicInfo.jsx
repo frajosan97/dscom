@@ -4,14 +4,7 @@ import Select from "react-select";
 import RichTextEditor from "@/Components/Settings/RichTextEditor";
 import { BiInfoCircle } from "react-icons/bi";
 
-export default function BasicInfoTab({
-    data,
-    updateFormData,
-    updateArrayField,
-    errors,
-    categories = [],
-    brands = [],
-}) {
+export default function BasicInfoTab({ formik, categories = [], brands = [] }) {
     const [slugEditable, setSlugEditable] = useState(false);
     const [characterCount, setCharacterCount] = useState({
         name: 0,
@@ -22,29 +15,17 @@ export default function BasicInfoTab({
     // Update character counts
     useEffect(() => {
         setCharacterCount({
-            name: data.name?.length || 0,
-            short_description: data.short_description?.length || 0,
-            description: data.description
-                ? data.description.replace(/<[^>]*>/g, "").length
+            name: formik.values.name?.length || 0,
+            short_description: formik.values.short_description?.length || 0,
+            description: formik.values.description
+                ? formik.values.description.replace(/<[^>]*>/g, "").length
                 : 0,
         });
-    }, [data.name, data.short_description, data.description]);
-
-    // Handle input changes
-    const handleInputChange = useCallback(
-        (field, value) => {
-            updateFormData(field, value);
-        },
-        [updateFormData]
-    );
-
-    // Handle select changes
-    const handleSelectChange = useCallback(
-        (field, selectedOption) => {
-            updateFormData(field, selectedOption?.value || "");
-        },
-        [updateFormData]
-    );
+    }, [
+        formik.values.name,
+        formik.values.short_description,
+        formik.values.description,
+    ]);
 
     // Handle array field changes (for sizes, colors, materials)
     const handleArrayFieldChange = useCallback(
@@ -53,17 +34,9 @@ export default function BasicInfoTab({
                 .split(",")
                 .map((v) => v.trim())
                 .filter((v) => v);
-            updateArrayField(field, values);
+            formik.setFieldValue(field, values);
         },
-        [updateArrayField]
-    );
-
-    // Handle rich text changes
-    const handleRichTextChange = useCallback(
-        (field, value) => {
-            updateFormData(field, value);
-        },
-        [updateFormData]
+        [formik]
     );
 
     // Toggle slug editability
@@ -84,20 +57,20 @@ export default function BasicInfoTab({
     }));
 
     const productTypeOptions = [
-        { value: "physical", label: "Physical Product", icon: "bi-box" },
-        { value: "digital", label: "Digital Product", icon: "bi-file-earmark" },
-        { value: "service", label: "Service", icon: "bi-tools" },
+        { value: "physical", label: "Physical Product" },
+        { value: "digital", label: "Digital Product" },
+        { value: "service", label: "Service" },
     ];
 
     // Find selected options
     const selectedCategory = categoryOptions.find(
-        (opt) => opt.value === data.category_id
+        (opt) => opt.value === formik.values.category_id
     );
     const selectedBrand = brandOptions.find(
-        (opt) => opt.value === data.brand_id
+        (opt) => opt.value === formik.values.brand_id
     );
     const selectedProductType = productTypeOptions.find(
-        (opt) => opt.value === data.product_type
+        (opt) => opt.value === formik.values.product_type
     );
 
     return (
@@ -153,14 +126,14 @@ export default function BasicInfoTab({
                                         </Form.Label>
                                         <Form.Control
                                             type="text"
-                                            value={data.name || ""}
-                                            onChange={(e) =>
-                                                handleInputChange(
-                                                    "name",
-                                                    e.target.value
-                                                )
+                                            name="name"
+                                            value={formik.values.name || ""}
+                                            onChange={formik.handleChange}
+                                            onBlur={formik.handleBlur}
+                                            isInvalid={
+                                                formik.touched.name &&
+                                                !!formik.errors.name
                                             }
-                                            isInvalid={!!errors.name}
                                             placeholder="Enter product name (e.g., 'Premium Wireless Headphones')"
                                             className="py-3 border-0 border-bottom rounded-0"
                                             maxLength={100}
@@ -170,11 +143,78 @@ export default function BasicInfoTab({
                                             }}
                                         />
                                         <Form.Control.Feedback type="invalid">
-                                            {errors.name}
+                                            {formik.errors.name}
                                         </Form.Control.Feedback>
                                         <Form.Text className="text-muted">
                                             A clear, descriptive name helps
                                             customers find your product
+                                        </Form.Text>
+                                    </Form.Group>
+                                </Col>
+
+                                {/* SKU */}
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold">
+                                            SKU (Stock Keeping Unit)
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            name="sku"
+                                            value={formik.values.sku || ""}
+                                            onChange={formik.handleChange}
+                                            onBlur={formik.handleBlur}
+                                            isInvalid={
+                                                formik.touched.sku &&
+                                                !!formik.errors.sku
+                                            }
+                                            placeholder="PROD-001-2024"
+                                            className="py-2"
+                                        />
+                                        <Form.Control.Feedback type="invalid">
+                                            {formik.errors.sku}
+                                        </Form.Control.Feedback>
+                                        <Form.Text className="text-muted">
+                                            Unique identifier for inventory
+                                            tracking
+                                        </Form.Text>
+                                    </Form.Group>
+                                </Col>
+
+                                {/* Slug */}
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold d-flex justify-content-between align-items-center">
+                                            <span>URL Slug</span>
+                                            <button
+                                                type="button"
+                                                className="btn btn-link btn-sm p-0"
+                                                onClick={toggleSlugEdit}
+                                            >
+                                                {slugEditable
+                                                    ? "Auto-generate"
+                                                    : "Edit manually"}
+                                            </button>
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            name="slug"
+                                            value={formik.values.slug || ""}
+                                            onChange={formik.handleChange}
+                                            onBlur={formik.handleBlur}
+                                            isInvalid={
+                                                formik.touched.slug &&
+                                                !!formik.errors.slug
+                                            }
+                                            placeholder="premium-wireless-headphones"
+                                            className="py-2"
+                                            readOnly={!slugEditable}
+                                        />
+                                        <Form.Control.Feedback type="invalid">
+                                            {formik.errors.slug}
+                                        </Form.Control.Feedback>
+                                        <Form.Text className="text-muted">
+                                            SEO-friendly URL for the product
                                         </Form.Text>
                                     </Form.Group>
                                 </Col>
@@ -216,20 +256,22 @@ export default function BasicInfoTab({
                                 <Form.Control
                                     as="textarea"
                                     rows={3}
-                                    value={data.short_description || ""}
-                                    onChange={(e) =>
-                                        handleInputChange(
-                                            "short_description",
-                                            e.target.value
-                                        )
+                                    name="short_description"
+                                    value={
+                                        formik.values.short_description || ""
                                     }
-                                    isInvalid={!!errors.short_description}
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
+                                    isInvalid={
+                                        formik.touched.short_description &&
+                                        !!formik.errors.short_description
+                                    }
                                     placeholder="Brief description that appears in product listings and search results..."
                                     maxLength={255}
                                     className="py-2"
                                 />
                                 <Form.Control.Feedback type="invalid">
-                                    {errors.short_description}
+                                    {formik.errors.short_description}
                                 </Form.Control.Feedback>
                             </Form.Group>
 
@@ -245,26 +287,34 @@ export default function BasicInfoTab({
                                     )}
                                 </Form.Label>
                                 <RichTextEditor
-                                    value={data.description || ""}
+                                    value={formik.values.description || ""}
                                     onChange={(value) =>
-                                        handleRichTextChange(
+                                        formik.setFieldValue(
                                             "description",
                                             value
+                                        )
+                                    }
+                                    onBlur={() =>
+                                        formik.setFieldTouched(
+                                            "description",
+                                            true
                                         )
                                     }
                                     placeholder="Provide detailed information about your product, including features, specifications, and benefits..."
                                     height="300px"
                                     className={
-                                        errors.description
+                                        formik.touched.description &&
+                                        formik.errors.description
                                             ? "border border-danger rounded"
                                             : ""
                                     }
                                 />
-                                {errors.description && (
-                                    <div className="text-danger small mt-1">
-                                        {errors.description}
-                                    </div>
-                                )}
+                                {formik.touched.description &&
+                                    formik.errors.description && (
+                                        <div className="text-danger small mt-1">
+                                            {formik.errors.description}
+                                        </div>
+                                    )}
                             </Form.Group>
                         </Card.Body>
                     </Card>
@@ -290,28 +340,40 @@ export default function BasicInfoTab({
                                     options={productTypeOptions}
                                     value={selectedProductType}
                                     onChange={(option) =>
-                                        handleSelectChange(
+                                        formik.setFieldValue(
                                             "product_type",
-                                            option
+                                            option?.value || ""
                                         )
                                     }
-                                    isInvalid={!!errors.product_type}
+                                    onBlur={() =>
+                                        formik.setFieldTouched(
+                                            "product_type",
+                                            true
+                                        )
+                                    }
+                                    isInvalid={
+                                        formik.touched.product_type &&
+                                        !!formik.errors.product_type
+                                    }
                                     placeholder="Select product type..."
                                     styles={{
                                         control: (base) => ({
                                             ...base,
-                                            borderColor: errors.product_type
-                                                ? "#dc3545"
-                                                : base.borderColor,
+                                            borderColor:
+                                                formik.touched.product_type &&
+                                                formik.errors.product_type
+                                                    ? "#dc3545"
+                                                    : base.borderColor,
                                             minHeight: "44px",
                                         }),
                                     }}
                                 />
-                                {errors.product_type && (
-                                    <div className="text-danger small mt-1">
-                                        {errors.product_type}
-                                    </div>
-                                )}
+                                {formik.touched.product_type &&
+                                    formik.errors.product_type && (
+                                        <div className="text-danger small mt-1">
+                                            {formik.errors.product_type}
+                                        </div>
+                                    )}
                                 <Form.Text className="text-muted">
                                     Determines shipping and inventory
                                     requirements
@@ -327,28 +389,40 @@ export default function BasicInfoTab({
                                     options={categoryOptions}
                                     value={selectedCategory}
                                     onChange={(option) =>
-                                        handleSelectChange(
+                                        formik.setFieldValue(
                                             "category_id",
-                                            option
+                                            option?.value || ""
                                         )
                                     }
-                                    isInvalid={!!errors.category_id}
+                                    onBlur={() =>
+                                        formik.setFieldTouched(
+                                            "category_id",
+                                            true
+                                        )
+                                    }
+                                    isInvalid={
+                                        formik.touched.category_id &&
+                                        !!formik.errors.category_id
+                                    }
                                     placeholder="Select category..."
                                     styles={{
                                         control: (base) => ({
                                             ...base,
-                                            borderColor: errors.category_id
-                                                ? "#dc3545"
-                                                : base.borderColor,
+                                            borderColor:
+                                                formik.touched.category_id &&
+                                                formik.errors.category_id
+                                                    ? "#dc3545"
+                                                    : base.borderColor,
                                             minHeight: "44px",
                                         }),
                                     }}
                                 />
-                                {errors.category_id && (
-                                    <div className="text-danger small mt-1">
-                                        {errors.category_id}
-                                    </div>
-                                )}
+                                {formik.touched.category_id &&
+                                    formik.errors.category_id && (
+                                        <div className="text-danger small mt-1">
+                                            {formik.errors.category_id}
+                                        </div>
+                                    )}
                             </Form.Group>
 
                             {/* Brand */}
@@ -360,25 +434,37 @@ export default function BasicInfoTab({
                                     options={brandOptions}
                                     value={selectedBrand}
                                     onChange={(option) =>
-                                        handleSelectChange("brand_id", option)
+                                        formik.setFieldValue(
+                                            "brand_id",
+                                            option?.value || ""
+                                        )
                                     }
-                                    isInvalid={!!errors.brand_id}
+                                    onBlur={() =>
+                                        formik.setFieldTouched("brand_id", true)
+                                    }
+                                    isInvalid={
+                                        formik.touched.brand_id &&
+                                        !!formik.errors.brand_id
+                                    }
                                     placeholder="Select brand..."
                                     styles={{
                                         control: (base) => ({
                                             ...base,
-                                            borderColor: errors.brand_id
-                                                ? "#dc3545"
-                                                : base.borderColor,
+                                            borderColor:
+                                                formik.touched.brand_id &&
+                                                formik.errors.brand_id
+                                                    ? "#dc3545"
+                                                    : base.borderColor,
                                             minHeight: "44px",
                                         }),
                                     }}
                                 />
-                                {errors.brand_id && (
-                                    <div className="text-danger small mt-1">
-                                        {errors.brand_id}
-                                    </div>
-                                )}
+                                {formik.touched.brand_id &&
+                                    formik.errors.brand_id && (
+                                        <div className="text-danger small mt-1">
+                                            {formik.errors.brand_id}
+                                        </div>
+                                    )}
                             </Form.Group>
                         </Card.Body>
                     </Card>
@@ -405,8 +491,8 @@ export default function BasicInfoTab({
                                 <Form.Control
                                     type="text"
                                     value={
-                                        Array.isArray(data.sizes)
-                                            ? data.sizes.join(", ")
+                                        Array.isArray(formik.values.sizes)
+                                            ? formik.values.sizes.join(", ")
                                             : ""
                                     }
                                     onChange={(e) =>
@@ -431,8 +517,8 @@ export default function BasicInfoTab({
                                 <Form.Control
                                     type="text"
                                     value={
-                                        Array.isArray(data.colors)
-                                            ? data.colors.join(", ")
+                                        Array.isArray(formik.values.colors)
+                                            ? formik.values.colors.join(", ")
                                             : ""
                                     }
                                     onChange={(e) =>
@@ -457,8 +543,8 @@ export default function BasicInfoTab({
                                 <Form.Control
                                     type="text"
                                     value={
-                                        Array.isArray(data.materials)
-                                            ? data.materials.join(", ")
+                                        Array.isArray(formik.values.materials)
+                                            ? formik.values.materials.join(", ")
                                             : ""
                                     }
                                     onChange={(e) =>
@@ -547,13 +633,13 @@ export default function BasicInfoTab({
                                     </span>
                                     <Badge
                                         bg={
-                                            data.category_id
+                                            formik.values.category_id
                                                 ? "success"
                                                 : "danger"
                                         }
                                         className="fs-7"
                                     >
-                                        {data.category_id
+                                        {formik.values.category_id
                                             ? "Selected"
                                             : "Required"}
                                     </Badge>
@@ -586,14 +672,3 @@ export default function BasicInfoTab({
         </div>
     );
 }
-
-// Helper component for the edit button
-const Button = ({ variant, size, className, onClick, children }) => (
-    <button
-        type="button"
-        className={`btn btn-${variant} btn-${size} ${className}`}
-        onClick={onClick}
-    >
-        {children}
-    </button>
-);

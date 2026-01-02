@@ -3,264 +3,197 @@
 namespace App\Http\Controllers\Erp\Hrm;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Salary\StoreRequest;
-use App\Http\Requests\Salary\UpdateRequest;
-use App\Http\Requests\Salary\PaymentRequest;
-use App\Http\Requests\Salary\BulkCalculateRequest;
-use App\Http\Requests\Salary\ApproveRequest;
+use App\Models\Erp\Hrm\Allowance;
+use App\Models\Erp\Hrm\Deduction;
 use App\Models\Erp\Hrm\Salary;
 use App\Models\Erp\Hrm\SalaryComponent;
-use App\Models\Erp\Hrm\SalaryPayment;
-use App\Models\Erp\Hrm\PayrollPeriod;
-use App\Models\Erp\Hrm\Attendance;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
-use Throwable;
 use Yajra\DataTables\Facades\DataTables;
 
 class SalaryController extends Controller
 {
     /**
-     * Display salary listing page or DataTable response
+     * Display salary listing page
      */
     public function index(Request $request)
     {
-        try {
-            if ($request->ajax() || $request->has('draw')) {
-                return $this->getSalaryDataTable($request);
-            }
+        if ($request->has('draw')) {
+            $query = Salary::with(['user', 'payrollPeriod']);
 
-            return Inertia::render('Backend/ERP/HRM/Salary');
-        } catch (Throwable $e) {
-            Log::error('Salary index error: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-                'request' => $request->all(),
-            ]);
-
-            return $request->ajax()
-                ? response()->json(['error' => 'Failed to load salary data'], 500)
-                : back()->with('error', 'Failed to load salary list.');
-        }
-    }
-
-    /**
-     * Get DataTable response for salaries
-     */
-    private function getSalaryDataTable(Request $request)
-    {
-        $query = Salary::with(['employee', 'payrollPeriod', 'payments'])
-            ->when($request->filled('payroll_period_id'), fn($q) => $q->where('payroll_period_id', $request->payroll_period_id))
-            ->when($request->filled('employee_id'), fn($q) => $q->where('employee_id', $request->employee_id))
-            ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
-            ->when(
-                $request->filled('date_from') && $request->filled('date_to'),
-                fn($q) => $q->whereBetween('salary_date', [$request->date_from, $request->date_to])
-            )
-            ->orderBy('created_at', 'desc');
-
-        return DataTables::eloquent($query)
-            ->addIndexColumn()
-            ->addColumn('employee_name', fn($row) => $row->employee?->full_name ?? 'N/A')
-            ->addColumn('period', fn($row) => $row->payrollPeriod?->name ?? 'N/A')
-            ->addColumn('basic_salary', fn($row) => $row->basic_salary)
-            ->addColumn('gross_salary', fn($row) => $row->gross_salary)
-            ->addColumn('net_salary', fn($row) => $row->net_salary)
-            ->addColumn('status', fn($row) => $this->getStatusBadge($row))
-            ->addColumn('payment_status', fn($row) => $this->getPaymentStatus($row))
-            ->addColumn('action', fn($row) => view('partials.backend.salary-actions', compact('row'))->render())
-            ->rawColumns(['status', 'payment_status', 'action'])
-            ->make(true);
-    }
-
-    /**
-     * Get formatted status badge
-     */
-    private function getStatusBadge(Salary $salary): string
-    {
-        $statusColors = [
-            'pending' => 'warning',
-            'calculated' => 'info',
-            'approved' => 'primary',
-            'paid' => 'success',
-            'cancelled' => 'danger',
-        ];
-
-        $color = $statusColors[$salary->status] ?? 'secondary';
-        $status = ucfirst($salary->status);
-
-        return sprintf(
-            '<span class="badge bg-%s">%s</span>',
-            $color,
-            e($status)
-        );
-    }
-
-    /**
-     * Get payment status
-     */
-    private function getPaymentStatus(Salary $salary): string
-    {
-        if ($salary->status !== 'paid') {
-            return '<span class="text-muted">Not Paid</span>';
+            return DataTables::eloquent($query)
+                ->addIndexColumn()
+                ->addColumn('employee', fn($row) => view('partials.backend.salary.employee', compact('row'))->render())
+                ->addColumn('period', fn($row) => view('partials.backend.salary.period', compact('row'))->render())
+                ->addColumn('status', fn($row) => view('partials.backend.salary.status', compact('row'))->render())
+                ->addColumn('action', fn($row) => view('partials.backend.salary.action', compact('row'))->render())
+                ->rawColumns(['employee', 'period', 'status', 'action'])
+                ->make(true);
         }
 
-        $latestPayment = $salary->payments->last();
-        if (!$latestPayment) {
-            return '<span class="text-muted">Paid</span>';
-        }
-
-        return sprintf(
-            '<span class="badge bg-success">Paid on %s</span>',
-            $latestPayment->payment_date->format('d/m/Y')
-        );
+        return Inertia::render('Backend/ERP/HRM/Salary');
     }
 
     /**
-     * Show salary creation form
+     * Get salary statistics
      */
-    public function create()
+    public function statistics()
     {
         try {
-            $periods = PayrollPeriod::where('status', 'open')
-                ->orderBy('start_date', 'desc')
-                ->get(['id', 'name', 'start_date', 'end_date']);
-
-            $employees = User::whereDoesntHave('roles', fn($q) => $q->where('name', 'customer'))
-                ->active()
-                ->with(['branch', 'department', 'designation'])
-                ->get(['id', 'first_name', 'last_name', 'employee_id', 'basic_salary']);
-
-            $components = SalaryComponent::active()->get();
-
-            return Inertia::render('Backend/ERP/HRM/Salary/Form', [
-                'periods' => $periods,
-                'employees' => $employees,
-                'components' => $components,
-                'defaultComponents' => SalaryComponent::getDefaultComponents(),
-            ]);
-        } catch (Throwable $e) {
-            Log::error('Salary create form error: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-            ]);
-
-            return back()->with('error', 'Failed to load salary creation form.');
-        }
-    }
-
-    /**
-     * Store a new salary
-     */
-    public function store(StoreRequest $request): JsonResponse
-    {
-        DB::beginTransaction();
-
-        try {
-            $validated = $request->validated();
-
-            // Check for existing salary
-            $existingSalary = Salary::where('employee_id', $validated['employee_id'])
-                ->where('payroll_period_id', $validated['payroll_period_id'])
-                ->first();
-
-            if ($existingSalary) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Salary already exists for this employee and period.',
-                ], 409);
-            }
-
-            // Calculate totals
-            $calculatedData = $this->calculateSalary($validated);
-
-            // Create salary record
-            $salary = Salary::create(array_merge($calculatedData, [
-                'employee_id' => $validated['employee_id'],
-                'payroll_period_id' => $validated['payroll_period_id'],
-                'salary_date' => PayrollPeriod::find($validated['payroll_period_id'])->end_date,
-                'status' => 'calculated',
-                'notes' => $validated['notes'] ?? null,
-                'created_by' => Auth::id(),
-            ]));
-
-            // Save salary components
-            $this->saveSalaryComponents($salary, $validated['components'] ?? []);
-
-            DB::commit();
+            $stats = $this->getStatistics();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Salary created successfully.',
-                'data' => [
-                    'id' => $salary->id,
-                    'employee_name' => $salary->employee?->full_name,
-                    'period' => $salary->payrollPeriod?->name,
-                    'net_salary' => $salary->net_salary,
-                ],
-                'redirect' => route('salaries.show', $salary),
-            ], 201);
-
-        } catch (Throwable $e) {
-            DB::rollBack();
-
-            Log::error('Salary creation failed:', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id(),
-                'request' => $request->all(),
+                'data' => $stats
             ]);
-
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create salary. Please try again.',
-                'error' => config('app.debug') ? $e->getMessage() : null,
+                'message' => 'Failed to fetch statistics',
+                'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
 
     /**
-     * Calculate salary from request data
+     * Helper method to get statistics
      */
-    private function calculateSalary(array $validated): array
+    private function getStatistics()
     {
-        $basicSalary = $validated['basic_salary'];
-        $components = $validated['components'] ?? [];
-
-        $totalAllowances = collect($components)
-            ->where('type', 'allowance')
-            ->sum('amount');
-
-        $totalDeductions = collect($components)
-            ->where('type', 'deduction')
-            ->sum('amount');
-
-        $grossSalary = $basicSalary + $totalAllowances;
-        $netSalary = $grossSalary - $totalDeductions;
+        $total = Salary::count();
+        $paid = Salary::where('status', 'paid')->count();
+        $processing = Salary::where('status', 'processing')->count();
+        $pending = Salary::where('status', 'pending')->count();
+        $totalAmount = Salary::where('status', 'paid')->sum('net_salary');
+        $avgSalary = $paid > 0 ? $totalAmount / $paid : 0;
 
         return [
-            'basic_salary' => $basicSalary,
-            'total_allowances' => $totalAllowances,
-            'total_deductions' => $totalDeductions,
-            'gross_salary' => $grossSalary,
-            'net_salary' => $netSalary,
+            'total' => $total,
+            'paid' => $paid,
+            'processing' => $processing,
+            'pending' => $pending,
+            'totalAmount' => number_format($totalAmount, 2),
+            'avgSalary' => number_format($avgSalary, 2)
         ];
     }
 
     /**
-     * Save salary components
+     * Store a new salary record
      */
-    private function saveSalaryComponents(Salary $salary, array $components): void
+    public function store(Request $request)
     {
-        foreach ($components as $component) {
-            $salary->components()->create([
-                'salary_component_id' => $component['id'],
-                'amount' => $component['amount'],
-                'type' => $component['type'],
+        $validator = Validator::make($request->all(), [
+            'employee_id' => 'required|exists:users,id',
+            'month' => 'required|string',
+            'year' => 'required|integer',
+            'basic_salary' => 'required|numeric|min:0',
+            'daily_rate' => 'required|numeric|min:0',
+            'total_days' => 'required|integer|min:1|max:31',
+            'days_present' => 'required|integer|min:0|lte:total_days',
+            'allowances' => 'nullable|string',
+            'deductions' => 'nullable|string',
+            'status' => 'required|in:pending,processing,paid',
+            'currency' => 'required|in:USD,CDF',
+            'exchange_rate' => 'required|numeric|min:0.01',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Check for duplicate salary record
+            $existingSalary = Salary::where('user_id', $request->employee_id)
+                ->where('month', $request->month)
+                ->where('year', $request->year)
+                ->first();
+
+            if ($existingSalary) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Salary record already exists for this employee in the selected period'
+                ], 409);
+            }
+
+            // Get user details
+            $user = User::findOrFail($request->employee_id);
+
+            // Parse JSON fields from request
+            $allowances = $this->parseRequestJsonField($request->allowances);
+            $deductions = $this->parseRequestJsonField($request->deductions);
+            $otherAllowances = $this->parseRequestJsonField($request->other_allowances ?? '[]');
+            $disciplinaryDeductions = $this->parseRequestJsonField($request->disciplinary_deductions ?? '[]');
+            $otherDeductions = $this->parseRequestJsonField($request->other_deductions ?? '[]');
+
+            // Calculate totals
+            $calculated = $this->calculateSalaryTotals($request, $user, [
+                'allowances' => $allowances,
+                'deductions' => $deductions,
+                'other_allowances' => $otherAllowances,
+                'disciplinary_deductions' => $disciplinaryDeductions,
+                'other_deductions' => $otherDeductions
             ]);
+
+            // Create salary record
+            $salary = Salary::create([
+                'user_id' => $request->employee_id,
+                'employee_code' => $user->code ?? ($request->employee_code ?? 'EMP-' . $user->id),
+                'month' => $request->month,
+                'year' => $request->year,
+                'payroll_period_id' => $request->payroll_period_id ?? null,
+                'basic_salary' => $request->basic_salary,
+                'total_days' => $request->total_days,
+                'days_present' => $request->days_present,
+                'days_absent' => $request->total_days - $request->days_present,
+                'allowances' => $allowances,
+                'deductions' => $deductions,
+                'currency' => $request->currency,
+                'exchange_rate' => $request->exchange_rate,
+                'real_salary' => $calculated['real_salary'],
+                'total_allowances' => $calculated['total_allowances'],
+                'total_deductions' => $calculated['total_deductions'],
+                'gross_salary' => $calculated['gross_salary'],
+                'net_salary' => $calculated['net_salary'],
+                'days_deduction' => $calculated['days_deduction'],
+                'net_in_usd' => $calculated['net_in_usd'],
+                'net_in_cdf' => $calculated['net_in_cdf'],
+                'status' => $request->status,
+                'payment_date' => $request->status === 'paid' ? ($request->payment_date ?? now()) : null,
+                'notes' => $request->notes,
+                'created_by' => Auth::id(),
+                'updated_by' => Auth::id(),
+                'paid_by' => $request->status === 'paid' ? Auth::id() : null,
+                'paid_at' => $request->status === 'paid' ? ($request->payment_date ?? now()) : null,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Salary record created successfully',
+                'data' => $salary->load('user')
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to create salary record: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create salary record',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
     }
 
@@ -270,554 +203,623 @@ class SalaryController extends Controller
     public function show(Salary $salary)
     {
         try {
+            // Load relationships
             $salary->load([
-                'employee.branch',
-                'employee.department',
-                'employee.designation',
+                'user',
                 'payrollPeriod',
-                'components.component',
-                'payments.transaction',
-                'createdBy',
                 'approvedBy',
+                'paidBy'
             ]);
 
-            $breakdown = $this->getSalaryBreakdown($salary);
+            // Ensure JSON fields are properly parsed
+            $salary = $this->parseJsonFields($salary);
 
-            return Inertia::render('Backend/ERP/HRM/Salary/Show', [
-                'salary' => $salary,
-                'breakdown' => $breakdown,
-            ]);
-        } catch (Throwable $e) {
-            Log::error('Salary show error:', [
-                'salary_id' => $salary->id,
-                'error' => $e->getMessage(),
+            return response()->json([
+                'success' => true,
+                'data' => $salary
             ]);
 
-            return back()->with('error', 'Failed to load salary details.');
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Salary record not found',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 404);
         }
     }
 
     /**
-     * Get salary breakdown for display
+     * Update salary record
      */
-    private function getSalaryBreakdown(Salary $salary): array
+    public function update(Request $request, $id)
     {
-        $allowances = $salary->components()
-            ->whereHas('component', fn($q) => $q->where('type', 'allowance'))
-            ->with('component')
-            ->get()
-            ->map(fn($item) => [
-                'name' => $item->component->name,
-                'amount' => $item->amount,
-                'code' => $item->component->code,
-            ]);
+        $validator = Validator::make($request->all(), [
+            'employee_id' => 'required|exists:users,id',
+            'month' => 'required|string',
+            'year' => 'required|integer',
+            'basic_salary' => 'required|numeric|min:0',
+            'daily_rate' => 'required|numeric|min:0',
+            'total_days' => 'required|integer|min:1|max:31',
+            'days_present' => 'required|integer|min:0|lte:total_days',
+            'allowances' => 'nullable|string',
+            'deductions' => 'nullable|string',
+            'status' => 'required|in:pending,processing,paid',
+            'currency' => 'required|in:USD,CDF',
+            'exchange_rate' => 'required|numeric|min:0.01',
+        ]);
 
-        $deductions = $salary->components()
-            ->whereHas('component', fn($q) => $q->where('type', 'deduction'))
-            ->with('component')
-            ->get()
-            ->map(fn($item) => [
-                'name' => $item->component->name,
-                'amount' => $item->amount,
-                'code' => $item->component->code,
-            ]);
-
-        return [
-            'allowances' => $allowances,
-            'deductions' => $deductions,
-            'summary' => [
-                'basic_salary' => $salary->basic_salary,
-                'total_allowances' => $salary->total_allowances,
-                'total_deductions' => $salary->total_deductions,
-                'gross_salary' => $salary->gross_salary,
-                'net_salary' => $salary->net_salary,
-            ],
-        ];
-    }
-
-    /**
-     * Get salary data for editing
-     */
-    public function edit(Salary $salary)
-    {
-        try {
-            if (!in_array($salary->status, ['pending', 'calculated'])) {
-                return back()->with('error', 'Cannot edit salary with status: ' . $salary->status);
-            }
-
-            $salary->load(['components.component']);
-
-            $periods = PayrollPeriod::where('status', 'open')->get(['id', 'name']);
-            $employees = User::active()->get(['id', 'first_name', 'last_name']);
-            $components = SalaryComponent::active()->get();
-
-            return Inertia::render('Backend/ERP/HRM/Salary/Form', [
-                'salary' => $salary,
-                'periods' => $periods,
-                'employees' => $employees,
-                'components' => $components,
-                'isEdit' => true,
-            ]);
-        } catch (Throwable $e) {
-            Log::error('Salary edit error:', [
-                'salary_id' => $salary->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return back()->with('error', 'Failed to load salary edit form.');
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
         }
-    }
 
-    /**
-     * Update salary
-     */
-    public function update(UpdateRequest $request, Salary $salary): JsonResponse
-    {
         try {
-            if (!in_array($salary->status, ['pending', 'calculated'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot update salary with status: ' . $salary->status,
-                ], 403);
-            }
-
-            $validated = $request->validated();
-            $calculatedData = $this->calculateSalary($validated);
-
             DB::beginTransaction();
 
-            // Update salary
-            $salary->update(array_merge($calculatedData, [
-                'notes' => $validated['notes'] ?? $salary->notes,
-                'status' => $validated['status'] ?? $salary->status,
+            $salary = Salary::findOrFail($id);
+
+            // Check for duplicate salary record (excluding current)
+            $existingSalary = Salary::where('user_id', $request->employee_id)
+                ->where('month', $request->month)
+                ->where('year', $request->year)
+                ->where('id', '!=', $id)
+                ->first();
+
+            if ($existingSalary) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Another salary record already exists for this employee in the selected period'
+                ], 409);
+            }
+
+            // Get user details
+            $user = User::findOrFail($request->employee_id);
+
+            // Parse JSON fields from request
+            $allowances = $this->parseRequestJsonField($request->allowances);
+            $deductions = $this->parseRequestJsonField($request->deductions);
+            $otherAllowances = $this->parseRequestJsonField($request->other_allowances ?? '[]');
+            $disciplinaryDeductions = $this->parseRequestJsonField($request->disciplinary_deductions ?? '[]');
+            $otherDeductions = $this->parseRequestJsonField($request->other_deductions ?? '[]');
+
+            // Calculate totals
+            $calculated = $this->calculateSalaryTotals($request, $user, [
+                'allowances' => $allowances,
+                'deductions' => $deductions,
+                'other_allowances' => $otherAllowances,
+                'disciplinary_deductions' => $disciplinaryDeductions,
+                'other_deductions' => $otherDeductions
+            ]);
+
+            // Update salary record
+            $updateData = [
+                'user_id' => $request->employee_id,
+                'employee_code' => $user->code ?? ($request->employee_code ?? 'EMP-' . $user->id),
+                'month' => $request->month,
+                'year' => $request->year,
+                'payroll_period_id' => $request->payroll_period_id ?? null,
+                'basic_salary' => $request->basic_salary,
+                'total_days' => $request->total_days,
+                'days_present' => $request->days_present,
+                'days_absent' => $request->total_days - $request->days_present,
+                'allowances' => $allowances,
+                'deductions' => $deductions,
+                'currency' => $request->currency,
+                'exchange_rate' => $request->exchange_rate,
+                'real_salary' => $calculated['real_salary'],
+                'total_allowances' => $calculated['total_allowances'],
+                'total_deductions' => $calculated['total_deductions'],
+                'gross_salary' => $calculated['gross_salary'],
+                'net_salary' => $calculated['net_salary'],
+                'days_deduction' => $calculated['days_deduction'],
+                'net_in_usd' => $calculated['net_in_usd'],
+                'net_in_cdf' => $calculated['net_in_cdf'],
+                'status' => $request->status,
+                'payment_date' => $request->payment_date,
+                'notes' => $request->notes,
                 'updated_by' => Auth::id(),
-            ]));
+            ];
 
-            // Update components
-            $salary->components()->delete();
-            $this->saveSalaryComponents($salary, $validated['components'] ?? []);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Salary updated successfully.',
-                'data' => [
-                    'id' => $salary->id,
-                    'employee_name' => $salary->employee?->full_name,
-                    'net_salary' => $salary->net_salary,
-                ],
-            ]);
-
-        } catch (Throwable $e) {
-            DB::rollBack();
-
-            Log::error('Salary update failed:', [
-                'salary_id' => $salary->id,
-                'error' => $e->getMessage(),
-                'user_id' => Auth::id(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update salary.',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
-        }
-    }
-
-    /**
-     * Delete salary
-     */
-    public function destroy(Salary $salary): JsonResponse
-    {
-        try {
-            if (!in_array($salary->status, ['pending', 'calculated'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot delete salary with status: ' . $salary->status,
-                ], 403);
+            // Handle payment status change
+            if ($request->status === 'paid' && $salary->status !== 'paid') {
+                $updateData['paid_by'] = Auth::id();
+                $updateData['paid_at'] = $request->payment_date ?? now();
+                $updateData['payment_date'] = $request->payment_date ?? now();
             }
 
-            DB::beginTransaction();
-
-            $salary->components()->delete();
-            $salary->delete();
+            $salary->update($updateData);
 
             DB::commit();
 
-            Log::info('Salary deleted', [
-                'salary_id' => $salary->id,
-                'deleted_by' => Auth::id(),
-            ]);
-
             return response()->json([
                 'success' => true,
-                'message' => 'Salary deleted successfully.',
+                'message' => 'Salary record updated successfully',
+                'data' => $salary->fresh()->load('user')
             ]);
 
-        } catch (Throwable $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
-
-            Log::error('Salary deletion failed:', [
-                'salary_id' => $salary->id,
-                'error' => $e->getMessage(),
-            ]);
+            Log::error('Failed to update salary record: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete salary.',
+                'message' => 'Failed to update salary record',
+                'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
 
     /**
-     * Process salary payment
+     * Mark salary as paid
      */
-    public function processPayment(PaymentRequest $request, Salary $salary): JsonResponse
+    public function markAsPaid($id)
     {
-        if ($salary->status !== 'approved') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Salary must be approved before payment.',
-            ], 403);
-        }
-
-        DB::beginTransaction();
-
         try {
-            $validated = $request->validated();
+            DB::beginTransaction();
 
-            // // Create transaction
-            // $transaction = Transaction::create([
-            //     'date' => $validated['payment_date'],
-            //     'type' => 'expense',
-            //     'amount' => $salary->net_salary,
-            //     'description' => sprintf(
-            //         'Salary payment for %s - %s',
-            //         $salary->employee->full_name,
-            //         $salary->payrollPeriod->name
-            //     ),
-            //     'reference_no' => $validated['reference_no'] ?? null,
-            //     'payment_method' => $validated['payment_method'],
-            //     'account_id' => in_array($validated['payment_method'], ['bank_transfer', 'online'])
-            //         ? $validated['account_id']
-            //         : null,
-            //     'status' => 'completed',
-            //     'created_by' => Auth::id(),
-            // ]);
+            $salary = Salary::findOrFail($id);
 
-            // Create salary payment
-            $payment = SalaryPayment::create([
-                'salary_id' => $salary->id,
-                // 'transaction_id' => $transaction->id,
-                'amount' => $salary->net_salary,
-                'payment_date' => $validated['payment_date'],
-                'payment_method' => $validated['payment_method'],
-                'reference_no' => $validated['reference_no'] ?? null,
-                'notes' => $validated['notes'] ?? null,
-                'paid_by' => Auth::id(),
-            ]);
+            if ($salary->status === 'paid') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Salary is already marked as paid'
+                ], 400);
+            }
 
-            // Update salary status
             $salary->update([
                 'status' => 'paid',
+                'paid_by' => Auth::id(),
                 'paid_at' => now(),
+                'payment_date' => now(),
+                'updated_by' => Auth::id()
             ]);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Salary payment processed successfully.',
+                'message' => 'Salary marked as paid successfully',
+                'data' => $salary->fresh()
             ]);
 
-        } catch (Throwable $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
-
-            Log::error('Salary payment failed:', [
-                'salary_id' => $salary->id,
-                'error' => $e->getMessage(),
-                'user_id' => Auth::id(),
-            ]);
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process salary payment.',
-                'error' => config('app.debug') ? $e->getMessage() : null,
+                'message' => 'Failed to mark salary as paid',
+                'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
 
     /**
-     * Bulk salary calculation
+     * Delete salary record
      */
-    public function bulkCalculate(BulkCalculateRequest $request): JsonResponse
+    public function destroy($id)
     {
-        DB::beginTransaction();
+        try {
+            $salary = Salary::findOrFail($id);
+            $salary->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Salary record deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete salary record',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Get employees for dropdown
+     */
+    public function getEmployees()
+    {
+        try {
+            $employees = User::where('status', 'active')
+                ->select('id', 'name', 'code', 'designation', 'salary')
+                ->orderBy('name')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $employees
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch employees',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Get salary components
+     */
+    public function getSalaryComponents($type = null)
+    {
+        try {
+            $query = SalaryComponent::active()->ordered();
+
+            if ($type) {
+                $query->where('type', $type);
+            }
+
+            $components = $query->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $components
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch salary components',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate payroll for period
+     */
+    public function generatePayroll(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'month' => 'required|string',
+            'year' => 'required|integer',
+            'payroll_period_id' => 'nullable|exists:payroll_periods,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         try {
-            $validated = $request->validated();
-            $period = PayrollPeriod::findOrFail($validated['payroll_period_id']);
+            DB::beginTransaction();
 
-            if ($period->status !== 'open') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Payroll period is not open for calculation.',
-                ], 403);
-            }
-
-            // Get employees to process
-            $query = User::active()
-                ->whereDoesntHave('roles', fn($q) => $q->where('name', 'customer'));
-
-            if (!empty($validated['employee_ids'])) {
-                $query->whereIn('id', $validated['employee_ids']);
-            }
-
-            $employees = $query->get();
-
-            $calculatedSalaries = [];
+            $employees = User::where('status', 'active')->get();
+            $generatedCount = 0;
             $errors = [];
 
             foreach ($employees as $employee) {
                 try {
-                    // Check existing salary
-                    if (
-                        Salary::where('employee_id', $employee->id)
-                            ->where('payroll_period_id', $period->id)
-                            ->exists()
-                    ) {
-                        $errors[] = "Salary already exists for employee: {$employee->full_name}";
+                    // Check if salary already exists for this period
+                    $existingSalary = Salary::where('user_id', $employee->id)
+                        ->where('month', $request->month)
+                        ->where('year', $request->year)
+                        ->first();
+
+                    if ($existingSalary) {
                         continue;
                     }
 
-                    $salary = $this->calculateAutoSalary($employee, $period);
-                    $calculatedSalaries[] = $salary;
-                } catch (Throwable $e) {
-                    $errors[] = "Failed for {$employee->full_name}: " . $e->getMessage();
+                    // Calculate daily rate
+                    $dailyRate = $employee->salary ? ($employee->salary / 26) : 0;
+
+                    // Get employee allowances and deductions
+                    $allowances = Allowance::where('user_id', $employee->id)
+                        ->active()
+                        ->valid()
+                        ->with('salaryComponent')
+                        ->get()
+                        ->map(function ($allowance) use ($employee) {
+                            return [
+                                'description' => $allowance->salaryComponent->name,
+                                'amount' => $allowance->calculateAmount($employee->salary)
+                            ];
+                        })
+                        ->toArray();
+
+                    $deductions = Deduction::where('user_id', $employee->id)
+                        ->active()
+                        ->valid()
+                        ->with('salaryComponent')
+                        ->get()
+                        ->map(function ($deduction) use ($employee) {
+                            return [
+                                'description' => $deduction->salaryComponent->name,
+                                'amount' => $deduction->calculateAmount($employee->salary)
+                            ];
+                        })
+                        ->toArray();
+
+                    // Calculate totals
+                    $calculated = $this->calculateSalaryTotalsFromEmployee($employee, $dailyRate, $allowances, $deductions);
+
+                    // Create salary record
+                    $salary = Salary::create([
+                        'user_id' => $employee->id,
+                        'employee_code' => $employee->code ?? 'EMP-' . $employee->id,
+                        'month' => $request->month,
+                        'year' => $request->year,
+                        'payroll_period_id' => $request->payroll_period_id,
+                        'basic_salary' => $employee->salary ?? 0,
+                        'daily_rate' => round($dailyRate, 2),
+                        'daily_transport_rate' => 8.27,
+                        'total_days' => 26,
+                        'days_present' => 26,
+                        'days_absent' => 0,
+                        'allowances' => $allowances,
+                        'deductions' => $deductions,
+                        'currency' => 'USD',
+                        'exchange_rate' => 1,
+                        'real_salary' => $calculated['real_salary'],
+                        'total_allowances' => $calculated['total_allowances'],
+                        'total_deductions' => $calculated['total_deductions'],
+                        'gross_salary' => $calculated['gross_salary'],
+                        'net_salary' => $calculated['net_salary'],
+                        'days_deduction' => $calculated['days_deduction'],
+                        'net_in_usd' => $calculated['net_in_usd'],
+                        'net_in_cdf' => $calculated['net_in_cdf'],
+                        'status' => 'pending',
+                        'created_by' => Auth::id(),
+                        'updated_by' => Auth::id(),
+                    ]);
+
+                    $generatedCount++;
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to generate salary for {$employee->name}: " . $e->getMessage();
                 }
             }
 
             DB::commit();
 
-            return response()->json([
+            $response = [
                 'success' => true,
-                'message' => 'Bulk salary calculation completed.',
-                'data' => [
-                    'calculated_count' => count($calculatedSalaries),
-                    'error_count' => count($errors),
-                    'errors' => $errors,
-                ],
-            ]);
+                'message' => "Payroll generated successfully for {$generatedCount} employees",
+                'count' => $generatedCount
+            ];
 
-        } catch (Throwable $e) {
+            if (!empty($errors)) {
+                $response['errors'] = $errors;
+                $response['warning'] = 'Some employees failed to process';
+            }
+
+            return response()->json($response);
+
+        } catch (\Exception $e) {
             DB::rollBack();
-
-            Log::error('Bulk salary calculation failed:', [
-                'error' => $e->getMessage(),
-                'user_id' => Auth::id(),
-            ]);
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process bulk calculation.',
-                'error' => config('app.debug') ? $e->getMessage() : null,
+                'message' => 'Failed to generate payroll',
+                'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
 
     /**
-     * Calculate salary automatically for employee
+     * Export salaries
      */
-    private function calculateAutoSalary(User $employee, PayrollPeriod $period): Salary
+    public function export(Request $request)
     {
-        $basicSalary = $employee->basic_salary ?? 0;
+        try {
+            $query = Salary::with(['user', 'payrollPeriod'])
+                ->when($request->filled('month') && $request->month !== 'all', function ($q) use ($request) {
+                    $q->where('month', $request->month);
+                })
+                ->when($request->filled('year'), function ($q) use ($request) {
+                    $q->where('year', $request->year);
+                })
+                ->when($request->filled('status') && $request->status !== 'all', function ($q) use ($request) {
+                    $q->where('status', $request->status);
+                })
+                ->orderBy('year', 'desc')
+                ->orderBy('month', 'desc')
+                ->orderBy('user_id');
 
-        // Calculate allowances and deductions from employee's assigned components
-        $totalAllowances = $employee->allowances()
-            ->where('is_active', true)
-            ->where(function ($query) use ($period) {
-                $query->whereNull('valid_until')
-                    ->orWhere('valid_until', '>=', $period->end_date);
-            })
-            ->sum('amount');
+            $salaries = $query->get();
 
-        $totalDeductions = $employee->deductions()
-            ->where('is_active', true)
-            ->where(function ($query) use ($period) {
-                $query->whereNull('valid_until')
-                    ->orWhere('valid_until', '>=', $period->end_date);
-            })
-            ->sum('amount');
+            // Format for export
+            $exportData = $salaries->map(function ($salary) {
+                return [
+                    'Employee' => $salary->user->name ?? 'N/A',
+                    'Code' => $salary->employee_code,
+                    'Period' => $salary->month . ' ' . $salary->year,
+                    'Basic Salary' => number_format($salary->basic_salary, 2),
+                    'Days Present' => $salary->days_present . '/' . $salary->total_days,
+                    'Real Salary' => number_format($salary->real_salary, 2),
+                    'Total Allowances' => number_format($salary->total_allowances, 2),
+                    'Total Deductions' => number_format($salary->total_deductions, 2),
+                    'Gross Salary' => number_format($salary->gross_salary, 2),
+                    'Net Salary' => number_format($salary->net_salary, 2),
+                    'Currency' => $salary->currency,
+                    'Status' => ucfirst($salary->status),
+                    'Payment Date' => $salary->payment_date ? $salary->payment_date->format('Y-m-d') : 'N/A',
+                    'Notes' => $salary->notes
+                ];
+            });
 
-        // Calculate additional adjustments
-        $attendanceAdjustment = $this->calculateAttendanceAdjustment($employee, $period);
-        $totalDeductions += $attendanceAdjustment;
+            return response()->json([
+                'success' => true,
+                'data' => $exportData,
+                'total' => $salaries->count(),
+                'summary' => [
+                    'total_salaries' => $salaries->count(),
+                    'total_amount' => number_format($salaries->sum('net_salary'), 2),
+                    'average_salary' => number_format($salaries->avg('net_salary') ?? 0, 2)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to export salaries',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
 
-        // Calculate final amounts
-        $grossSalary = $basicSalary + $totalAllowances;
-        $netSalary = $grossSalary - $totalDeductions;
+    /**
+     * Helper method to parse JSON fields from request
+     */
+    private function parseRequestJsonField($data)
+    {
+        if (empty($data) || $data === '[]' || $data === 'null') {
+            return [];
+        }
 
-        // Create salary record
-        $salary = Salary::create([
-            'employee_id' => $employee->id,
-            'payroll_period_id' => $period->id,
-            'basic_salary' => $basicSalary,
-            'total_allowances' => $totalAllowances,
-            'total_deductions' => $totalDeductions,
-            'gross_salary' => $grossSalary,
-            'net_salary' => $netSalary,
-            'salary_date' => $period->end_date,
-            'status' => 'calculated',
-            'created_by' => Auth::id(),
-            'calculation_notes' => 'Auto-calculated',
-        ]);
+        if (is_string($data)) {
+            $decoded = json_decode($data, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::warning('Failed to parse JSON field: ' . json_last_error_msg());
+                return [];
+            }
+            return is_array($decoded) ? $decoded : [];
+        }
 
-        // Save components (you can add logic to save individual components here)
+        if (is_array($data)) {
+            return array_map(function ($item) {
+                return [
+                    'description' => $item['description'] ?? '',
+                    'amount' => floatval($item['amount'] ?? 0)
+                ];
+            }, $data);
+        }
+
+        return [];
+    }
+
+    /**
+     * Helper method to parse JSON fields from model
+     */
+    private function parseJsonFields($salary)
+    {
+        $jsonFields = ['allowances', 'deductions', 'other_allowances', 'disciplinary_deductions', 'other_deductions'];
+
+        foreach ($jsonFields as $field) {
+            if (isset($salary->$field)) {
+                $salary->$field = is_string($salary->$field)
+                    ? json_decode($salary->$field, true) ?? []
+                    : (array) $salary->$field;
+            } else {
+                $salary->$field = [];
+            }
+        }
 
         return $salary;
     }
 
     /**
-     * Calculate attendance adjustment
+     * Helper method to calculate salary totals
      */
-    private function calculateAttendanceAdjustment(User $employee, PayrollPeriod $period): float
+    private function calculateSalaryTotals(Request $request, $user, $jsonData = [])
     {
-        $attendances = Attendance::where('employee_id', $employee->id)
-            ->whereBetween('date', [$period->start_date, $period->end_date])
-            ->get();
+        $dailyRate = floatval($request->daily_rate);
+        $daysPresent = intval($request->days_present);
+        $totalDays = intval($request->total_days);
+        $daysAbsent = $totalDays - $daysPresent;
 
-        $totalWorkingDays = $period->working_days ?? 26;
-        $presentDays = $attendances->where('status', 'present')->count();
-        $absentDays = $attendances->where('status', 'absent')->count();
-        $halfDays = $attendances->where('status', 'half_day')->count();
+        // Real salary based on attendance
+        $realSalary = $dailyRate * $daysPresent;
 
-        $dailyRate = $employee->basic_salary / $totalWorkingDays;
+        // Extract JSON data
+        $allowances = $jsonData['allowances'] ?? [];
+        $deductions = $jsonData['deductions'] ?? [];
+        $otherAllowances = $jsonData['other_allowances'] ?? [];
+        $disciplinaryDeductions = $jsonData['disciplinary_deductions'] ?? [];
+        $otherDeductions = $jsonData['other_deductions'] ?? [];
 
-        return ($absentDays * $dailyRate) + ($halfDays * ($dailyRate / 2));
-    }
+        // Calculate allowances total
+        $allowancesTotal = collect($allowances)->sum('amount');
+        $otherAllowancesTotal = collect($otherAllowances)->sum('amount');
+        $overtimeTotal = (floatval($request->overtime_hours ?? 0) * floatval($request->overtime_rate ?? 0));
 
-    /**
-     * Approve salary
-     */
-    public function approve(ApproveRequest $request, Salary $salary): JsonResponse
-    {
-        if ($salary->status !== 'calculated') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Salary must be calculated before approval.',
-            ], 403);
+        $totalAllowances = $allowancesTotal
+            + floatval($request->bonus ?? 0)
+            + floatval($request->quality_bonus ?? 0)
+            + $overtimeTotal
+            + floatval($request->regularization ?? 0)
+            + $otherAllowancesTotal;
+
+        // Calculate gross salary
+        $grossSalary = $realSalary + $totalAllowances;
+
+        // Calculate deductions total
+        $deductionsTotal = collect($deductions)->sum('amount');
+        $disciplinaryDeductionsTotal = collect($disciplinaryDeductions)->sum('amount');
+        $otherDeductionsTotal = collect($otherDeductions)->sum('amount');
+        $daysDeduction = $dailyRate * $daysAbsent;
+
+        $totalDeductions = $deductionsTotal
+            + floatval($request->transport_deduction ?? 0)
+            + floatval($request->advance_salary ?? 0)
+            + $daysDeduction
+            + $disciplinaryDeductionsTotal
+            + floatval($request->product_loss ?? 0)
+            + $otherDeductionsTotal;
+
+        // Calculate net salary
+        $netSalary = max(0, $grossSalary - $totalDeductions);
+
+        // Currency conversion
+        $exchangeRate = floatval($request->exchange_rate);
+        if ($request->currency === 'CDF') {
+            $netInUsd = $netSalary / $exchangeRate;
+            $netInCdf = $netSalary;
+        } else {
+            $netInUsd = $netSalary;
+            $netInCdf = $netSalary * $exchangeRate;
         }
 
-        try {
-            $salary->update([
-                'status' => 'approved',
-                'approved_by' => Auth::id(),
-                'approved_at' => now(),
-                'approval_notes' => $request->notes ?? null,
-            ]);
-
-            Log::info('Salary approved', [
-                'salary_id' => $salary->id,
-                'approved_by' => Auth::id(),
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Salary approved successfully.',
-                'data' => [
-                    'id' => $salary->id,
-                    'status' => $salary->status,
-                ],
-            ]);
-
-        } catch (Throwable $e) {
-            Log::error('Salary approval failed:', [
-                'salary_id' => $salary->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to approve salary.',
-            ], 500);
-        }
+        return [
+            'real_salary' => round($realSalary, 2),
+            'total_allowances' => round($totalAllowances, 2),
+            'total_deductions' => round($totalDeductions, 2),
+            'gross_salary' => round($grossSalary, 2),
+            'net_salary' => round($netSalary, 2),
+            'days_deduction' => round($daysDeduction, 2),
+            'net_in_usd' => round($netInUsd, 2),
+            'net_in_cdf' => round($netInCdf, 2)
+        ];
     }
 
     /**
-     * Get salary statistics
+     * Helper method to calculate salary totals from employee data
      */
-    public function statistics(Request $request): JsonResponse
+    private function calculateSalaryTotalsFromEmployee($employee, $dailyRate, $allowances, $deductions)
     {
-        try {
-            $periodId = $request->period_id;
+        $realSalary = $dailyRate * 26; // Full month attendance
+        $totalAllowances = collect($allowances)->sum('amount');
+        $totalDeductions = collect($deductions)->sum('amount');
+        $grossSalary = $realSalary + $totalAllowances;
+        $netSalary = max(0, $grossSalary - $totalDeductions);
 
-            if (!$periodId) {
-                $latestPeriod = PayrollPeriod::orderBy('end_date', 'desc')->first();
-                $periodId = $latestPeriod?->id;
-            }
-
-            $query = Salary::query();
-
-            if ($periodId) {
-                $query->where('payroll_period_id', $periodId);
-            }
-
-            if ($request->filled('date_from') && $request->filled('date_to')) {
-                $query->whereBetween('salary_date', [$request->date_from, $request->date_to]);
-            }
-
-            $stats = [
-                'total_salaries' => $query->count(),
-                'total_amount' => $query->sum('net_salary'),
-                'pending_count' => $query->where('status', 'calculated')->count(),
-                'approved_count' => $query->where('status', 'approved')->count(),
-                'paid_count' => $query->where('status', 'paid')->count(),
-                'department_breakdown' => $this->getDepartmentBreakdown($periodId),
-                'status_distribution' => $this->getStatusDistribution($periodId),
-            ];
-
-            return response()->json([
-                'success' => true,
-                'data' => $stats,
-            ]);
-
-        } catch (Throwable $e) {
-            Log::error('Salary statistics error: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load statistics.',
-            ], 500);
-        }
+        return [
+            'real_salary' => round($realSalary, 2),
+            'total_allowances' => round($totalAllowances, 2),
+            'total_deductions' => round($totalDeductions, 2),
+            'gross_salary' => round($grossSalary, 2),
+            'net_salary' => round($netSalary, 2),
+            'days_deduction' => 0,
+            'net_in_usd' => round($netSalary, 2),
+            'net_in_cdf' => round($netSalary, 2)
+        ];
     }
 
     /**
-     * Get department breakdown
+     * Helper method to get status color
      */
-    private function getDepartmentBreakdown($periodId)
+    private function getStatusColor($status)
     {
-        return Salary::select(
-            'departments.name as department',
-            DB::raw('COUNT(salaries.id) as employee_count'),
-            DB::raw('SUM(salaries.net_salary) as total_salary')
-        )
-            ->join('users', 'salaries.employee_id', '=', 'users.id')
-            ->join('departments', 'users.department_id', '=', 'departments.id')
-            ->when($periodId, fn($q) => $q->where('salaries.payroll_period_id', $periodId))
-            ->groupBy('departments.id', 'departments.name')
-            ->get();
-    }
+        $colors = [
+            'pending' => 'warning',
+            'processing' => 'info',
+            'paid' => 'success'
+        ];
 
-    /**
-     * Get status distribution
-     */
-    private function getStatusDistribution($periodId)
-    {
-        return Salary::select('status', DB::raw('COUNT(*) as count'))
-            ->when($periodId, fn($q) => $q->where('payroll_period_id', $periodId))
-            ->groupBy('status')
-            ->get();
+        return $colors[$status] ?? 'secondary';
     }
 }

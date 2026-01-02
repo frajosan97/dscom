@@ -3,16 +3,29 @@
 namespace App\Http\Controllers\Erp\Crm;
 
 use App\Http\Controllers\Controller;
+use App\Models\Erp\Crm\Feedback;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Yajra\DataTables\Facades\DataTables;
 
 class FeedbackController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        if ($request->ajax() || $request->has('draw')) {
+            $query = Feedback::query();
+
+            return DataTables::eloquent($query)
+                ->addColumn('action', function ($row) {
+                    return view('partials.backend.feedback.actions', compact('row'))->render();
+                })
+                ->rawColumns(['action'])
+                ->make(true);
+        }
+
         return Inertia::render('Backend/ERP/CRM/Feedback');
     }
 

@@ -52,10 +52,8 @@ const CONDITION_OPTIONS = [
 ];
 
 export default function ItemsTab({
-    data,
-    updateFormData,
+    formik,
     handleItemsUpdate,
-    errors,
     warehouses = [],
     productType,
 }) {
@@ -66,23 +64,27 @@ export default function ItemsTab({
     const [statusFilter, setStatusFilter] = useState("all");
     const [warehouseFilter, setWarehouseFilter] = useState("all");
 
-    // Initialize items from product data - ONLY ONCE
+    // Initialize items from formik values - ONLY ONCE
     useEffect(() => {
-        if (data.items && data.items.length > 0 && items.length === 0) {
-            setItems(data.items);
+        if (
+            formik.values.items &&
+            formik.values.items.length > 0 &&
+            items.length === 0
+        ) {
+            setItems(formik.values.items);
         }
-    }, [data.items]); // Remove items from dependencies
+    }, [formik.values.items]); // Remove items from dependencies
 
-    // Update parent when items change - WITH DEBOUNCING
+    // Update formik when items change - WITH DEBOUNCING
     useEffect(() => {
-        if (items.length > 0 || data.items?.length === 0) {
+        if (items.length > 0 || formik.values.items?.length === 0) {
             const timeoutId = setTimeout(() => {
                 handleItemsUpdate(items);
             }, 100);
 
             return () => clearTimeout(timeoutId);
         }
-    }, [items]); // Only depend on items
+    }, [items, handleItemsUpdate]); // Only depend on items and handleItemsUpdate
 
     // Filter items based on search and filters
     const filteredItems = useMemo(() => {
@@ -140,14 +142,14 @@ export default function ItemsTab({
     const initializeNewItem = useCallback(() => {
         const baseItem = {
             id: `temp-${Date.now()}`, // Temporary ID for new items
-            product_id: data.id,
+            product_id: formik.values.id,
             warehouse_id: warehouses[0]?.id || "",
             serial_number: generateSerialNumber(),
             barcode: generateBarcode(),
             item_code: `ITEM-${Date.now().toString(36).toUpperCase()}`,
-            size: data.sizes?.[0] || "",
-            color: data.colors?.[0] || "",
-            material: data.materials?.[0] || "",
+            size: formik.values.sizes?.[0] || "",
+            color: formik.values.colors?.[0] || "",
+            material: formik.values.materials?.[0] || "",
             attributes: {},
             status: "available",
             condition: "new",
@@ -159,21 +161,22 @@ export default function ItemsTab({
             expiry_date: "",
             notes: "",
             metadata: {},
+            quantity: 1, // Add quantity field
         };
 
         // Pre-fill with product variations if available
-        if (data.sizes && data.sizes.length === 1) {
-            baseItem.size = data.sizes[0];
+        if (formik.values.sizes && formik.values.sizes.length === 1) {
+            baseItem.size = formik.values.sizes[0];
         }
-        if (data.colors && data.colors.length === 1) {
-            baseItem.color = data.colors[0];
+        if (formik.values.colors && formik.values.colors.length === 1) {
+            baseItem.color = formik.values.colors[0];
         }
-        if (data.materials && data.materials.length === 1) {
-            baseItem.material = data.materials[0];
+        if (formik.values.materials && formik.values.materials.length === 1) {
+            baseItem.material = formik.values.materials[0];
         }
 
         return baseItem;
-    }, [data, warehouses, generateSerialNumber, generateBarcode]);
+    }, [formik.values, warehouses, generateSerialNumber, generateBarcode]);
 
     // Handle add/edit item
     const handleAddItem = useCallback(() => {
@@ -186,38 +189,54 @@ export default function ItemsTab({
         setShowModal(true);
     }, []);
 
-    const handleSaveItem = useCallback((itemData) => {
-        // Check if it's a new item by checking if ID is a string starting with "temp-"
-        const isNewItem =
-            typeof itemData.id === "string" && itemData.id.startsWith("temp-");
+    const handleSaveItem = useCallback(
+        (itemData) => {
+            // Check if it's a new item by checking if ID is a string starting with "temp-"
+            const isNewItem =
+                typeof itemData.id === "string" &&
+                itemData.id.startsWith("temp-");
 
-        if (isNewItem) {
-            // New item - generate proper ID
-            const newItem = {
-                ...itemData,
-                id: Date.now(), // Use timestamp as ID for new items
-            };
-            setItems((prev) => [...prev, newItem]);
-        } else {
-            // Update existing item
-            setItems((prev) =>
-                prev.map((item) => (item.id === itemData.id ? itemData : item))
-            );
-        }
-        setShowModal(false);
-        setEditingItem(null);
-    }, []);
+            let updatedItems;
+            if (isNewItem) {
+                // New item - generate proper ID
+                const newItem = {
+                    ...itemData,
+                    id: Date.now(), // Use timestamp as ID for new items
+                };
+                updatedItems = [...items, newItem];
+            } else {
+                // Update existing item
+                updatedItems = items.map((item) =>
+                    item.id === itemData.id ? itemData : item
+                );
+            }
 
-    const handleDeleteItem = useCallback((itemId) => {
-        setItems((prev) => prev.filter((item) => item.id !== itemId));
-    }, []);
+            setItems(updatedItems);
+            setShowModal(false);
+            setEditingItem(null);
+        },
+        [items]
+    );
+
+    const handleDeleteItem = useCallback(
+        (itemId) => {
+            const updatedItems = items.filter((item) => item.id !== itemId);
+            setItems(updatedItems);
+        },
+        [items]
+    );
 
     // Bulk actions
-    const handleBulkStatusChange = useCallback((newStatus) => {
-        setItems((prev) =>
-            prev.map((item) => ({ ...item, status: newStatus }))
-        );
-    }, []);
+    const handleBulkStatusChange = useCallback(
+        (newStatus) => {
+            const updatedItems = items.map((item) => ({
+                ...item,
+                status: newStatus,
+            }));
+            setItems(updatedItems);
+        },
+        [items]
+    );
 
     const handleGenerateMultipleItems = useCallback(
         (count) => {
@@ -226,9 +245,10 @@ export default function ItemsTab({
                 id: `temp-${Date.now()}-${index}`, // Use temp IDs for generated items
                 item_code: `ITEM-${Date.now()}-${index}`,
             }));
-            setItems((prev) => [...prev, ...newItems]);
+            const updatedItems = [...items, ...newItems];
+            setItems(updatedItems);
         },
-        [initializeNewItem]
+        [initializeNewItem, items]
     );
 
     // Warehouse options
@@ -648,7 +668,7 @@ export default function ItemsTab({
                 show={showModal}
                 item={editingItem}
                 warehouses={warehouseOptions}
-                productData={data}
+                productData={formik.values}
                 onSave={handleSaveItem}
                 onClose={() => {
                     setShowModal(false);

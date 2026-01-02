@@ -1,34 +1,63 @@
-import { Head, Link, router } from "@inertiajs/react";
-import { useEffect, useCallback, useRef } from "react";
-import { Card, Button, ButtonGroup, Table } from "react-bootstrap";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Head, Link } from "@inertiajs/react";
+import {
+    Container,
+    Row,
+    Col,
+    Card,
+    Button,
+    ButtonGroup,
+    Table,
+    InputGroup,
+    Form,
+    Dropdown,
+} from "react-bootstrap";
+import {
+    BiSearch,
+    BiFilter,
+    BiDownload,
+    BiRefresh,
+    BiUpload,
+    BiPackage,
+} from "react-icons/bi";
+import Swal from "sweetalert2";
 import { toast } from "react-toastify";
-import { formatCurrency } from "@/Utils/helpers";
-import { FaFileDownload, FaPlus, FaEdit } from "react-icons/fa";
 import ErpLayout from "@/Layouts/ErpLayout";
+import xios from "@/Utils/axios";
+import { formatCurrency } from "@/Utils/helpers";
+import { FaFileExcel, FaFilePdf, FaPrint, FaPlus } from "react-icons/fa";
+import ImportProductModal from "@/components/Modals/ImportProductModal";
+import useData from "@/Hooks/useData";
 
 export default function ProductsListing() {
-    const dataTableRef = useRef(null);
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [categoryFilter, setCategoryFilter] = useState("all");
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [importTemplateUrl, setImportTemplateUrl] = useState("");
+    const { categories } = useData();
 
+    const dataTableInitialized = useRef(false);
+    const dataTable = useRef(null);
+
+    // Initialize DataTable
     const initializeDataTable = useCallback(() => {
-        // Clean up existing instance
-        if (
-            dataTableRef.current &&
-            $.fn.DataTable.isDataTable("#productsTable")
-        ) {
-            dataTableRef.current.destroy();
-            dataTableRef.current = null;
+        if (dataTableInitialized.current) return;
+
+        if ($.fn.DataTable.isDataTable("#productsTable")) {
+            $("#productsTable").DataTable().destroy();
         }
 
-        const table = $("#productsTable").DataTable({
+        const dt = $("#productsTable").DataTable({
             processing: true,
             serverSide: true,
             ajax: {
                 url: route("product.index"),
                 type: "GET",
-                error: (xhr) => {
-                    toast.error(
-                        xhr.responseJSON?.message || "Failed to load products"
-                    );
+                data: function (d) {
+                    d.search = search;
+                    d.status = statusFilter !== "all" ? statusFilter : "";
+                    d.category = categoryFilter !== "all" ? categoryFilter : "";
                 },
             },
             columns: [
@@ -134,256 +163,325 @@ export default function ProductsListing() {
                     width: "100px",
                 },
             ],
-            order: [[1, "asc"]],
-            pageLength: 25,
-            lengthMenu: [
-                [10, 25, 50, 100, -1],
-                [10, 25, 50, 100, "All"],
-            ],
-            responsive: true,
-            drawCallback: function (settings) {
-                // Attach event handlers after each table draw
-                attachEventHandlers();
+            drawCallback: function () {
+                // Bind custom button actions
+                $(".edit-btn")
+                    .off("click")
+                    .on("click", function () {
+                        const id = $(this).data("id");
+                        editProduct(id);
+                    });
+
+                $(".view-btn")
+                    .off("click")
+                    .on("click", function () {
+                        const id = $(this).data("id");
+                        viewProduct(id);
+                    });
+
+                $(".delete-btn")
+                    .off("click")
+                    .on("click", function () {
+                        const id = $(this).data("id");
+                        deleteProduct(id);
+                    });
             },
             initComplete: function () {
-                // Add custom search input for category
-                this.api()
-                    .columns(2)
-                    .every(function () {
-                        const column = this;
-                        const select = $(
-                            '<select class="form-control form-control-sm"><option value="">All Categories</option></select>'
-                        )
-                            .appendTo($(column.header()).empty())
-                            .on("change", function () {
-                                const val = $.fn.dataTable.util.escapeRegex(
-                                    $(this).val()
-                                );
-                                column
-                                    .search(
-                                        val ? "^" + val + "$" : "",
-                                        true,
-                                        false
-                                    )
-                                    .draw();
-                            });
-
-                        // Get unique categories from data
-                        const categories = new Set();
-                        column.data().each(function (d) {
-                            if (d) categories.add(d);
-                        });
-
-                        Array.from(categories)
-                            .sort()
-                            .forEach(function (category) {
-                                select.append(
-                                    '<option value="' +
-                                        category +
-                                        '">' +
-                                        category +
-                                        "</option>"
-                                );
-                            });
-                    });
+                dataTableInitialized.current = true;
             },
+            language: {
+                emptyTable:
+                    '<div class="text-center py-5"><i class="bi bi-inbox display-4 text-muted"></i><p class="mt-2">No products found</p></div>',
+                zeroRecords:
+                    '<div class="text-center py-5"><i class="bi bi-search display-4 text-muted"></i><p class="mt-2">No matching products found</p></div>',
+            },
+            responsive: true,
+            order: [[1, "asc"]],
+            pageLength: 10,
+            lengthMenu: [
+                [10, 25, 50, -1],
+                [10, 25, 50, "All"],
+            ],
         });
 
-        dataTableRef.current = table;
-        return table;
-    }, []);
+        dataTable.current = dt;
+        return dt;
+    }, [search, statusFilter, categoryFilter]);
 
-    const attachEventHandlers = useCallback(() => {
-        // Edit button handler
-        $(".edit-btn")
-            .off("click")
-            .on("click", function (e) {
-                e.preventDefault();
-                const id = $(this).data("id");
-                if (id) {
-                    router.get(route("product.edit", id));
-                }
-            });
-
-        // Toggle status handler
-        $(".toggle-status-btn")
-            .off("click")
-            .on("click", function (e) {
-                e.preventDefault();
-                const id = $(this).data("id");
-                const currentStatus = $(this).data("status");
-                const confirmed = confirm(
-                    `Are you sure you want to ${
-                        currentStatus ? "deactivate" : "activate"
-                    } this product?`
-                );
-
-                if (confirmed) {
-                    router.patch(route("product.toggle-status", id), {
-                        onSuccess: () => {
-                            toast.success(
-                                "Product status updated successfully"
-                            );
-                            dataTableRef.current?.ajax.reload();
-                        },
-                        onError: (errors) => {
-                            toast.error(
-                                errors.message || "Failed to update status"
-                            );
-                        },
-                    });
-                }
-            });
-
-        // Delete handler
-        $(".delete-btn")
-            .off("click")
-            .on("click", function (e) {
-                e.preventDefault();
-                const id = $(this).data("id");
-                const confirmed = confirm(
-                    "Are you sure you want to delete this product? This action cannot be undone."
-                );
-
-                if (confirmed) {
-                    router.delete(route("product.destroy", id), {
-                        onSuccess: () => {
-                            toast.success("Product deleted successfully");
-                            dataTableRef.current?.ajax.reload();
-                        },
-                        onError: (errors) => {
-                            toast.error(
-                                errors.message || "Failed to delete product"
-                            );
-                        },
-                    });
-                }
-            });
-    }, []);
-
-    const handleExportExcel = useCallback(() => {
-        if (dataTableRef.current) {
-            const params = dataTableRef.current.ajax.params();
-            const url = new URL(route("product.index"));
-
-            // Add all DataTable parameters to export URL
-            Object.keys(params).forEach((key) => {
-                if (key !== "draw" && key !== "_") {
-                    url.searchParams.append(key, params[key]);
-                }
-            });
-
-            // Add export flag
-            url.searchParams.append("export", "excel");
-
-            // Trigger download
-            window.open(url.toString(), "_blank");
-        }
-    }, []);
-
+    // Refresh DataTable when filters change
     useEffect(() => {
-        // Initialize DataTable
-        initializeDataTable();
+        if (dataTableInitialized.current && dataTable.current) {
+            dataTable.current.ajax.reload();
+        }
+    }, [search, statusFilter, categoryFilter]);
 
-        // Cleanup on unmount
+    // Initialize DataTable on mount
+    useEffect(() => {
+        initializeDataTable();
         return () => {
-            if (
-                dataTableRef.current &&
-                $.fn.DataTable.isDataTable("#productsTable")
-            ) {
-                dataTableRef.current.destroy();
+            if ($.fn.DataTable.isDataTable("#productsTable")) {
+                $("#productsTable").DataTable().destroy();
+                dataTableInitialized.current = false;
             }
         };
     }, [initializeDataTable]);
 
+    const handleImportSuccess = () => {
+        if (dataTable.current) {
+            dataTable.current.ajax.reload();
+            toast.success("Products imported successfully!");
+        }
+    };
+
+    // Product actions
+    const editProduct = (id) => {
+        window.location.href = route("product.edit", id);
+    };
+
+    const viewProduct = (id) => {
+        window.location.href = route("product.show", id);
+    };
+
+    const deleteProduct = async (id) => {
+        try {
+            const result = await Swal.fire({
+                title: "Are you sure?",
+                text: "You won't be able to revert this! This will permanently delete the product.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#6b7280",
+                confirmButtonText: "Yes, delete it!",
+                cancelButtonText: "Cancel",
+                reverseButtons: true,
+            });
+
+            if (!result.isConfirmed) return;
+
+            const response = await xios.delete(route("product.destroy", id));
+
+            if (response.data.success) {
+                toast.success(response.data.message);
+                if (dataTable.current) {
+                    dataTable.current.ajax.reload();
+                }
+            }
+        } catch (error) {
+            toast.error(
+                error.response?.data?.message ||
+                    "An error occurred while deleting the product"
+            );
+        }
+    };
+
+    const exportProducts = (type) => {
+        if (dataTable.current) {
+            const params = dataTable.current.ajax.params();
+            const url = new URL(route("product.export"));
+
+            // Add all current filters to export URL
+            Object.keys(params).forEach((key) => {
+                if (
+                    key !== "draw" &&
+                    key !== "_" &&
+                    key !== "start" &&
+                    key !== "length"
+                ) {
+                    url.searchParams.append(key, params[key]);
+                }
+            });
+
+            url.searchParams.append("type", type);
+            window.open(url.toString(), "_blank");
+        }
+    };
+
+    const printProducts = () => {
+        if (dataTable.current) {
+            const params = dataTable.current.ajax.params();
+            const url = new URL(route("product.print"));
+
+            // Add all current filters to print URL
+            Object.keys(params).forEach((key) => {
+                if (
+                    key !== "draw" &&
+                    key !== "_" &&
+                    key !== "start" &&
+                    key !== "length"
+                ) {
+                    url.searchParams.append(key, params[key]);
+                }
+            });
+
+            window.open(url.toString(), "_blank");
+        }
+    };
+
+    const refreshTable = () => {
+        if (dataTable.current) {
+            dataTable.current.ajax.reload();
+            toast.success("Product list refreshed!");
+        }
+    };
+
     return (
         <ErpLayout>
-            <Head title="Products" />
+            <Head title="Product Management" />
 
-            <Card className="border-0 rounded-0 shadow-sm">
-                <Card.Header className="d-flex justify-content-between align-items-center bg-transparent py-3">
-                    <div>
-                        <h5 className="mb-0 fw-semibold">
-                            Products Management
-                        </h5>
-                        <small className="text-muted">
-                            Manage your product inventory and listings
-                        </small>
-                    </div>
-                    <ButtonGroup className="gap-2">
-                        <Button
-                            variant="outline-primary"
-                            size="sm"
-                            className="rounded-0 d-flex align-items-center"
-                            onClick={handleExportExcel}
-                        >
-                            <FaFileDownload className="me-2" />
-                            Export Excel
-                        </Button>
-                        <Button
-                            variant="success"
-                            size="sm"
-                            className="rounded-0 d-flex align-items-center"
-                            as={Link}
-                            href={route("product.create")}
-                        >
-                            <FaPlus className="me-2" />
-                            Add New Product
-                        </Button>
-                    </ButtonGroup>
-                </Card.Header>
-
-                <Card.Body className="p-0">
-                    <div className="table-responsive">
-                        <Table
-                            id="productsTable"
-                            className="table-striped table-hover mb-0"
-                            style={{ width: "100%" }}
-                        >
-                            <thead className="table-light">
-                                <tr>
-                                    <th>Image</th>
-                                    <th>Product</th>
-                                    <th>Category</th>
-                                    <th>Stock</th>
-                                    <th className="text-end">Cost</th>
-                                    <th className="text-end">Price</th>
-                                    <th className="text-center">Status</th>
-                                    <th className="text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>{/* DataTable will populate this */}</tbody>
-                        </Table>
-                    </div>
-                </Card.Body>
-
-                <Card.Footer className="bg-transparent py-3">
-                    <div className="d-flex justify-content-between align-items-center">
-                        <small className="text-muted">
-                            Showing page{" "}
-                            <strong className="text-primary">1</strong> of
-                            records
-                        </small>
-                        <div className="d-flex align-items-center gap-2">
-                            <small className="text-muted me-2">
-                                Quick Actions:
-                            </small>
-                            <Link
-                                // href={route("product.import")}
-                                className="btn btn-outline-secondary btn-sm rounded-0"
+            <Container fluid>
+                {/* Page Header */}
+                <Row className="mb-4 align-items-center">
+                    <Col md={6}>
+                        <h3 className="fw-bold text-primary mb-2">
+                            <BiPackage className="me-2" />
+                            Product Management
+                        </h3>
+                        <p className="text-muted mb-0">
+                            View, manage, and maintain your product inventory.
+                        </p>
+                    </Col>
+                    <Col md={6} className="text-md-end">
+                        <ButtonGroup className="mb-2 mb-md-0">
+                            <Button
+                                variant="outline-primary"
+                                as={Link}
+                                href={route("product.create")}
+                                className="d-flex align-items-center"
                             >
-                                Bulk Import
-                            </Link>
-                            <Link
-                                // href={route("product.reorder")}
-                                className="btn btn-outline-secondary btn-sm rounded-0"
+                                <FaPlus className="me-1" />
+                                Add Product
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={() => setShowImportModal(true)}
+                                className="d-flex align-items-center"
                             >
-                                Reorder Products
-                            </Link>
+                                <BiUpload className="me-1" />
+                                Import Excel
+                            </Button>
+                        </ButtonGroup>
+                    </Col>
+                </Row>
+
+                {/* Filters Row */}
+                <Row className="mb-4">
+                    <Col md={6} lg={3}>
+                        <InputGroup>
+                            <InputGroup.Text>
+                                <BiSearch />
+                            </InputGroup.Text>
+                            <Form.Control
+                                type="text"
+                                placeholder="Search products..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </InputGroup>
+                    </Col>
+                    <Col md={6} lg={3}>
+                        <InputGroup>
+                            <InputGroup.Text>
+                                <BiFilter />
+                            </InputGroup.Text>
+                            <Form.Select
+                                value={statusFilter}
+                                onChange={(e) =>
+                                    setStatusFilter(e.target.value)
+                                }
+                            >
+                                <option value="all">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </Form.Select>
+                        </InputGroup>
+                    </Col>
+                    <Col md={6} lg={3}>
+                        <InputGroup>
+                            <InputGroup.Text>
+                                <BiFilter />
+                            </InputGroup.Text>
+                            <Form.Select
+                                value={categoryFilter}
+                                onChange={(e) =>
+                                    setCategoryFilter(e.target.value)
+                                }
+                            >
+                                <option value="all">All Categories</option>
+                                {categories.map((category) => (
+                                    <option
+                                        key={category.id}
+                                        value={category.id}
+                                    >
+                                        {category.name}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                        </InputGroup>
+                    </Col>
+                    <Col md={6} lg={3} className="text-lg-end mt-2 mt-lg-0">
+                        <ButtonGroup className="d-flex gap-2">
+                            <Button
+                                variant="outline-info"
+                                onClick={refreshTable}
+                                className="d-flex align-items-center rounded"
+                            >
+                                <BiRefresh className="me-1" />
+                                Refresh
+                            </Button>
+                            <Dropdown>
+                                <Dropdown.Toggle
+                                    variant="outline-secondary"
+                                    className="d-flex align-items-center"
+                                >
+                                    <BiDownload className="me-1" />
+                                    Export
+                                </Dropdown.Toggle>
+                                <Dropdown.Menu>
+                                    <Dropdown.Item
+                                        onClick={() => exportProducts("excel")}
+                                    >
+                                        <FaFileExcel className="me-2 text-success" />{" "}
+                                        Excel
+                                    </Dropdown.Item>
+                                    <Dropdown.Item
+                                        onClick={() => exportProducts("pdf")}
+                                    >
+                                        <FaFilePdf className="me-2 text-danger" />{" "}
+                                        PDF
+                                    </Dropdown.Item>
+                                    <Dropdown.Item onClick={printProducts}>
+                                        <FaPrint className="me-2 text-secondary" />{" "}
+                                        Print
+                                    </Dropdown.Item>
+                                </Dropdown.Menu>
+                            </Dropdown>
+                        </ButtonGroup>
+                    </Col>
+                </Row>
+
+                {/* Product Table Card */}
+                <Card>
+                    <Card.Body className="p-0">
+                        <div className="table-responsive">
+                            <Table
+                                bordered
+                                hover
+                                responsive
+                                id="productsTable"
+                                className="align-middle mb-0"
+                            />
                         </div>
-                    </div>
-                </Card.Footer>
-            </Card>
+                    </Card.Body>
+                </Card>
+            </Container>
+
+            {/* Import Modal */}
+            <ImportProductModal
+                show={showImportModal}
+                onHide={() => setShowImportModal(false)}
+                onImportSuccess={handleImportSuccess}
+                importTemplateUrl={importTemplateUrl}
+            />
         </ErpLayout>
     );
 }

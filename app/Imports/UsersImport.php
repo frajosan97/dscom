@@ -9,8 +9,6 @@ use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
-use Maatwebsite\Excel\Concerns\WithBatchInserts;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Spatie\Permission\Models\Role;
 
 class UsersImport implements ToModel, WithHeadingRow, WithValidation
@@ -28,8 +26,6 @@ class UsersImport implements ToModel, WithHeadingRow, WithValidation
         ++$this->rows;
 
         try {
-            // Log::info($row);
-
             // Skip if row doesn't have required fields
             if (empty($row['firstname']) || empty($row['lastname']) || empty($row['email'])) {
                 $this->errors[] = 'Row ' . $this->rows . ': Missing required fields';

@@ -37,10 +37,10 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_IMAGES = 10;
 
 export default function MediaTab({
-    data,
-    updateFormData,
+    formik,
     handleImagesUpdate,
-    errors,
+    imagePreviews,
+    setImagePreviews,
 }) {
     const [images, setImages] = useState([]);
     const [uploadProgress, setUploadProgress] = useState({});
@@ -51,20 +51,21 @@ export default function MediaTab({
 
     // Initialize with existing images only once
     useEffect(() => {
-        if (!initialized && data?.images) {
-            const processed = data.images.map((img) => ({
+        if (!initialized && formik.values?.images) {
+            const processed = formik.values.images.map((img) => ({
                 ...img,
                 isExisting: true,
                 isNew: false,
             }));
             setImages(processed);
+            setImagePreviews(processed);
             setInitialized(true);
         }
-    }, [data?.images, initialized]);
+    }, [formik.values?.images, initialized, setImagePreviews]);
 
-    // Update parent when images change
+    // Update formik when images change
     useEffect(() => {
-        if (initialized) {
+        if (initialized && images.length > 0) {
             handleImagesUpdate(images);
         }
     }, [images, initialized]);

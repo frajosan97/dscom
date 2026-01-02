@@ -14,8 +14,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use App\Imports\UsersImport;
 use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Throwable;
@@ -31,22 +29,18 @@ class EmployeeController extends Controller
         try {
             if ($request->ajax() || $request->has('draw')) {
                 $query = User::with(['branch', 'roles'])
-                    ->whereDoesntHave('roles', fn($q) => $q->where('name', 'customer'))
-                    ->when($request->filled('branch_id'), fn($q) => $q->where('branch_id', $request->branch_id))
-                    ->when($request->filled('is_active'), fn($q) => $q->where('is_active', $request->is_active))
-                    ->when($request->filled('role'), function ($q) use ($request) {
-                        $q->whereHas('roles', fn($query) => $query->where('name', $request->role));
-                    });
+                    ->whereDoesntHave('roles', fn($q) => $q->where('name', 'customer'));
 
                 return DataTables::eloquent($query)
                     ->addIndexColumn()
-                    ->addColumn('photo', fn($row) => $this->getPhotoColumn($row))
-                    ->addColumn('role', fn($row) => $this->getRoleColumn($row))
-                    ->addColumn('ending_date', fn() => '')
-                    ->addColumn('download_assets', fn() => '')
-                    ->addColumn('status', fn($row) => view('partials.backend.status-badge', compact('row'))->render())
-                    ->addColumn('action', fn($row) => view('partials.backend.employee-actions', compact('row'))->render())
-                    ->rawColumns(['photo', 'status', 'action', 'role'])
+                    ->addColumn('profile_image', fn($row) => view('partials.backend.employee.profile_image', compact('row'))->render())
+                    ->addColumn('name', fn($row) => view('partials.backend.employee.name', compact('row'))->render())
+                    ->addColumn('contact', fn($row) => view('partials.backend.employee.contact', compact('row'))->render())
+                    ->addColumn('role', fn($row) => view('partials.backend.employee.role', compact('row'))->render())
+                    ->addColumn('salary', fn($row) => view('partials.backend.employee.salary', compact('row'))->render())
+                    ->addColumn('status', fn($row) => view('partials.backend.employee.status', compact('row'))->render())
+                    ->addColumn('action', fn($row) => view('partials.backend.employee.action', compact('row'))->render())
+                    ->rawColumns(['profile_image', 'name', 'contact', 'role', 'salary', 'status', 'action'])
                     ->make(true);
             }
 
@@ -84,7 +78,12 @@ class EmployeeController extends Controller
                 $user->assignRole($role);
             }
 
-            $this->handlePostCreationTasks($user, $validated);
+            // if ($user->email && isset($validated['password'])) {
+            //     Mail::to($user->email)->send(new EmployeeWelcomeMail(
+            //         $user,
+            //         $validated['password']
+            //     ));
+            // }
 
             DB::commit();
 
@@ -122,50 +121,18 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Handle post-creation tasks (email, logging, etc.)
-     */
-    private function handlePostCreationTasks(User $user, array $validated): void
-    {
-        if ($user->email && isset($validated['password'])) {
-            $this->sendWelcomeEmail($user, $validated['password']);
-        }
-
-        if (!$user->email || !isset($validated['password'])) {
-            Log::info('Employee created without email credentials', [
-                'user_id' => $user->id,
-                'has_email' => !empty($user->email),
-                'has_password' => isset($validated['password']),
-            ]);
-        }
-    }
-
-    /**
-     * Send welcome email to employee
-     */
-    private function sendWelcomeEmail(User $user, string $plainPassword): void
-    {
-        try {
-            // Uncomment when mail class is ready
-            // Mail::to($user->email)->send(new EmployeeWelcomeMail($user, $plainPassword));
-
-            Log::info('Welcome email queued for employee', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-            ]);
-        } catch (Throwable $e) {
-            Log::warning('Failed to send welcome email', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    /**
      * Display employee details
      */
     public function show(User $employee)
     {
-        $employee->load(['branch', 'department', 'roles', 'technician']);
+        $employee->load([
+            'branch',
+            'roles',
+            'department',
+            'sales',
+            'salary',
+            'attendance',
+        ]);
 
         return Inertia::render('Backend/ERP/HRM/EmployeeShow', [
             'employee' => $employee,
@@ -184,11 +151,6 @@ class EmployeeController extends Controller
                 'employee' => $employee
             ]);
         } catch (Throwable $e) {
-            Log::error('Employee edit error:', [
-                'employee_id' => $employee->id,
-                'error' => $e->getMessage(),
-            ]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load employee data.',
@@ -261,33 +223,6 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Get formatted photo column
-     */
-    private function getPhotoColumn(User $user): string
-    {
-        $photoPath = $user->profile_image
-            ? asset('storage/' . ltrim($user->profile_image, '/'))
-            : asset('/storage/images/profile/default.png');
-
-        return sprintf(
-            '<img src="%s" class="img-fluid thumbnail" style="max-width: 30px" alt="User Photo">',
-            e($photoPath)
-        );
-    }
-
-    /**
-     * Get formatted role column
-     */
-    private function getRoleColumn(User $user): string
-    {
-        $roleName = $user->roles->first()?->name;
-
-        return $roleName
-            ? ucfirst($roleName)
-            : '<span class="text-muted">No role</span>';
-    }
-
-    /**
      * Handle Excel import
      */
     public function import(Request $request)
@@ -301,22 +236,9 @@ class EmployeeController extends Controller
 
             Excel::import($import, $request->file('file'));
 
-            $rowCount = $import->getRowCount();
-            $errors = $import->getErrors();
-
-            // Format errors as simple strings for frontend
-            $formattedErrors = [];
-            if (!empty($errors)) {
-                foreach ($errors as $error) {
-                    $formattedErrors[] = is_string($error) ? $error : [];
-                }
-            }
-
             return response()->json([
                 'success' => true,
-                'message' => $rowCount . ' employees imported successfully',
-                'imported_count' => $rowCount,
-                'errors' => $formattedErrors
+                'message' => 'Employees imported successfully',
             ]);
 
         } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
@@ -334,63 +256,11 @@ class EmployeeController extends Controller
             ], 422);
 
         } catch (\Exception $e) {
-            Log::error('Import error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error importing file: ' . $e->getMessage(),
                 'error_details' => $e->getMessage()
             ], 500);
         }
-    }
-
-    /**
-     * Download import template
-     */
-    public function downloadTemplate()
-    {
-        // Create templates directory if it doesn't exist
-        Storage::makeDirectory('templates');
-
-        $filePath = storage_path('app/templates/employee_import_template.xlsx');
-
-        // Create template if it doesn't exist
-        if (!file_exists($filePath)) {
-            $this->createTemplate();
-        }
-
-        return response()->download($filePath, 'employee_import_template.xlsx');
-    }
-
-    /**
-     * Create import template
-     */
-    private function createTemplate()
-    {
-        $template = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet = $template->getActiveSheet();
-
-        // Headers
-        $headers = [
-            'firstname',
-            'lastname',
-            'email',
-            'phone',
-            'designation',
-            'password',
-            'role'
-        ];
-
-        $sheet->fromArray($headers, NULL, 'A1');
-
-        // Style the headers
-        $sheet->getStyle('A1:G1')->getFont()->setBold(true);
-
-        // Auto size columns
-        foreach (range('A', 'G') as $column) {
-            $sheet->getColumnDimension($column)->setAutoSize(true);
-        }
-
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($template);
-        $writer->save(storage_path('app/templates/employee_import_template.xlsx'));
     }
 }

@@ -18,12 +18,7 @@ import {
     InfoCircle,
 } from "react-bootstrap-icons";
 
-export default function PricingTab({
-    data,
-    updateFormData,
-    errors,
-    taxes = [],
-}) {
+export default function PricingTab({ formik, taxes = [] }) {
     const [currency] = useState("USD");
     const [calculatedPrices, setCalculatedPrices] = useState({
         profitMargin: 0,
@@ -35,9 +30,9 @@ export default function PricingTab({
 
     // Calculate derived pricing information
     useEffect(() => {
-        const basePrice = parseFloat(data.base_price) || 0;
-        const comparePrice = parseFloat(data.compare_price) || 0;
-        const costPerItem = parseFloat(data.cost_per_item) || 0;
+        const basePrice = parseFloat(formik.values.base_price) || 0;
+        const comparePrice = parseFloat(formik.values.compare_price) || 0;
+        const costPerItem = parseFloat(formik.values.cost_per_item) || 0;
         const taxRate = parseFloat(selectedTax?.rate) || 0;
 
         const calculations = {
@@ -63,10 +58,10 @@ export default function PricingTab({
 
         setCalculatedPrices(calculations);
     }, [
-        data.base_price,
-        data.compare_price,
-        data.cost_per_item,
-        data.tax_id,
+        formik.values.base_price,
+        formik.values.compare_price,
+        formik.values.cost_per_item,
+        formik.values.tax_id,
         taxes,
     ]);
 
@@ -82,24 +77,18 @@ export default function PricingTab({
         [taxes]
     );
 
-    const selectedTax = taxOptions.find((opt) => opt.value === data.tax_id);
+    const selectedTax = taxOptions.find(
+        (opt) => opt.value === formik.values.tax_id
+    );
 
     // Handle price changes with validation
     const handlePriceChange = useCallback(
         (field, value) => {
             // Ensure numeric value and prevent negative numbers
             const numericValue = Math.max(0, parseFloat(value) || 0);
-            updateFormData(field, numericValue);
+            formik.setFieldValue(field, numericValue);
         },
-        [updateFormData]
-    );
-
-    // Handle tax selection
-    const handleTaxChange = useCallback(
-        (option) => {
-            updateFormData("tax_id", option?.value || "");
-        },
-        [updateFormData]
+        [formik]
     );
 
     // Quick price suggestions based on cost
@@ -114,7 +103,7 @@ export default function PricingTab({
         };
     }, []);
 
-    const suggestedPrices = getSuggestedPrices(data.cost_per_item);
+    const suggestedPrices = getSuggestedPrices(formik.values.cost_per_item);
 
     // Pricing tiers for different customer types
     const pricingTiers = [
@@ -199,24 +188,32 @@ export default function PricingTab({
                                             </InputGroup.Text>
                                             <Form.Control
                                                 type="number"
+                                                name="cost_per_item"
                                                 step="0.01"
                                                 min="0"
-                                                value={data.cost_per_item || 0}
+                                                value={
+                                                    formik.values
+                                                        .cost_per_item || 0
+                                                }
                                                 onChange={(e) =>
                                                     handlePriceChange(
                                                         "cost_per_item",
                                                         e.target.value
                                                     )
                                                 }
+                                                onBlur={formik.handleBlur}
                                                 isInvalid={
-                                                    !!errors.cost_per_item
+                                                    formik.touched
+                                                        .cost_per_item &&
+                                                    !!formik.errors
+                                                        .cost_per_item
                                                 }
                                                 placeholder="0.00"
                                                 className="py-2 border-start-0"
                                             />
                                         </InputGroup>
                                         <Form.Control.Feedback type="invalid">
-                                            {errors.cost_per_item}
+                                            {formik.errors.cost_per_item}
                                         </Form.Control.Feedback>
                                         <Form.Text className="text-muted">
                                             Your actual cost for this product
@@ -307,10 +304,10 @@ export default function PricingTab({
                             <Row className="g-4">
                                 {pricingTiers.map((tier) => {
                                     const IconComponent = tier.icon;
-                                    const value = data[tier.key] || 0;
+                                    const value = formik.values[tier.key] || 0;
                                     const isDiscounted =
                                         tier.key === "compare_price" &&
-                                        value > data.base_price;
+                                        value > formik.values.base_price;
 
                                     return (
                                         <Col md={6} key={tier.key}>
@@ -361,6 +358,7 @@ export default function PricingTab({
                                                         </InputGroup.Text>
                                                         <Form.Control
                                                             type="number"
+                                                            name={tier.key}
                                                             step="0.01"
                                                             min="0"
                                                             value={value}
@@ -371,8 +369,14 @@ export default function PricingTab({
                                                                         .value
                                                                 )
                                                             }
+                                                            onBlur={
+                                                                formik.handleBlur
+                                                            }
                                                             isInvalid={
-                                                                !!errors[
+                                                                formik.touched[
+                                                                    tier.key
+                                                                ] &&
+                                                                !!formik.errors[
                                                                     tier.key
                                                                 ]
                                                             }
@@ -386,11 +390,19 @@ export default function PricingTab({
                                                         />
                                                     </InputGroup>
 
-                                                    {errors[tier.key] && (
-                                                        <Form.Text className="text-danger">
-                                                            {errors[tier.key]}
-                                                        </Form.Text>
-                                                    )}
+                                                    {formik.touched[tier.key] &&
+                                                        formik.errors[
+                                                            tier.key
+                                                        ] && (
+                                                            <Form.Text className="text-danger">
+                                                                {
+                                                                    formik
+                                                                        .errors[
+                                                                        tier.key
+                                                                    ]
+                                                                }
+                                                            </Form.Text>
+                                                        )}
 
                                                     {/* Tier-specific info */}
                                                     {tier.key ===
@@ -411,7 +423,8 @@ export default function PricingTab({
 
                                                     {tier.key ===
                                                         "agent_price" &&
-                                                        data.base_price > 0 &&
+                                                        formik.values
+                                                            .base_price > 0 &&
                                                         value > 0 && (
                                                             <div className="mt-2 text-center">
                                                                 <Badge
@@ -419,9 +432,13 @@ export default function PricingTab({
                                                                     className="fs-7"
                                                                 >
                                                                     {(
-                                                                        ((data.base_price -
+                                                                        ((formik
+                                                                            .values
+                                                                            .base_price -
                                                                             value) /
-                                                                            data.base_price) *
+                                                                            formik
+                                                                                .values
+                                                                                .base_price) *
                                                                         100
                                                                     ).toFixed(
                                                                         1
@@ -463,24 +480,38 @@ export default function PricingTab({
                                 <Select
                                     options={taxOptions}
                                     value={selectedTax}
-                                    onChange={handleTaxChange}
-                                    isInvalid={!!errors.tax_id}
+                                    onChange={(option) =>
+                                        formik.setFieldValue(
+                                            "tax_id",
+                                            option?.value || ""
+                                        )
+                                    }
+                                    onBlur={() =>
+                                        formik.setFieldTouched("tax_id", true)
+                                    }
+                                    isInvalid={
+                                        formik.touched.tax_id &&
+                                        !!formik.errors.tax_id
+                                    }
                                     placeholder="Select tax rate..."
                                     styles={{
                                         control: (base) => ({
                                             ...base,
-                                            borderColor: errors.tax_id
-                                                ? "#dc3545"
-                                                : base.borderColor,
+                                            borderColor:
+                                                formik.touched.tax_id &&
+                                                formik.errors.tax_id
+                                                    ? "#dc3545"
+                                                    : base.borderColor,
                                             minHeight: "44px",
                                         }),
                                     }}
                                 />
-                                {errors.tax_id && (
-                                    <div className="text-danger small mt-1">
-                                        {errors.tax_id}
-                                    </div>
-                                )}
+                                {formik.touched.tax_id &&
+                                    formik.errors.tax_id && (
+                                        <div className="text-danger small mt-1">
+                                            {formik.errors.tax_id}
+                                        </div>
+                                    )}
 
                                 {selectedTax && (
                                     <div className="mt-2 p-2 bg-light rounded">
@@ -518,7 +549,7 @@ export default function PricingTab({
                                     <span className="small fw-semibold">
                                         {currency}{" "}
                                         {parseFloat(
-                                            data.cost_per_item || 0
+                                            formik.values.cost_per_item || 0
                                         ).toFixed(2)}
                                     </span>
                                 </div>
@@ -529,7 +560,7 @@ export default function PricingTab({
                                     <span className="fw-semibold text-primary">
                                         {currency}{" "}
                                         {parseFloat(
-                                            data.base_price || 0
+                                            formik.values.base_price || 0
                                         ).toFixed(2)}
                                     </span>
                                 </div>
@@ -573,7 +604,7 @@ export default function PricingTab({
                                         <small className="text-muted">
                                             Was {currency}{" "}
                                             {parseFloat(
-                                                data.compare_price || 0
+                                                formik.values.compare_price || 0
                                             ).toFixed(2)}
                                         </small>
                                     </div>
@@ -633,14 +664,14 @@ export default function PricingTab({
                                     type="button"
                                     className="btn btn-outline-primary btn-sm"
                                     onClick={() => {
-                                        if (data.cost_per_item > 0) {
+                                        if (formik.values.cost_per_item > 0) {
                                             handlePriceChange(
                                                 "base_price",
-                                                data.cost_per_item * 2
+                                                formik.values.cost_per_item * 2
                                             );
                                         }
                                     }}
-                                    disabled={!data.cost_per_item}
+                                    disabled={!formik.values.cost_per_item}
                                 >
                                     Set 2x Cost Price
                                 </button>
@@ -648,14 +679,14 @@ export default function PricingTab({
                                     type="button"
                                     className="btn btn-outline-success btn-sm"
                                     onClick={() => {
-                                        if (data.base_price > 0) {
+                                        if (formik.values.base_price > 0) {
                                             handlePriceChange(
                                                 "compare_price",
-                                                data.base_price * 1.3
+                                                formik.values.base_price * 1.3
                                             );
                                         }
                                     }}
-                                    disabled={!data.base_price}
+                                    disabled={!formik.values.base_price}
                                 >
                                     Add 30% Compare Price
                                 </button>
@@ -663,14 +694,14 @@ export default function PricingTab({
                                     type="button"
                                     className="btn btn-outline-info btn-sm"
                                     onClick={() => {
-                                        if (data.base_price > 0) {
+                                        if (formik.values.base_price > 0) {
                                             handlePriceChange(
                                                 "agent_price",
-                                                data.base_price * 0.8
+                                                formik.values.base_price * 0.8
                                             );
                                         }
                                     }}
-                                    disabled={!data.base_price}
+                                    disabled={!formik.values.base_price}
                                 >
                                     Set 20% Agent Discount
                                 </button>
@@ -681,7 +712,7 @@ export default function PricingTab({
             </Row>
 
             {/* Validation Alert */}
-            {data.cost_per_item > data.base_price && (
+            {formik.values.cost_per_item > formik.values.base_price && (
                 <Alert variant="warning" className="mt-4">
                     <Alert.Heading className="h6">
                         <InfoCircle className="me-2" />

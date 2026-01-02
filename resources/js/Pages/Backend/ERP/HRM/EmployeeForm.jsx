@@ -29,11 +29,11 @@ import * as Yup from "yup";
 import xios from "@/Utils/axios";
 import { useErrorToast } from "@/Hooks/useErrorToast";
 import useData from "@/Hooks/useData";
-import PersonalDetailsTab from "@/Components/Partials/Employee/PersonalDetailsTab";
-import ProfessionalTab from "@/Components/Partials/Employee/ProfessionalTab";
-import FinancialTab from "@/Components/Partials/Employee/FinancialTab";
-import DocumentsTab from "@/Components/Partials/Employee/DocumentsTab";
-import StatusTab from "@/Components/Partials/Employee/StatusTab";
+import PersonalDetailsTab from "@/Components/Partials/Employee/Edit/PersonalDetailsTab";
+import ProfessionalTab from "@/Components/Partials/Employee/Edit/ProfessionalTab";
+import FinancialTab from "@/Components/Partials/Employee/Edit/FinancialTab";
+import DocumentsTab from "@/Components/Partials/Employee/Edit/DocumentsTab";
+import StatusTab from "@/Components/Partials/Employee/Edit/StatusTab";
 
 const TABS = [
     {

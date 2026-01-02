@@ -52,33 +52,65 @@ return new class extends Migration {
             $table->unique(['start_date', 'end_date', 'type']);
         });
 
-        // 3. Salaries Table
+        // 3. Salaries Table - UPDATED for React compatibility
         Schema::create('salaries', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('payroll_period_id')->constrained('payroll_periods')->onDelete('cascade');
+            $table->string('employee_code')->nullable();
+            $table->string('month');
+            $table->integer('year');
+            $table->foreignId('payroll_period_id')->nullable()->constrained('payroll_periods')->onDelete('set null');
+
+            // Basic salary info
             $table->decimal('basic_salary', 15, 2)->default(0);
+
+            // Attendance
+            $table->integer('total_days')->default(26);
+            $table->integer('days_present')->default(26);
+            $table->integer('days_absent')->default(0);
+
+            // Allowances (stored as JSON for flexibility)
+            $table->json('allowances')->nullable();
+
+            // Deductions (stored as JSON for flexibility)
+            $table->json('deductions')->nullable();
+
+            // Calculated totals
+            $table->decimal('real_salary', 15, 2)->default(0);
             $table->decimal('total_allowances', 15, 2)->default(0);
             $table->decimal('total_deductions', 15, 2)->default(0);
             $table->decimal('gross_salary', 15, 2)->default(0);
             $table->decimal('net_salary', 15, 2)->default(0);
-            $table->date('salary_date');
-            $table->enum('status', ['pending', 'calculated', 'approved', 'paid', 'cancelled'])->default('pending');
-            $table->string('payment_method')->nullable();
-            $table->timestamp('paid_at')->nullable();
+            $table->decimal('days_deduction', 15, 2)->default(0);
+
+            // Currency conversion
+            $table->string('currency', 3)->default('USD');
+            $table->decimal('exchange_rate', 15, 2)->default(1);
+            $table->decimal('net_in_usd', 15, 2)->default(0);
+            $table->decimal('net_in_cdf', 15, 2)->default(0);
+
+            // Status and dates
+            $table->enum('status', ['pending', 'processing', 'paid'])->default('pending');
+            $table->date('payment_date')->nullable();
+            $table->date('salary_date')->useCurrent();
+
+            // Additional info
+            $table->text('notes')->nullable();
+
+            // Audit fields
             $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('approved_at')->nullable();
-            $table->text('approval_notes')->nullable();
-            $table->text('notes')->nullable();
+            $table->foreignId('paid_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->timestamp('paid_at')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignId('updated_by')->nullable()->constrained('users')->onDelete('set null');
             $table->softDeletes();
             $table->timestamps();
 
-            $table->unique(['user_id', 'payroll_period_id']);
+            $table->unique(['user_id', 'month', 'year']);
             $table->index(['status', 'salary_date']);
             $table->index(['user_id', 'status']);
-            $table->index(['payroll_period_id', 'status']);
+            $table->index(['month', 'year', 'status']);
         });
 
         // 4. Salary Component Values Table
@@ -163,7 +195,6 @@ return new class extends Migration {
 
     public function down(): void
     {
-        // Drop tables in reverse order
         Schema::dropIfExists('salary_payments');
         Schema::dropIfExists('deductions');
         Schema::dropIfExists('allowances');

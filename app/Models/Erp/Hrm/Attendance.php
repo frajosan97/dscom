@@ -12,65 +12,65 @@ class Attendance extends Model
 
     protected $table = 'attendances';
 
+    /**
+     * Mass assignable attributes
+     */
     protected $fillable = [
-        'employee_id',
-        'date',
-        'check_in',
-        'check_out',
+        'user_id',
+        'attendance_date',
+        'clock_in',
+        'clock_out',
+        'mode',
         'status',
-        'hours_worked',
-        'overtime_hours',
-        'late_minutes',
-        'early_leaving_minutes',
-        'notes',
-        'approved_by',
-        'approved_at',
-        'created_by',
+        'remarks',
     ];
 
+    /**
+     * Attribute casting
+     */
     protected $casts = [
-        'date' => 'date',
-        'check_in' => 'datetime',
-        'check_out' => 'datetime',
-        'hours_worked' => 'decimal:2',
-        'overtime_hours' => 'decimal:2',
-        'late_minutes' => 'integer',
-        'early_leaving_minutes' => 'integer',
-        'approved_at' => 'datetime',
+        'attendance_date' => 'date',
+        'clock_in' => 'datetime:H:i:s',
+        'clock_out' => 'datetime:H:i:s',
     ];
 
-    // Status constants
-    const STATUS_PRESENT = 'present';
-    const STATUS_ABSENT = 'absent';
-    const STATUS_HALF_DAY = 'half_day';
-    const STATUS_LEAVE = 'leave';
-    const STATUS_HOLIDAY = 'holiday';
-    const STATUS_WEEKEND = 'weekend';
+    /**
+     * Attendance Modes
+     */
+    public const MODE_MANUAL = 'manual';
+    public const MODE_FINGERPRINT = 'fingerprint';
 
-    public static function getStatuses()
-    {
-        return [
-            self::STATUS_PRESENT,
-            self::STATUS_ABSENT,
-            self::STATUS_HALF_DAY,
-            self::STATUS_LEAVE,
-            self::STATUS_HOLIDAY,
-            self::STATUS_WEEKEND,
-        ];
-    }
+    /**
+     * Attendance Statuses
+     */
+    public const STATUS_PRESENT = 'present';
+    public const STATUS_ABSENT = 'absent';
+    public const STATUS_LATE = 'late';
+    public const STATUS_HALF_DAY = 'half-day';
 
-    // Relationships
-    public function employee()
+    /**
+     * Relationships
+     */
+    public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function approvedByUser()
+    public function scopeForUser($query, int $userId)
     {
-        return $this->belongsTo(User::class, 'approved_by');
+        return $query->where('user_id', $userId);
     }
 
-    // Scopes
+    public function scopeOnDate($query, $date)
+    {
+        return $query->whereDate('attendance_date', $date);
+    }
+
+    public function scopeBetweenDates($query, $start, $end)
+    {
+        return $query->whereBetween('attendance_date', [$start, $end]);
+    }
+
     public function scopePresent($query)
     {
         return $query->where('status', self::STATUS_PRESENT);
@@ -81,49 +81,22 @@ class Attendance extends Model
         return $query->where('status', self::STATUS_ABSENT);
     }
 
-    public function scopeHalfDay($query)
+    public function scopeLate($query)
     {
-        return $query->where('status', self::STATUS_HALF_DAY);
+        return $query->where('status', self::STATUS_LATE);
     }
 
-    public function scopeLeave($query)
+    public function hasClockedOut(): bool
     {
-        return $query->where('status', self::STATUS_LEAVE);
+        return !is_null($this->clock_out);
     }
 
-    public function scopeBetweenDates($query, $startDate, $endDate)
+    public function workedMinutes(): ?int
     {
-        return $query->whereBetween('date', [$startDate, $endDate]);
-    }
-
-    public function scopeForEmployee($query, $employeeId)
-    {
-        return $query->where('employee_id', $employeeId);
-    }
-
-    // Methods
-    public function calculateSalaryAdjustment($dailyRate)
-    {
-        switch ($this->status) {
-            case self::STATUS_ABSENT:
-                return $dailyRate;
-            case self::STATUS_HALF_DAY:
-                return $dailyRate / 2;
-            case self::STATUS_PRESENT:
-                // Check for late deductions
-                $lateDeduction = 0;
-                if ($this->late_minutes > 30) {
-                    // Deduct 1 hour for late > 30 minutes
-                    $lateDeduction = $dailyRate / 8; // Assuming 8-hour workday
-                }
-                return $lateDeduction;
-            default:
-                return 0;
+        if (!$this->clock_in || !$this->clock_out) {
+            return null;
         }
-    }
 
-    public function isApproved()
-    {
-        return !is_null($this->approved_at);
+        return $this->clock_in->diffInMinutes($this->clock_out);
     }
 }

@@ -6,66 +6,98 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Auth;
 
 class Salary extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'salaries';
-
     protected $fillable = [
-        'employee_id',
+        'user_id',
+        'employee_code',
+        'month',
+        'year',
         'payroll_period_id',
         'basic_salary',
+        'daily_rate',
+        'daily_transport_rate',
+        'total_days',
+        'days_present',
+        'days_absent',
+        'allowances',
+        'bonus',
+        'quality_bonus',
+        'overtime_hours',
+        'overtime_rate',
+        'regularization',
+        'other_allowances',
+        'deductions',
+        'transport_deduction',
+        'advance_salary',
+        'disciplinary_deductions',
+        'product_loss',
+        'other_deductions',
+        'real_salary',
         'total_allowances',
         'total_deductions',
         'gross_salary',
         'net_salary',
-        'salary_date',
+        'days_deduction',
+        'currency',
+        'exchange_rate',
+        'net_in_usd',
+        'net_in_cdf',
         'status',
-        'payment_method',
-        'paid_at',
+        'payment_date',
+        'salary_date',
+        'notes',
         'approved_by',
         'approved_at',
-        'approval_notes',
-        'notes',
+        'paid_by',
+        'paid_at',
         'created_by',
-        'updated_by',
+        'updated_by'
     ];
 
     protected $casts = [
+        'allowances' => 'array',
+        'other_allowances' => 'array',
+        'deductions' => 'array',
+        'disciplinary_deductions' => 'array',
+        'other_deductions' => 'array',
         'basic_salary' => 'decimal:2',
+        'daily_rate' => 'decimal:2',
+        'daily_transport_rate' => 'decimal:2',
+        'bonus' => 'decimal:2',
+        'quality_bonus' => 'decimal:2',
+        'overtime_hours' => 'decimal:2',
+        'overtime_rate' => 'decimal:2',
+        'regularization' => 'decimal:2',
+        'transport_deduction' => 'decimal:2',
+        'advance_salary' => 'decimal:2',
+        'product_loss' => 'decimal:2',
+        'real_salary' => 'decimal:2',
         'total_allowances' => 'decimal:2',
         'total_deductions' => 'decimal:2',
         'gross_salary' => 'decimal:2',
         'net_salary' => 'decimal:2',
-        'salary_date' => 'date',
-        'paid_at' => 'datetime',
+        'days_deduction' => 'decimal:2',
+        'exchange_rate' => 'decimal:2',
+        'net_in_usd' => 'decimal:2',
+        'net_in_cdf' => 'decimal:2',
         'approved_at' => 'datetime',
+        'paid_at' => 'datetime',
     ];
 
-    // Status constants
-    const STATUS_PENDING = 'pending';
-    const STATUS_CALCULATED = 'calculated';
-    const STATUS_APPROVED = 'approved';
-    const STATUS_PAID = 'paid';
-    const STATUS_CANCELLED = 'cancelled';
-
-    public static function getStatuses()
-    {
-        return [
-            self::STATUS_PENDING,
-            self::STATUS_CALCULATED,
-            self::STATUS_APPROVED,
-            self::STATUS_PAID,
-            self::STATUS_CANCELLED,
-        ];
-    }
-
     // Relationships
-    public function employee()
+    public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function employee()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function payrollPeriod()
@@ -73,7 +105,7 @@ class Salary extends Model
         return $this->belongsTo(PayrollPeriod::class);
     }
 
-    public function components()
+    public function salaryComponents()
     {
         return $this->hasMany(SalaryComponentValue::class);
     }
@@ -83,26 +115,22 @@ class Salary extends Model
         return $this->hasMany(SalaryPayment::class);
     }
 
-    public function attendances()
-    {
-        return $this->hasMany(Attendance::class, 'employee_id', 'employee_id')
-            ->whereBetween('date', [
-                $this->payrollPeriod->start_date ?? now()->startOfMonth(),
-                $this->payrollPeriod->end_date ?? now()->endOfMonth()
-            ]);
-    }
-
-    public function approvedByUser()
+    public function approvedBy()
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    public function createdByUser()
+    public function paidBy()
+    {
+        return $this->belongsTo(User::class, 'paid_by');
+    }
+
+    public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function updatedByUser()
+    public function updatedBy()
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
@@ -110,76 +138,115 @@ class Salary extends Model
     // Scopes
     public function scopePending($query)
     {
-        return $query->where('status', self::STATUS_PENDING);
+        return $query->where('status', 'pending');
     }
 
-    public function scopeCalculated($query)
+    public function scopeProcessing($query)
     {
-        return $query->where('status', self::STATUS_CALCULATED);
-    }
-
-    public function scopeApproved($query)
-    {
-        return $query->where('status', self::STATUS_APPROVED);
+        return $query->where('status', 'processing');
     }
 
     public function scopePaid($query)
     {
-        return $query->where('status', self::STATUS_PAID);
+        return $query->where('status', 'paid');
     }
 
-    public function scopeForPeriod($query, $periodId)
+    public function scopeForPeriod($query, $month, $year)
     {
-        return $query->where('payroll_period_id', $periodId);
+        return $query->where('month', $month)->where('year', $year);
     }
 
-    public function scopeForEmployee($query, $employeeId)
+    public function scopeForEmployee($query, $userId)
     {
-        return $query->where('employee_id', $employeeId);
+        return $query->where('user_id', $userId);
     }
 
-    public function scopeBetweenDates($query, $startDate, $endDate)
+    // Helpers
+    public function calculateTotals()
     {
-        return $query->whereBetween('salary_date', [$startDate, $endDate]);
+        // Real salary based on attendance
+        $this->real_salary = $this->daily_rate * $this->days_present;
+        
+        // Calculate allowances total
+        $allowancesTotal = collect($this->allowances)->sum('amount') ?? 0;
+        $otherAllowancesTotal = collect($this->other_allowances)->sum('amount') ?? 0;
+        $overtimeTotal = $this->overtime_hours * $this->overtime_rate;
+        
+        $this->total_allowances = $allowancesTotal 
+            + $this->bonus 
+            + $this->quality_bonus 
+            + $overtimeTotal 
+            + $this->regularization 
+            + $otherAllowancesTotal;
+        
+        // Calculate gross salary
+        $this->gross_salary = $this->real_salary + $this->total_allowances;
+        
+        // Calculate deductions total
+        $deductionsTotal = collect($this->deductions)->sum('amount') ?? 0;
+        $disciplinaryDeductionsTotal = collect($this->disciplinary_deductions)->sum('amount') ?? 0;
+        $otherDeductionsTotal = collect($this->other_deductions)->sum('amount') ?? 0;
+        $this->days_deduction = $this->daily_rate * $this->days_absent;
+        
+        $this->total_deductions = $deductionsTotal 
+            + $this->transport_deduction 
+            + $this->advance_salary 
+            + $this->days_deduction 
+            + $disciplinaryDeductionsTotal 
+            + $this->product_loss 
+            + $otherDeductionsTotal;
+        
+        // Calculate net salary
+        $this->net_salary = max(0, $this->gross_salary - $this->total_deductions);
+        
+        // Currency conversion
+        if ($this->currency === 'CDF') {
+            $this->net_in_usd = $this->net_salary / $this->exchange_rate;
+            $this->net_in_cdf = $this->net_salary;
+        } else {
+            $this->net_in_usd = $this->net_salary;
+            $this->net_in_cdf = $this->net_salary * $this->exchange_rate;
+        }
+        
+        return $this;
     }
 
-    // Methods
-    public function isEditable()
+    public function markAsPaid($paymentMethod = 'bank_transfer', $paymentDate = null, $notes = null)
     {
-        return in_array($this->status, [self::STATUS_PENDING, self::STATUS_CALCULATED]);
-    }
+        $this->status = 'paid';
+        $this->payment_date = $paymentDate ?? now();
+        $this->paid_at = now();
+        $this->paid_by = Auth::id();
+        $this->save();
 
-    public function isPayable()
-    {
-        return $this->status === self::STATUS_APPROVED;
-    }
-
-    public function markAsPaid($paymentMethod, $paidAt = null)
-    {
-        $this->update([
-            'status' => self::STATUS_PAID,
+        // Create payment record
+        SalaryPayment::create([
+            'salary_id' => $this->id,
+            'amount' => $this->net_salary,
+            'payment_date' => $this->payment_date,
             'payment_method' => $paymentMethod,
-            'paid_at' => $paidAt ?? now(),
+            'notes' => $notes,
+            'paid_by' => Auth::id(),
         ]);
     }
 
-    public function getAllowances()
+    public function getFormattedNetSalaryAttribute()
     {
-        return $this->components()
-            ->whereHas('component', function ($query) {
-                $query->where('type', SalaryComponent::TYPE_ALLOWANCE);
-            })
-            ->with('component')
-            ->get();
+        return number_format($this->net_salary, 2);
     }
 
-    public function getDeductions()
+    public function getFormattedGrossSalaryAttribute()
     {
-        return $this->components()
-            ->whereHas('component', function ($query) {
-                $query->where('type', SalaryComponent::TYPE_DEDUCTION);
-            })
-            ->with('component')
-            ->get();
+        return number_format($this->gross_salary, 2);
+    }
+
+    public function getFormattedBasicSalaryAttribute()
+    {
+        return number_format($this->basic_salary, 2);
+    }
+
+    public function getPeriodAttribute()
+    {
+        return $this->month . ' ' . $this->year;
     }
 }

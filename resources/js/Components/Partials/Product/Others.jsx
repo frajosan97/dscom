@@ -28,49 +28,44 @@ import {
 } from "react-bootstrap-icons";
 import Select from "react-select";
 
-export default function OthersTab({
-    data,
-    updateFormData,
-    updateArrayField,
-    errors,
-}) {
+export default function OthersTab({ formik }) {
     const [activeAccordion, setActiveAccordion] = useState("0");
-    const [metadata, setMetadata] = useState(data.metadata || {});
+    const [metadata, setMetadata] = useState(formik.values.metadata || {});
 
     // Initialize metadata
     useEffect(() => {
-        if (data.metadata) {
-            setMetadata(data.metadata);
+        if (formik.values.metadata) {
+            setMetadata(formik.values.metadata);
         }
-    }, [data.metadata]);
+    }, [formik.values.metadata]);
 
-    // Update parent when metadata changes
+    // Update formik when metadata changes
     useEffect(() => {
-        updateFormData("metadata", metadata);
-    }, [metadata, updateFormData]);
+        formik.setFieldValue("metadata", metadata);
+    }, [metadata]);
 
     // Handle input changes
     const handleInputChange = useCallback(
         (field, value) => {
-            updateFormData(field, value);
+            formik.setFieldValue(field, value);
         },
-        [updateFormData]
+        [formik]
     );
 
     // Handle switch toggles
     const handleSwitchChange = useCallback(
         (field, value) => {
-            updateFormData(field, value);
+            formik.setFieldValue(field, value);
         },
-        [updateFormData]
+        [formik]
     );
 
     // Handle date changes
     const handleDateChange = useCallback(
         (field, value) => {
-            updateFormData(field, value || "");
+            formik.setFieldValue(field, value || "");
         },
-        [updateFormData]
+        [formik]
     );
 
     // Handle metadata changes
@@ -98,27 +93,27 @@ export default function OthersTab({
 
     // Calculate product age for "New" status
     const isProductNew = useMemo(() => {
-        if (!data.is_new) return false;
-        if (!data.new_until) return true;
+        if (!formik.values.is_new) return false;
+        if (!formik.values.new_until) return true;
 
-        const newUntil = new Date(data.new_until);
+        const newUntil = new Date(formik.values.new_until);
         const today = new Date();
         return newUntil >= today;
-    }, [data.is_new, data.new_until]);
+    }, [formik.values.is_new, formik.values.new_until]);
 
     // Product status summary
     const statusSummary = useMemo(() => {
         const statuses = [];
 
-        if (data.is_active)
+        if (formik.values.is_active)
             statuses.push({
                 label: "Active",
                 color: "success",
                 icon: ShieldCheck,
             });
-        if (data.is_featured)
+        if (formik.values.is_featured)
             statuses.push({ label: "Featured", color: "primary", icon: Star });
-        if (data.is_bestseller)
+        if (formik.values.is_bestseller)
             statuses.push({
                 label: "Bestseller",
                 color: "warning",
@@ -126,7 +121,7 @@ export default function OthersTab({
             });
         if (isProductNew)
             statuses.push({ label: "New", color: "info", icon: Lightning });
-        if (data.stock_status === "out_of_stock")
+        if (formik.values.stock_status === "out_of_stock")
             statuses.push({
                 label: "Out of Stock",
                 color: "danger",
@@ -137,16 +132,16 @@ export default function OthersTab({
             ? statuses
             : [{ label: "Inactive", color: "secondary", icon: Eye }];
     }, [
-        data.is_active,
-        data.is_featured,
-        data.is_bestseller,
+        formik.values.is_active,
+        formik.values.is_featured,
+        formik.values.is_bestseller,
         isProductNew,
-        data.stock_status,
+        formik.values.stock_status,
     ]);
 
     // Shipping requirements based on product type
     const shippingConfig = useMemo(() => {
-        if (data.is_digital) {
+        if (formik.values.is_digital) {
             return {
                 requiresShipping: false,
                 message: "Digital products do not require shipping",
@@ -154,7 +149,7 @@ export default function OthersTab({
             };
         }
 
-        if (!data.requires_shipping) {
+        if (!formik.values.requires_shipping) {
             return {
                 requiresShipping: false,
                 message: "Shipping is disabled for this product",
@@ -167,7 +162,7 @@ export default function OthersTab({
             message: "Shipping is required for this product",
             variant: "success",
         };
-    }, [data.is_digital, data.requires_shipping]);
+    }, [formik.values.is_digital, formik.values.requires_shipping]);
 
     return (
         <div className="others-tab">
@@ -237,18 +232,22 @@ export default function OthersTab({
                                                         </span>
                                                         <Badge
                                                             bg={
-                                                                data.is_active
+                                                                formik.values
+                                                                    .is_active
                                                                     ? "success"
                                                                     : "secondary"
                                                             }
                                                         >
-                                                            {data.is_active
+                                                            {formik.values
+                                                                .is_active
                                                                 ? "Live"
                                                                 : "Hidden"}
                                                         </Badge>
                                                     </div>
                                                 }
-                                                checked={data.is_active}
+                                                checked={
+                                                    formik.values.is_active
+                                                }
                                                 onChange={(e) =>
                                                     handleSwitchChange(
                                                         "is_active",
@@ -273,18 +272,22 @@ export default function OthersTab({
                                                         </span>
                                                         <Badge
                                                             bg={
-                                                                data.is_featured
+                                                                formik.values
+                                                                    .is_featured
                                                                     ? "primary"
                                                                     : "secondary"
                                                             }
                                                         >
-                                                            {data.is_featured
+                                                            {formik.values
+                                                                .is_featured
                                                                 ? "Featured"
                                                                 : "Standard"}
                                                         </Badge>
                                                     </div>
                                                 }
-                                                checked={data.is_featured}
+                                                checked={
+                                                    formik.values.is_featured
+                                                }
                                                 onChange={(e) =>
                                                     handleSwitchChange(
                                                         "is_featured",
@@ -309,18 +312,22 @@ export default function OthersTab({
                                                         </span>
                                                         <Badge
                                                             bg={
-                                                                data.is_bestseller
+                                                                formik.values
+                                                                    .is_bestseller
                                                                     ? "warning"
                                                                     : "secondary"
                                                             }
                                                         >
-                                                            {data.is_bestseller
+                                                            {formik.values
+                                                                .is_bestseller
                                                                 ? "Bestseller"
                                                                 : "Regular"}
                                                         </Badge>
                                                     </div>
                                                 }
-                                                checked={data.is_bestseller}
+                                                checked={
+                                                    formik.values.is_bestseller
+                                                }
                                                 onChange={(e) =>
                                                     handleSwitchChange(
                                                         "is_bestseller",
@@ -356,7 +363,7 @@ export default function OthersTab({
                                                         </Badge>
                                                     </div>
                                                 }
-                                                checked={data.is_new}
+                                                checked={formik.values.is_new}
                                                 onChange={(e) =>
                                                     handleSwitchChange(
                                                         "is_new",
@@ -384,7 +391,7 @@ export default function OthersTab({
                                     </Card.Header>
                                     <Card.Body>
                                         {/* New Until Date */}
-                                        {data.is_new && (
+                                        {formik.values.is_new && (
                                             <Form.Group className="mb-4">
                                                 <Form.Label className="fw-semibold">
                                                     <Calendar className="me-2" />
@@ -392,7 +399,10 @@ export default function OthersTab({
                                                 </Form.Label>
                                                 <Form.Control
                                                     type="date"
-                                                    value={data.new_until || ""}
+                                                    value={
+                                                        formik.values
+                                                            .new_until || ""
+                                                    }
                                                     onChange={(e) =>
                                                         handleDateChange(
                                                             "new_until",
@@ -408,12 +418,13 @@ export default function OthersTab({
                                                 <Form.Text className="text-muted">
                                                     Product will show as "New"
                                                     until this date
-                                                    {data.new_until && (
+                                                    {formik.values
+                                                        .new_until && (
                                                         <span className="ms-1">
                                                             (
                                                             {Math.ceil(
                                                                 (new Date(
-                                                                    data.new_until
+                                                                    formik.values.new_until
                                                                 ) -
                                                                     new Date()) /
                                                                     (1000 *
@@ -439,18 +450,20 @@ export default function OthersTab({
                                                     </span>
                                                     <Badge
                                                         bg={
-                                                            data.is_digital
+                                                            formik.values
+                                                                .is_digital
                                                                 ? "info"
                                                                 : "secondary"
                                                         }
                                                     >
-                                                        {data.is_digital
+                                                        {formik.values
+                                                            .is_digital
                                                             ? "Digital"
                                                             : "Physical"}
                                                     </Badge>
                                                 </div>
                                             }
-                                            checked={data.is_digital}
+                                            checked={formik.values.is_digital}
                                             onChange={(e) =>
                                                 handleSwitchChange(
                                                     "is_digital",
@@ -465,7 +478,7 @@ export default function OthersTab({
                                         </Form.Text>
 
                                         {/* Shipping Requirement */}
-                                        {!data.is_digital && (
+                                        {!formik.values.is_digital && (
                                             <Form.Check
                                                 type="switch"
                                                 id="requires_shipping"
@@ -476,18 +489,23 @@ export default function OthersTab({
                                                         </span>
                                                         <Badge
                                                             bg={
-                                                                data.requires_shipping
+                                                                formik.values
+                                                                    .requires_shipping
                                                                     ? "success"
                                                                     : "warning"
                                                             }
                                                         >
-                                                            {data.requires_shipping
+                                                            {formik.values
+                                                                .requires_shipping
                                                                 ? "Yes"
                                                                 : "No"}
                                                         </Badge>
                                                     </div>
                                                 }
-                                                checked={data.requires_shipping}
+                                                checked={
+                                                    formik.values
+                                                        .requires_shipping
+                                                }
                                                 onChange={(e) =>
                                                     handleSwitchChange(
                                                         "requires_shipping",
@@ -546,31 +564,33 @@ export default function OthersTab({
                                     </Form.Label>
                                     <Form.Control
                                         type="text"
-                                        value={data.meta_title || ""}
-                                        onChange={(e) =>
-                                            handleInputChange(
-                                                "meta_title",
-                                                e.target.value
-                                            )
+                                        name="meta_title"
+                                        value={formik.values.meta_title || ""}
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        isInvalid={
+                                            formik.touched.meta_title &&
+                                            !!formik.errors.meta_title
                                         }
-                                        isInvalid={!!errors.meta_title}
                                         placeholder="Optimized title for search engines..."
                                         maxLength={60}
                                         className="py-2"
                                     />
                                     <div className="d-flex justify-content-between mt-1">
                                         <Form.Text className="text-muted">
-                                            {data.meta_title?.length || 0}/60
-                                            characters
+                                            {formik.values.meta_title?.length ||
+                                                0}
+                                            /60 characters
                                         </Form.Text>
-                                        {errors.meta_title && (
-                                            <Form.Control.Feedback
-                                                type="invalid"
-                                                className="d-block"
-                                            >
-                                                {errors.meta_title}
-                                            </Form.Control.Feedback>
-                                        )}
+                                        {formik.touched.meta_title &&
+                                            formik.errors.meta_title && (
+                                                <Form.Control.Feedback
+                                                    type="invalid"
+                                                    className="d-block"
+                                                >
+                                                    {formik.errors.meta_title}
+                                                </Form.Control.Feedback>
+                                            )}
                                     </div>
                                 </Form.Group>
                             </Col>
@@ -588,31 +608,38 @@ export default function OthersTab({
                                     <Form.Control
                                         as="textarea"
                                         rows={3}
-                                        value={data.meta_description || ""}
-                                        onChange={(e) =>
-                                            handleInputChange(
-                                                "meta_description",
-                                                e.target.value
-                                            )
+                                        name="meta_description"
+                                        value={
+                                            formik.values.meta_description || ""
                                         }
-                                        isInvalid={!!errors.meta_description}
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        isInvalid={
+                                            formik.touched.meta_description &&
+                                            !!formik.errors.meta_description
+                                        }
                                         placeholder="Compelling description that appears in search results..."
                                         maxLength={160}
                                         className="py-2"
                                     />
                                     <div className="d-flex justify-content-between mt-1">
                                         <Form.Text className="text-muted">
-                                            {data.meta_description?.length || 0}
+                                            {formik.values.meta_description
+                                                ?.length || 0}
                                             /160 characters
                                         </Form.Text>
-                                        {errors.meta_description && (
-                                            <Form.Control.Feedback
-                                                type="invalid"
-                                                className="d-block"
-                                            >
-                                                {errors.meta_description}
-                                            </Form.Control.Feedback>
-                                        )}
+                                        {formik.touched.meta_description &&
+                                            formik.errors.meta_description && (
+                                                <Form.Control.Feedback
+                                                    type="invalid"
+                                                    className="d-block"
+                                                >
+                                                    {
+                                                        formik.errors
+                                                            .meta_description
+                                                    }
+                                                </Form.Control.Feedback>
+                                            )}
                                     </div>
                                 </Form.Group>
                             </Col>
@@ -631,8 +658,8 @@ export default function OthersTab({
                                                 className="text-primary mb-1"
                                                 style={{ fontSize: "18px" }}
                                             >
-                                                {data.meta_title ||
-                                                    data.name ||
+                                                {formik.values.meta_title ||
+                                                    formik.values.name ||
                                                     "Product Title"}
                                             </div>
                                             <div
@@ -640,14 +667,17 @@ export default function OthersTab({
                                                 style={{ fontSize: "14px" }}
                                             >
                                                 https://yourstore.com/products/
-                                                {data.slug || "product-slug"}
+                                                {formik.values.slug ||
+                                                    "product-slug"}
                                             </div>
                                             <div
                                                 className="text-muted"
                                                 style={{ fontSize: "14px" }}
                                             >
-                                                {data.meta_description ||
-                                                    data.short_description ||
+                                                {formik.values
+                                                    .meta_description ||
+                                                    formik.values
+                                                        .short_description ||
                                                     "Product description will appear here in search results..."}
                                             </div>
                                         </div>
@@ -669,7 +699,7 @@ export default function OthersTab({
                         </div>
                     </Accordion.Header>
                     <Accordion.Body>
-                        {data.is_digital ? (
+                        {formik.values.is_digital ? (
                             <Alert variant="info" className="text-center py-4">
                                 <Box size={32} className="mb-2" />
                                 <h5>Digital Product</h5>
@@ -698,16 +728,18 @@ export default function OthersTab({
                                         <InputGroup>
                                             <Form.Control
                                                 type="number"
+                                                name="weight"
                                                 step="0.01"
                                                 min="0"
-                                                value={data.weight || 0}
-                                                onChange={(e) =>
-                                                    handleInputChange(
-                                                        "weight",
-                                                        e.target.value
-                                                    )
+                                                value={
+                                                    formik.values.weight || 0
                                                 }
-                                                isInvalid={!!errors.weight}
+                                                onChange={formik.handleChange}
+                                                onBlur={formik.handleBlur}
+                                                isInvalid={
+                                                    formik.touched.weight &&
+                                                    !!formik.errors.weight
+                                                }
                                                 placeholder="0.00"
                                                 className="py-2"
                                             />
@@ -715,9 +747,12 @@ export default function OthersTab({
                                                 kg
                                             </InputGroup.Text>
                                         </InputGroup>
-                                        <Form.Control.Feedback type="invalid">
-                                            {errors.weight}
-                                        </Form.Control.Feedback>
+                                        {formik.touched.weight &&
+                                            formik.errors.weight && (
+                                                <Form.Control.Feedback type="invalid">
+                                                    {formik.errors.weight}
+                                                </Form.Control.Feedback>
+                                            )}
                                     </Form.Group>
                                 </Col>
 
@@ -730,16 +765,14 @@ export default function OthersTab({
                                         <InputGroup>
                                             <Form.Control
                                                 type="number"
+                                                name="length"
                                                 step="0.01"
                                                 min="0"
-                                                value={data.length || 0}
-                                                onChange={(e) =>
-                                                    handleInputChange(
-                                                        "length",
-                                                        e.target.value
-                                                    )
+                                                value={
+                                                    formik.values.length || 0
                                                 }
-                                                isInvalid={!!errors.length}
+                                                onChange={formik.handleChange}
+                                                onBlur={formik.handleBlur}
                                                 placeholder="0.00"
                                                 className="py-2"
                                             />
@@ -758,16 +791,12 @@ export default function OthersTab({
                                         <InputGroup>
                                             <Form.Control
                                                 type="number"
+                                                name="width"
                                                 step="0.01"
                                                 min="0"
-                                                value={data.width || 0}
-                                                onChange={(e) =>
-                                                    handleInputChange(
-                                                        "width",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                isInvalid={!!errors.width}
+                                                value={formik.values.width || 0}
+                                                onChange={formik.handleChange}
+                                                onBlur={formik.handleBlur}
                                                 placeholder="0.00"
                                                 className="py-2"
                                             />
@@ -786,16 +815,14 @@ export default function OthersTab({
                                         <InputGroup>
                                             <Form.Control
                                                 type="number"
+                                                name="height"
                                                 step="0.01"
                                                 min="0"
-                                                value={data.height || 0}
-                                                onChange={(e) =>
-                                                    handleInputChange(
-                                                        "height",
-                                                        e.target.value
-                                                    )
+                                                value={
+                                                    formik.values.height || 0
                                                 }
-                                                isInvalid={!!errors.height}
+                                                onChange={formik.handleChange}
+                                                onBlur={formik.handleBlur}
                                                 placeholder="0.00"
                                                 className="py-2"
                                             />
@@ -819,9 +846,11 @@ export default function OthersTab({
                                                     text="dark"
                                                 >
                                                     {(
-                                                        (data.length *
-                                                            data.width *
-                                                            data.height) /
+                                                        (formik.values.length *
+                                                            formik.values
+                                                                .width *
+                                                            formik.values
+                                                                .height) /
                                                         1000000
                                                     ).toFixed(4)}{" "}
                                                     m³
@@ -989,7 +1018,9 @@ export default function OthersTab({
                         <Col md={3}>
                             <div className="text-center">
                                 <div className="h5 mb-1 text-dark">
-                                    {data.is_digital ? "Digital" : "Physical"}
+                                    {formik.values.is_digital
+                                        ? "Digital"
+                                        : "Physical"}
                                 </div>
                                 <small className="text-muted">
                                     Product Type
@@ -999,7 +1030,9 @@ export default function OthersTab({
                         <Col md={3}>
                             <div className="text-center">
                                 <div className="h5 mb-1 text-dark">
-                                    {data.meta_title ? "Optimized" : "Basic"}
+                                    {formik.values.meta_title
+                                        ? "Optimized"
+                                        : "Basic"}
                                 </div>
                                 <small className="text-muted">SEO Status</small>
                             </div>

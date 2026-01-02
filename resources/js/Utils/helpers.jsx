@@ -1242,3 +1242,36 @@ export function calculateYearsOfService(hireDate) {
     const monthDiff = now.getMonth() - hire.getMonth();
     return monthDiff < 0 ? years - 1 : years;
 }
+
+// Constants
+export const EMPLOYMENT_STATUS = {
+    active: { color: "success", label: "Active" },
+    on_leave: { color: "warning", label: "On Leave" },
+    terminated: { color: "danger", label: "Terminated" },
+    probation: { color: "info", label: "Probation" },
+    inactive: { color: "secondary", label: "Inactive" },
+};
+
+export const ROLE_BADGES = {
+    admin: { color: "danger", icon: "🛡️" },
+    manager: { color: "warning", icon: "👑" },
+    employee: { color: "success", icon: "👤" },
+};
+
+export const getEmploymentStatus = (status) => {
+    return EMPLOYMENT_STATUS[status] || EMPLOYMENT_STATUS.inactive;
+};
+
+export const getRoleBadge = (role) => {
+    return ROLE_BADGES[role?.toLowerCase()] || ROLE_BADGES.employee;
+};
+
+export const calculateMonthsOfService = (hireDate) => {
+    if (!hireDate) return 0;
+    const hire = new Date(hireDate);
+    const now = new Date();
+    return (
+        (now.getFullYear() - hire.getFullYear()) * 12 +
+        (now.getMonth() - hire.getMonth())
+    );
+};

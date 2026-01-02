@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Erp\Hrm\Attendance;
+use App\Models\Erp\Hrm\Salary;
 use GuzzleHttp\Psr7\ServerRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -111,9 +113,9 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         // You can customize fallback images based on gender
         $fallbackImages = [
-            'male' => asset('storage/images/avatars/avatar.png'),
-            'female' => asset('storage/images/avatars/avatar.png'),
-            'default' => asset('storage/images/avatars/avatar.png'),
+            'male' => asset('storage/images/avatar/avatar.png'),
+            'female' => asset('storage/images/avatar/avatar.png'),
+            'default' => asset('storage/images/avatar/avatar.png'),
         ];
 
         // Check if gender-specific fallback exists
@@ -150,7 +152,7 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         // Create a simple initials-based avatar URL using a service or local generation
-        // Option 1: Use UI Avatars service
+        // Option 1: Use UI Avatar service
         $backgroundColor = $this->getAvatarBackgroundColor();
         return "https://ui-avatars.com/api/?name=" . urlencode($initials) .
             "&color=FFFFFF&background=" . $backgroundColor .
@@ -210,11 +212,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(Department::class);
     }
 
-    public function attendances(): HasMany
-    {
-        return $this->hasMany(Attendance::class);
-    }
-
     public function technician(): HasOne
     {
         return $this->hasOne(Technician::class);
@@ -223,6 +220,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function managedDepartments(): HasMany
     {
         return $this->hasMany(Department::class, 'user_id');
+    }
+
+    public function sales(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function salary(): HasMany
+    {
+        return $this->hasMany(Salary::class, 'user_id');
     }
 
     // For customers
@@ -243,6 +250,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function attendance(): BelongsTo
     {
-        return $this->belongsTo(Attendance::class);
+        return $this->belongsTo(Attendance::class, 'user_id');
+    }
+
+    public function attendanceForDate()
+    {
+        return $this->hasOne(Attendance::class);
     }
 }

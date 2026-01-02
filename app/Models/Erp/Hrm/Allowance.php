@@ -11,10 +11,8 @@ class Allowance extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'allowances';
-
     protected $fillable = [
-        'employee_id',
+        'user_id',
         'salary_component_id',
         'amount',
         'calculation_type',
@@ -26,7 +24,7 @@ class Allowance extends Model
         'approved_by',
         'approved_at',
         'created_by',
-        'updated_by',
+        'updated_by'
     ];
 
     protected $casts = [
@@ -35,27 +33,33 @@ class Allowance extends Model
         'is_active' => 'boolean',
         'valid_from' => 'date',
         'valid_until' => 'date',
-        'approved_at' => 'datetime',
+        'approved_at' => 'datetime'
     ];
 
-    // Calculation type constants
-    const CALC_FIXED = 'fixed';
-    const CALC_PERCENTAGE = 'percentage';
-
     // Relationships
-    public function employee()
+    public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function component()
+    public function salaryComponent()
     {
-        return $this->belongsTo(SalaryComponent::class, 'salary_component_id');
+        return $this->belongsTo(SalaryComponent::class);
     }
 
-    public function approvedByUser()
+    public function approvedBy()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     // Scopes
@@ -64,40 +68,24 @@ class Allowance extends Model
         return $query->where('is_active', true);
     }
 
-    public function scopeValidForDate($query, $date)
+    public function scopeValid($query)
     {
-        return $query->where('valid_from', '<=', $date)
-            ->where(function ($q) use ($date) {
-                $q->whereNull('valid_until')
-                    ->orWhere('valid_until', '>=', $date);
-            });
+        $now = now();
+        return $query->where(function($q) use ($now) {
+            $q->whereNull('valid_from')
+              ->orWhere('valid_from', '<=', $now);
+        })->where(function($q) use ($now) {
+            $q->whereNull('valid_until')
+              ->orWhere('valid_until', '>=', $now);
+        });
     }
 
-    public function scopeForEmployee($query, $employeeId)
+    // Helpers
+    public function calculateAmount($baseAmount = 0)
     {
-        return $query->where('employee_id', $employeeId);
-    }
-
-    // Methods
-    public function calculateAmount($baseSalary = 0)
-    {
-        if ($this->calculation_type === self::CALC_PERCENTAGE) {
-            return ($baseSalary * $this->calculation_value) / 100;
+        if ($this->calculation_type === 'percentage') {
+            return ($baseAmount * $this->calculation_value) / 100;
         }
         return $this->amount;
-    }
-
-    public function isCurrentlyValid()
-    {
-        if (!$this->is_active)
-            return false;
-
-        $now = now();
-        if ($this->valid_from && $this->valid_from > $now)
-            return false;
-        if ($this->valid_until && $this->valid_until < $now)
-            return false;
-
-        return true;
     }
 }

@@ -71,7 +71,7 @@ export default function ErpHeader() {
         {
             path: route("promotion.index"),
             icon: "bi bi-bullseye",
-            label: "Campaigns & Promotions",
+            label: "Promotions",
             show: true,
         },
         {
@@ -98,7 +98,7 @@ export default function ErpHeader() {
                 {
                     path: route("product.index"),
                     icon: "bi bi-boxes",
-                    label: "Items Register",
+                    label: "Items List",
                     show: true,
                 },
                 {
@@ -119,12 +119,12 @@ export default function ErpHeader() {
                     label: "New Sale",
                     show: isSales || isReceptionist || isSuper,
                 },
-                {
-                    path: route("barcode.index"),
-                    icon: "bi bi-upc-scan",
-                    label: "Barcode Printing",
-                    show: !isSales && !isReceptionist,
-                },
+                // {
+                //     path: route("barcode.index"),
+                //     icon: "bi bi-upc-scan",
+                //     label: "Barcode Printing",
+                //     show: !isSales && !isReceptionist,
+                // },
             ].filter((i) => i.show),
         },
 

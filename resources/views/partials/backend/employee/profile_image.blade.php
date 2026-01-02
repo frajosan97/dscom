@@ -1,0 +1,1 @@
+<img src="{{  $row->profile_image_url }}" alt="" class="rounded-circle" style="max-width: 50px;">

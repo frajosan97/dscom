@@ -1,82 +1,85 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Head } from "@inertiajs/react";
 import {
-    Table,
+    Container,
+    Row,
+    Col,
     Card,
     Button,
     ButtonGroup,
-    Row,
-    Col,
-    Badge,
-    ProgressBar,
-    Alert,
-    Form,
+    Table,
     InputGroup,
+    Form,
     Dropdown,
+    Badge,
+    Alert,
     Modal,
-    Tabs,
-    Tab,
-    ListGroup,
-    Container,
 } from "react-bootstrap";
 import {
-    FaSync,
-    FaCalendarAlt,
-    FaFilePdf,
-    FaFileExcel,
     FaClock,
     FaUsers,
     FaUserCheck,
     FaUserTimes,
     FaChartLine,
     FaBell,
-    FaPrint,
-    FaFilter,
+    FaSearch,
     FaCog,
     FaQrcode,
     FaMapMarkerAlt,
     FaMobileAlt,
+    FaFilePdf,
+    FaFileExcel,
+    FaPrint,
+    FaDownload,
+    FaTrash,
 } from "react-icons/fa";
-import {
-    Clock,
-    PersonCheck,
-    PersonDash,
-    Calendar,
-    Building,
-    Activity,
-    Bell,
-    Download,
-    Upload,
-    Search,
-    Plus,
-    Trash,
-    Eye,
-    Map,
-    Wifi,
-} from "react-bootstrap-icons";
+import { BiRefresh, BiPlus, BiDownload, BiCalendar } from "react-icons/bi";
 import { toast } from "react-toastify";
-import xios from "@/Utils/axios";
-import { formatDate, formatCurrency, formatTime } from "@/Utils/helpers";
+import Swal from "sweetalert2";
 import ErpLayout from "@/Layouts/ErpLayout";
-import { Head } from "@inertiajs/react";
+import xios from "@/Utils/axios";
+import useData from "@/Hooks/useData";
+import AttendanceStatisticsCard from "@/Components/Cards/AttendanceStatisticsCard";
+import { useErrorToast } from "@/Hooks/useErrorToast";
+import { formatDate } from "@/Utils/helpers";
+
+// Import Modals
+import AttendanceSettingsModal from "@/Components/Modals/AttendanceSettingsModal";
+import QRCodeModal from "@/Components/Modals/QRCodeModal";
+import LocationModal from "@/Components/Modals/LocationModal";
+import ViewAttendanceModal from "@/Components/Modals/ViewAttendanceModal";
+
+// Initial statistics state
+const INITIAL_STATS = {
+    totalEmployees: 0,
+    presentCount: 0,
+    absentCount: 0,
+    lateCount: 0,
+    onLeaveCount: 0,
+    attendanceRate: 0,
+};
 
 export default function Attendance() {
-    const [processing, setProcessing] = useState(false);
-    const [selectedDate, setSelectedDate] = useState(
-        () => new Date().toISOString().split("T")[0]
+    const { showErrorToast } = useErrorToast();
+    const { employees, departments } = useData();
+
+    // State management
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [departmentFilter, setDepartmentFilter] = useState("all");
+    const [dateFilter, setDateFilter] = useState(
+        new Date().toISOString().split("T")[0]
     );
-    const [attendanceStats, setAttendanceStats] = useState({
-        totalEmployees: 0,
-        presentCount: 0,
-        absentCount: 0,
-        lateCount: 0,
-        onLeaveCount: 0,
-        attendanceRate: 0,
-    });
-    const [showBulkActions, setShowBulkActions] = useState(false);
-    const [selectedEmployees, setSelectedEmployees] = useState([]);
+
+    const [showAttendanceSettingsModal, setShowAttendanceSettingsModal] =
+        useState(false);
     const [showQRModal, setShowQRModal] = useState(false);
     const [showLocationModal, setShowLocationModal] = useState(false);
-    const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [selectedAttendance, setSelectedAttendance] = useState(null);
+    const [stats, setStats] = useState(INITIAL_STATS);
+    const [recentActivities, setRecentActivities] = useState([]);
+    const [selectedEmployees, setSelectedEmployees] = useState([]);
     const [attendanceSettings, setAttendanceSettings] = useState({
         workStartTime: "09:00",
         workEndTime: "17:00",
@@ -86,710 +89,529 @@ export default function Attendance() {
         requireReasonForAbsence: true,
         autoCalculateHours: true,
     });
-    const [searchTerm, setSearchTerm] = useState("");
-    const [departmentFilter, setDepartmentFilter] = useState("all");
-    const [departments, setDepartments] = useState([]);
-    const [recentActivities, setRecentActivities] = useState([]);
-    const [activeTab, setActiveTab] = useState("daily");
-    const [selectedMonth, setSelectedMonth] = useState(
-        new Date().toISOString().slice(0, 7)
-    );
 
     const dataTableInitialized = useRef(false);
     const dataTable = useRef(null);
 
-    // Fetch attendance statistics
-    const fetchAttendanceStats = useCallback(async () => {
-        try {
-            const response = await xios.get(route("attendance.stats"), {
-                params: { date: selectedDate },
-            });
-            setAttendanceStats(response.data);
-        } catch (error) {
-            console.error("Failed to fetch attendance stats:", error);
-        }
-    }, [selectedDate]);
-
-    // Fetch departments
-    const fetchDepartments = useCallback(async () => {
-        try {
-            const response = await xios.get(route("departments.index"));
-            setDepartments(response.data);
-        } catch (error) {
-            console.error("Failed to fetch departments:", error);
-        }
-    }, []);
-
-    // Fetch recent activities
-    const fetchRecentActivities = useCallback(async () => {
-        try {
-            const response = await xios.get(route("attendance.activities"));
-            setRecentActivities(response.data);
-        } catch (error) {
-            console.error("Failed to fetch activities:", error);
-        }
-    }, []);
-
-    // Calculate attendance rate
-    const attendanceRate = useMemo(() => {
-        if (attendanceStats.totalEmployees === 0) return 0;
-        return (
-            (attendanceStats.presentCount / attendanceStats.totalEmployees) *
-            100
-        );
-    }, [attendanceStats]);
-
-    // Mark attendance (clock in/out)
-    const markAttendance = useCallback(
-        async (userId, action, userName, options = {}) => {
-            setProcessing(true);
-
-            try {
-                const currentTime = new Date().toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true,
-                });
-
-                // Prepare data for API
-                const apiData = {
-                    id: userId,
-                    clockIn: action === "clockIn" ? currentTime : null,
-                    clockOut: action === "clockOut" ? currentTime : null,
-                    status: "present",
-                    reason: options.reason,
-                    notes: options.notes,
-                    location: options.location,
-                    device: options.device,
-                };
-
-                const response = await xios.post(route("attendance.store"), {
-                    date: selectedDate,
-                    attendance: [apiData],
-                });
-
-                if (response.data.success) {
-                    toast.success(
-                        <div>
-                            <strong>{userName}</strong>{" "}
-                            {action === "clockIn"
-                                ? "clocked in"
-                                : "clocked out"}{" "}
-                            successfully
-                            <br />
-                            <small className="text-muted">{currentTime}</small>
-                        </div>
-                    );
-
-                    // Add to recent activities
-                    setRecentActivities((prev) => [
-                        {
-                            id: Date.now(),
-                            employee_name: userName,
-                            action:
-                                action === "clockIn" ? "clock_in" : "clock_out",
-                            time: currentTime,
-                            status: "completed",
-                            icon:
-                                action === "clockIn" ? <Clock /> : <Activity />,
-                        },
-                        ...prev.slice(0, 9),
-                    ]);
-
-                    // Refresh data
-                    dataTable.current?.ajax.reload(null, false);
-                    fetchAttendanceStats();
-                }
-            } catch (error) {
-                console.error("Mark attendance error:", error);
-                const actionText =
-                    action === "clockIn" ? "clock in" : "clock out";
-                toast.error(
-                    error.response?.data?.message || `Failed to ${actionText}`
-                );
-            } finally {
-                setProcessing(false);
-            }
-        },
-        [selectedDate, fetchAttendanceStats]
-    );
-
-    // Mark attendance with location
-    const markAttendanceWithLocation = useCallback(
-        async (userId, action, userName) => {
-            if (!navigator.geolocation) {
-                toast.warning("Geolocation is not supported by your browser");
-                return markAttendance(userId, action, userName);
-            }
-
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const location = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        accuracy: position.coords.accuracy,
-                    };
-
-                    markAttendance(userId, action, userName, {
-                        location: JSON.stringify(location),
-                        device: navigator.userAgent,
-                    });
-                },
-                (error) => {
-                    toast.error(
-                        "Unable to retrieve location. Please enable location services."
-                    );
-                    markAttendance(userId, action, userName);
-                }
-            );
-        },
-        [markAttendance]
-    );
-
-    // Bulk mark attendance
-    const bulkMarkAttendance = useCallback(
-        async (action, status = "present") => {
-            if (selectedEmployees.length === 0) {
-                toast.warning("Please select employees first");
-                return;
-            }
-
-            setProcessing(true);
-
-            try {
-                const apiData = selectedEmployees.map((emp) => ({
-                    id: emp.id,
-                    clockIn: action === "clockIn" ? "09:00" : null,
-                    clockOut: action === "clockOut" ? "17:00" : null,
-                    status: status,
-                    reason: "Bulk update",
-                }));
-
-                const response = await xios.post(route("attendance.bulk"), {
-                    date: selectedDate,
-                    attendance: apiData,
-                });
-
-                if (response.data.success) {
-                    toast.success(
-                        `${selectedEmployees.length} employees marked as ${status}`
-                    );
-                    setSelectedEmployees([]);
-                    dataTable.current?.ajax.reload(null, false);
-                    fetchAttendanceStats();
-                }
-            } catch (error) {
-                toast.error(
-                    error.response?.data?.message ||
-                        "Failed to update attendance"
-                );
-            } finally {
-                setProcessing(false);
-            }
-        },
-        [selectedDate, selectedEmployees, fetchAttendanceStats]
-    );
-
-    // Reset attendance record
-    const resetAttendance = useCallback(
-        async (recordId, employeeName) => {
-            const { value: reason } = await Swal.fire({
-                title: `Reset ${employeeName}'s Attendance?`,
-                input: "textarea",
-                inputLabel: "Reason for reset",
-                inputPlaceholder: "Enter reason...",
-                showCancelButton: true,
-                confirmButtonText: "Yes, reset it",
-                cancelButtonText: "Cancel",
-                confirmButtonColor: "#3085d6",
-                cancelButtonColor: "#d33",
-            });
-
-            if (!reason) return;
-
-            setProcessing(true);
-
-            try {
-                const response = await xios.delete(
-                    route("attendance.destroy", recordId),
-                    { data: { reason } }
-                );
-
-                if (response.data.success) {
-                    toast.success(
-                        <div>
-                            Attendance record reset successfully
-                            <br />
-                            <small className="text-muted">
-                                Reason: {reason}
-                            </small>
-                        </div>
-                    );
-                    dataTable.current?.ajax.reload(null, false);
-                    fetchAttendanceStats();
-                }
-            } catch (error) {
-                toast.error(
-                    error.response?.data?.message ||
-                        "Failed to reset attendance record"
-                );
-            } finally {
-                setProcessing(false);
-            }
-        },
-        [fetchAttendanceStats]
-    );
-
-    // Generate QR code for attendance
-    const generateQRCode = useCallback(async () => {
-        setProcessing(true);
-        try {
-            const response = await xios.post(route("attendance.qr-generate"), {
-                date: selectedDate,
-                expires_in: 3600, // 1 hour
-            });
-
-            setShowQRModal(true);
-            // In real implementation, you would display the QR code
-            toast.success("QR Code generated successfully!");
-        } catch (error) {
-            toast.error("Failed to generate QR code");
-        } finally {
-            setProcessing(false);
-        }
-    }, [selectedDate]);
-
-    // Export attendance data
-    const exportAttendance = useCallback(
-        async (format) => {
-            setProcessing(true);
-            try {
-                const response = await xios.get(route("attendance.export"), {
-                    params: {
-                        date: selectedDate,
-                        format: format,
-                        department:
-                            departmentFilter !== "all"
-                                ? departmentFilter
-                                : null,
-                    },
-                    responseType: "blob",
-                });
-
-                const url = window.URL.createObjectURL(
-                    new Blob([response.data])
-                );
-                const link = document.createElement("a");
-                link.href = url;
-                link.setAttribute(
-                    "download",
-                    `attendance-${selectedDate}-${format}.${
-                        format === "pdf" ? "pdf" : "xlsx"
-                    }`
-                );
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                window.URL.revokeObjectURL(url);
-
-                toast.success(
-                    `Attendance exported as ${format.toUpperCase()} successfully!`
-                );
-            } catch (error) {
-                toast.error(`Failed to export as ${format.toUpperCase()}`);
-            } finally {
-                setProcessing(false);
-            }
-        },
-        [selectedDate, departmentFilter]
-    );
-
-    // Initialize DataTable for attendance records
-    const initializeDataTable = useCallback(() => {
-        if (dataTableInitialized.current) return;
-
-        if ($.fn.DataTable.isDataTable("#attendanceRegisterTable")) {
-            $("#attendanceRegisterTable").DataTable().destroy();
-        }
-
-        const dt = $("#attendanceRegisterTable").DataTable({
+    // DataTable configuration
+    const getDataTableConfig = useCallback(
+        () => ({
             processing: true,
             serverSide: true,
             ajax: {
                 url: route("attendance.index"),
                 type: "GET",
-                data: {
-                    date: selectedDate,
-                    search: searchTerm,
-                    department:
-                        departmentFilter !== "all" ? departmentFilter : null,
+                data: function (d) {
+                    d.search = search;
+                    d.status = statusFilter !== "all" ? statusFilter : "";
+                    d.department =
+                        departmentFilter !== "all" ? departmentFilter : "";
+                    d.date = dateFilter;
                 },
             },
             columns: [
                 {
-                    data: null,
-                    orderable: false,
-                    className: "text-center",
-                    render: function (data) {
-                        return `
-                            <div class="form-check">
-                                <input class="form-check-input employee-checkbox" type="checkbox" 
-                                       data-id="${data.id}" data-name="${data.name}">
-                            </div>
-                        `;
-                    },
-                },
-                {
-                    data: "name",
-                    name: "name",
+                    data: "employee",
                     title: "Employee",
                     className: "text-start",
-                    render: function (data, type, row) {
-                        return `
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-sm me-2">
-                                    <div class="avatar-title bg-primary bg-opacity-10 rounded-circle">
-                                        <i class="bi bi-person fs-5 text-primary"></i>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0">${data}</h6>
-                                    <small class="text-muted">${
-                                        row.employee_id || ""
-                                    }</small>
-                                </div>
-                            </div>
-                        `;
-                    },
                 },
                 {
-                    data: "department.name",
-                    name: "department.name",
+                    data: "department",
                     title: "Department",
                     className: "text-start",
-                    render: function (data) {
-                        if (!data) return "-";
-                        const colors = {
-                            Sales: "primary",
-                            Marketing: "info",
-                            Engineering: "warning",
-                            HR: "success",
-                            Finance: "danger",
-                            Operations: "secondary",
-                        };
-                        const color = colors[data] || "secondary";
-                        return `<span class="badge bg-${color}">${data}</span>`;
-                    },
                 },
                 {
-                    data: "clockin",
-                    name: "clockin",
+                    data: "clock_in",
                     title: "Clock In",
                     className: "text-center",
-                    render: function (data) {
-                        if (!data)
-                            return `
-                            <button class="btn btn-sm btn-outline-success clock-in-btn"
-                                    data-id="${this.id}" data-name="${this.name}">
-                                <i class="bi bi-clock"></i> Clock In
-                            </button>
-                        `;
-                        return `
-                            <div>
-                                <span class="badge bg-success">${data}</span>
-                                ${
-                                    this.late
-                                        ? '<small class="text-danger ms-1"><i class="bi bi-exclamation-circle"></i> Late</small>'
-                                        : ""
-                                }
-                            </div>
-                        `;
-                    },
                 },
                 {
-                    data: "clockout",
-                    name: "clockout",
+                    data: "clock_out",
                     title: "Clock Out",
                     className: "text-center",
-                    render: function (data) {
-                        if (!data && this.clockin)
-                            return `
-                            <button class="btn btn-sm btn-outline-danger clock-out-btn" 
-                                    data-id="${this.id}" data-name="${this.name}">
-                                <i class="bi bi-clock"></i> Clock Out
-                            </button>
-                        `;
-                        return data
-                            ? `<span class="badge bg-danger">${data}</span>`
-                            : "-";
-                    },
-                },
-                {
-                    data: "status",
-                    name: "status",
-                    title: "Status",
-                    className: "text-center",
-                    render: function (data) {
-                        const statusConfig = {
-                            present: {
-                                color: "success",
-                                icon: "check-circle",
-                                label: "Present",
-                            },
-                            absent: {
-                                color: "danger",
-                                icon: "x-circle",
-                                label: "Absent",
-                            },
-                            late: {
-                                color: "warning",
-                                icon: "clock-history",
-                                label: "Late",
-                            },
-                            on_leave: {
-                                color: "info",
-                                icon: "calendar3",
-                                label: "On Leave",
-                            },
-                            half_day: {
-                                color: "secondary",
-                                icon: "clock-half",
-                                label: "Half Day",
-                            },
-                        };
-                        const config = statusConfig[data] || {
-                            color: "secondary",
-                            icon: "question-circle",
-                            label: "Unknown",
-                        };
-                        return `
-                            <span class="badge bg-${config.color}">
-                                <i class="bi bi-${config.icon} me-1"></i>${config.label}
-                            </span>
-                        `;
-                    },
                 },
                 {
                     data: "hours_worked",
-                    name: "hours_worked",
-                    title: "Hours",
+                    title: "Hours Worked",
                     className: "text-center",
-                    render: function (data) {
-                        if (!data) return "-";
-                        return `
-                            <div class="progress" style="height: 6px; width: 80px;">
-                                <div class="progress-bar bg-success" role="progressbar" 
-                                     style="width: ${Math.min(
-                                         100,
-                                         (parseFloat(data) / 8) * 100
-                                     )}%">
-                                </div>
-                            </div>
-                            <small>${data}h</small>
-                        `;
-                    },
                 },
                 {
-                    data: "id",
-                    name: "actions",
-                    title: "Actions",
-                    orderable: false,
+                    data: "status",
+                    title: "Status",
                     className: "text-center",
-                    render: function (data, type, row) {
-                        return `
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-primary view-btn" 
-                                        data-id="${data}" title="View Details">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-warning edit-btn" 
-                                        data-id="${data}" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-danger reset-btn" 
-                                        data-id="${data}" data-name="${row.name}" title="Reset">
-                                    <i class="bi bi-arrow-clockwise"></i>
-                                </button>
-                            </div>
-                        `;
-                    },
+                    width: "10%",
+                },
+                {
+                    data: "action",
+                    title: "Actions",
+                    className: "text-center",
+                    width: "15%",
+                    orderable: false,
+                    searchable: false,
                 },
             ],
-            language: {
-                emptyTable: "No attendance records found for selected date",
-                search: "Filter employees:",
-                searchPlaceholder: "By name, department, or status...",
+            drawCallback: function () {
+                bindTableActions();
+                updateStatistics();
             },
-            select: {
-                style: "multi",
-                selector: "td:first-child",
+            initComplete: function () {
+                dataTableInitialized.current = true;
+                updateStatistics();
+                fetchRecentActivities();
             },
             createdRow: function (row, data, dataIndex) {
-                if (data.late) {
+                if (data.is_late) {
                     $(row).addClass("table-warning");
                 }
                 if (data.status === "absent") {
                     $(row).addClass("table-danger");
                 }
             },
-        });
+            language: {
+                emptyTable:
+                    '<div class="text-center py-5"><i class="bi bi-inbox display-4 text-muted"></i><p class="mt-2">No attendance records found</p></div>',
+                zeroRecords:
+                    '<div class="text-center py-5"><i class="bi bi-search display-4 text-muted"></i><p class="mt-2">No matching records found</p></div>',
+            },
+            responsive: true,
+            order: [[0, "desc"]],
+        }),
+        [search, statusFilter, departmentFilter, dateFilter]
+    );
 
-        // Event delegation
-        $(dt.table().body())
-            .on("change", ".employee-checkbox", function () {
-                const id = $(this).data("id");
-                const name = $(this).data("name");
-                const isChecked = $(this).is(":checked");
-
-                setSelectedEmployees((prev) => {
-                    if (isChecked) {
-                        return [...prev, { id, name }];
-                    } else {
-                        return prev.filter((emp) => emp.id !== id);
-                    }
-                });
-            })
-            .on("click", ".clock-in-btn", function () {
-                const userId = $(this).data("id");
-                const userName = $(this).data("name");
-                Swal.fire({
-                    title: `Clock In ${userName}?`,
-                    text: "Add notes (optional):",
-                    input: "textarea",
-                    inputPlaceholder: "Enter notes...",
-                    showCancelButton: true,
-                    confirmButtonText: "Clock In",
-                    cancelButtonText: "Cancel",
-                    confirmButtonColor: "#3085d6",
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        markAttendanceWithLocation(
-                            userId,
-                            "clockIn",
-                            userName,
-                            {
-                                notes: result.value,
-                            }
-                        );
-                    }
-                });
-            })
-            .on("click", ".clock-out-btn", function () {
-                const userId = $(this).data("id");
-                const userName = $(this).data("name");
-                markAttendanceWithLocation(userId, "clockOut", userName);
-            })
-            .on("click", ".reset-btn", function () {
-                const recordId = $(this).data("id");
-                const employeeName = $(this).data("name");
-                resetAttendance(recordId, employeeName);
-            })
-            .on("click", ".view-btn", function () {
-                const recordId = $(this).data("id");
-                // Implement view details modal
-                toast.info(`Viewing attendance record ${recordId}`);
-            })
-            .on("click", ".edit-btn", function () {
-                const recordId = $(this).data("id");
-                // Implement edit modal
-                toast.info(`Editing attendance record ${recordId}`);
+    // Bind table action handlers
+    const bindTableActions = () => {
+        $(".view-btn")
+            .off("click")
+            .on("click", (e) => {
+                const id = $(e.currentTarget).data("id");
+                handleViewAttendance(id);
             });
 
-        // Select all checkbox
-        $("#selectAllEmployees").on("change", function () {
-            const isChecked = $(this).is(":checked");
-            $(".employee-checkbox")
-                .prop("checked", isChecked)
-                .trigger("change");
-        });
+        $(".edit-btn")
+            .off("click")
+            .on("click", (e) => {
+                const id = $(e.currentTarget).data("id");
+                handleEditAttendance(id);
+            });
 
-        dataTableInitialized.current = true;
-        dataTable.current = dt;
-    }, [
-        selectedDate,
-        searchTerm,
-        departmentFilter,
-        markAttendanceWithLocation,
-        resetAttendance,
-    ]);
+        $(".delete-btn")
+            .off("click")
+            .on("click", (e) => {
+                const id = $(e.currentTarget).data("id");
+                handleDeleteAttendance(id);
+            });
 
-    // Handle date change
-    const handleDateChange = (e) => {
-        setSelectedDate(e.target.value);
-    };
+        $(".clock-in-btn")
+            .off("click")
+            .on("click", (e) => {
+                const id = $(e.currentTarget).data("id");
+                const name = $(e.currentTarget).data("name");
+                handleClockIn(id, name);
+            });
 
-    // Handle month change
-    const handleMonthChange = (e) => {
-        setSelectedMonth(e.target.value);
-        setActiveTab("monthly");
+        $(".clock-out-btn")
+            .off("click")
+            .on("click", (e) => {
+                const id = $(e.currentTarget).data("id");
+                const name = $(e.currentTarget).data("name");
+                handleClockOut(id, name);
+            });
+
+        $(".reset-btn")
+            .off("click")
+            .on("click", (e) => {
+                const id = $(e.currentTarget).data("id");
+                const name = $(e.currentTarget).data("name");
+                handleResetAttendance(id, name);
+            });
     };
 
     // Initialize DataTable
-    useEffect(() => {
-        initializeDataTable();
-        fetchAttendanceStats();
-        fetchDepartments();
-        fetchRecentActivities();
+    const initializeDataTable = useCallback(() => {
+        if (dataTableInitialized.current) return;
 
-        return () => {
-            if ($.fn.DataTable.isDataTable("#attendanceRegisterTable")) {
-                $("#attendanceRegisterTable").DataTable().destroy();
-                dataTableInitialized.current = false;
+        if ($.fn.DataTable.isDataTable("#attendanceTable")) {
+            $("#attendanceTable").DataTable().destroy();
+        }
+
+        const dt = $("#attendanceTable").DataTable(getDataTableConfig());
+        dataTable.current = dt;
+        return dt;
+    }, [getDataTableConfig]);
+
+    // Fetch statistics
+    const updateStatistics = async () => {
+        try {
+            const response = await xios.get(route("attendance.statistics"), {
+                params: { date: dateFilter },
+            });
+            if (response.data.success) {
+                setStats(response.data.data);
             }
-        };
-    }, [
-        initializeDataTable,
-        fetchAttendanceStats,
-        fetchDepartments,
-        fetchRecentActivities,
-    ]);
+        } catch (error) {
+            console.error("Failed to fetch statistics:", error);
+        }
+    };
 
-    // Refresh DataTable when filters change
+    // Fetch recent activities
+    const fetchRecentActivities = async () => {
+        try {
+            const response = await xios.get(route("attendance.activities"));
+            if (response.data.success) {
+                setRecentActivities(response.data.data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch activities:", error);
+        }
+    };
+
+    // Refresh table when filters change
     useEffect(() => {
         if (dataTableInitialized.current && dataTable.current) {
             dataTable.current.ajax.reload();
         }
-    }, [selectedDate, searchTerm, departmentFilter]);
+    }, [search, statusFilter, departmentFilter, dateFilter]);
 
-    const refreshData = () => {
-        if (dataTable.current) {
-            dataTable.current.ajax.reload();
-        }
-        fetchAttendanceStats();
-        fetchRecentActivities();
+    // Initialize on mount
+    useEffect(() => {
+        initializeDataTable();
+        return () => {
+            if ($.fn.DataTable.isDataTable("#attendanceTable")) {
+                $("#attendanceTable").DataTable().destroy();
+                dataTableInitialized.current = false;
+            }
+        };
+    }, [initializeDataTable]);
+
+    // Attendance operations
+    const handleClockIn = async (id, name) => {
+        Swal.fire({
+            title: `Clock In ${name}?`,
+            text: "Add remarks (optional):",
+            input: "textarea",
+            inputPlaceholder: "Enter remarks...",
+            showCancelButton: true,
+            confirmButtonText: "Clock In",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#3085d6",
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const response = await xios.post(
+                        route("attendance.clock-in", id),
+                        {
+                            remarks: result.value,
+                            date: dateFilter,
+                        }
+                    );
+                    if (response.data.success) {
+                        toast.success(`${name} clocked in successfully`);
+                        if (dataTable.current) dataTable.current.ajax.reload();
+                        fetchRecentActivities();
+                    }
+                } catch (error) {
+                    showErrorToast(error);
+                }
+            }
+        });
     };
 
-    // Quick actions
-    const quickActions = [
+    const handleClockOut = async (id, name) => {
+        try {
+            const response = await xios.post(
+                route("attendance.clock-out", id),
+                {
+                    date: dateFilter,
+                }
+            );
+            if (response.data.success) {
+                toast.success(`${name} clocked out successfully`);
+                if (dataTable.current) dataTable.current.ajax.reload();
+                fetchRecentActivities();
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to clock out");
+        }
+    };
+
+    const handleViewAttendance = async (id) => {
+        try {
+            const response = await xios.get(route("attendance.show", id));
+            setSelectedAttendance(response.data.data);
+            setShowViewModal(true);
+        } catch (error) {
+            toast.error("Failed to load attendance details");
+        }
+    };
+
+    const handleEditAttendance = async (id) => {
+        try {
+            const response = await xios.get(route("attendance.show", id));
+            const attendance = response.data.data;
+            toast.info(
+                `Editing attendance record for ${attendance.employee_name}`
+            );
+        } catch (error) {
+            toast.error("Failed to load attendance details");
+        }
+    };
+
+    const handleDeleteAttendance = (id) => {
+        Swal.fire({
+            title: "Delete Attendance Record?",
+            text: "This action cannot be undone!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Yes, delete it",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#dc3545",
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const response = await xios.delete(
+                        route("attendance.destroy", id)
+                    );
+                    if (response.data.success) {
+                        toast.success(response.data.message);
+                        if (dataTable.current) dataTable.current.ajax.reload();
+                    }
+                } catch (error) {
+                    toast.error(
+                        error.response?.data?.message ||
+                            "Failed to delete attendance record"
+                    );
+                }
+            }
+        });
+    };
+
+    const handleResetAttendance = async (id, name) => {
+        const { value: reason } = await Swal.fire({
+            title: `Reset ${name}'s Attendance?`,
+            input: "textarea",
+            inputLabel: "Reason for reset",
+            inputPlaceholder: "Enter reason...",
+            showCancelButton: true,
+            confirmButtonText: "Yes, reset it",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+        });
+
+        if (!reason) return;
+
+        try {
+            const response = await xios.post(route("attendance.reset", id), {
+                reason,
+            });
+            if (response.data.success) {
+                toast.success("Attendance record reset successfully");
+                if (dataTable.current) dataTable.current.ajax.reload();
+            }
+        } catch (error) {
+            toast.error(
+                error.response?.data?.message || "Failed to reset attendance"
+            );
+        }
+    };
+
+    const handleBulkMarkPresent = () => {
+        if (selectedEmployees.length === 0) {
+            toast.warning("Please select employees first");
+            return;
+        }
+
+        Swal.fire({
+            title: "Mark Selected as Present?",
+            text: `This will mark ${selectedEmployees.length} employees as present`,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Yes, mark as present",
+            cancelButtonText: "Cancel",
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const response = await xios.post(
+                        route("attendance.bulk-present"),
+                        {
+                            employee_ids: selectedEmployees,
+                            date: dateFilter,
+                        }
+                    );
+                    if (response.data.success) {
+                        toast.success(response.data.message);
+                        setSelectedEmployees([]);
+                        if (dataTable.current) dataTable.current.ajax.reload();
+                    }
+                } catch (error) {
+                    toast.error(
+                        error.response?.data?.message ||
+                            "Failed to mark as present"
+                    );
+                }
+            }
+        });
+    };
+
+    const handleBulkMarkAbsent = () => {
+        if (selectedEmployees.length === 0) {
+            toast.warning("Please select employees first");
+            return;
+        }
+
+        Swal.fire({
+            title: "Mark Selected as Absent?",
+            text: `This will mark ${selectedEmployees.length} employees as absent`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Yes, mark as absent",
+            cancelButtonText: "Cancel",
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const response = await xios.post(
+                        route("attendance.bulk-absent"),
+                        {
+                            employee_ids: selectedEmployees,
+                            date: dateFilter,
+                        }
+                    );
+                    if (response.data.success) {
+                        toast.success(response.data.message);
+                        setSelectedEmployees([]);
+                        if (dataTable.current) dataTable.current.ajax.reload();
+                    }
+                } catch (error) {
+                    toast.error(
+                        error.response?.data?.message ||
+                            "Failed to mark as absent"
+                    );
+                }
+            }
+        });
+    };
+
+    const generateQRCode = async () => {
+        try {
+            const response = await xios.post(route("attendance.generate-qr"), {
+                date: dateFilter,
+                expires_in: 3600,
+            });
+            if (response.data.success) {
+                setShowQRModal(true);
+                toast.success("QR Code generated successfully!");
+            }
+        } catch (error) {
+            toast.error("Failed to generate QR code");
+        }
+    };
+
+    const exportAttendance = async (format) => {
+        try {
+            const response = await xios.get(route("attendance.export"), {
+                params: {
+                    date: dateFilter,
+                    format: format,
+                    search: search,
+                    status: statusFilter !== "all" ? statusFilter : "",
+                    department:
+                        departmentFilter !== "all" ? departmentFilter : "",
+                },
+                responseType: "blob",
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute(
+                "download",
+                `attendance-${dateFilter}-${format}.${
+                    format === "pdf" ? "pdf" : "xlsx"
+                }`
+            );
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            toast.success(
+                `Attendance exported as ${format.toUpperCase()} successfully!`
+            );
+        } catch (error) {
+            toast.error(`Failed to export as ${format.toUpperCase()}`);
+        }
+    };
+
+    const refreshTable = () => {
+        if (dataTable.current) {
+            dataTable.current.ajax.reload();
+            toast.success("Attendance list refreshed!");
+        }
+    };
+
+    const printAttendance = () => {
+        toast.info("Print feature coming soon!");
+    };
+
+    // Statistics cards data
+    const statCards = [
         {
-            icon: <FaClock />,
-            label: "Mark All Present",
-            variant: "success",
-            onClick: () => bulkMarkAttendance("clockIn", "present"),
+            title: "Total Employees",
+            value: stats.totalEmployees,
+            subtitle: "Expected today",
+            icon: FaUsers,
+            color: "primary",
         },
         {
-            icon: <FaUserTimes />,
-            label: "Mark All Absent",
-            variant: "danger",
-            onClick: () => bulkMarkAttendance("clockIn", "absent"),
+            title: "Present",
+            value: stats.presentCount,
+            subtitle: `${
+                stats.totalEmployees > 0
+                    ? (
+                          (stats.presentCount / stats.totalEmployees) *
+                          100
+                      ).toFixed(1)
+                    : 0
+            }%`,
+            icon: FaUserCheck,
+            color: "success",
         },
         {
-            icon: <FaQrcode />,
-            label: "Generate QR",
-            variant: "info",
-            onClick: generateQRCode,
+            title: "Absent",
+            value: stats.absentCount,
+            subtitle: `${
+                stats.totalEmployees > 0
+                    ? (
+                          (stats.absentCount / stats.totalEmployees) *
+                          100
+                      ).toFixed(1)
+                    : 0
+            }%`,
+            icon: FaUserTimes,
+            color: "danger",
         },
         {
-            icon: <FaMapMarkerAlt />,
-            label: "Location Check",
-            variant: "warning",
-            onClick: () => setShowLocationModal(true),
+            title: "Late Arrivals",
+            value: stats.lateCount,
+            subtitle: "Today",
+            icon: FaClock,
+            color: "warning",
         },
         {
-            icon: <FaBell />,
-            label: "Send Reminder",
-            variant: "primary",
-            onClick: () => toast.info("Reminder sent to absent employees"),
+            title: "On Leave",
+            value: stats.onLeaveCount,
+            subtitle: "Approved",
+            icon: BiCalendar,
+            color: "info",
+        },
+        {
+            title: "Rate",
+            value: `${stats.attendanceRate.toFixed(1)}%`,
+            subtitle: "Overall",
+            icon: FaChartLine,
+            color: "purple",
+            progress: stats.attendanceRate,
         },
     ];
 
@@ -797,857 +619,337 @@ export default function Attendance() {
         <ErpLayout>
             <Head title="Attendance Management" />
 
-            <Container fluid>
-                {/* Header with Stats */}
+            <Container fluid className="py-3">
+                {/* Page Header */}
+                <div className="page-header mb-4">
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 className="h2 fw-bold text-primary mb-1">
+                                <FaClock className="me-2" />
+                                Attendance Management
+                            </h1>
+                            <p className="text-muted mb-0">
+                                Track and manage employee attendance in
+                                real-time
+                            </p>
+                        </div>
+                        <ButtonGroup>
+                            <Button
+                                variant="outline-primary"
+                                onClick={() =>
+                                    setShowAttendanceSettingsModal(true)
+                                }
+                                className="d-flex align-items-center"
+                            >
+                                <FaCog className="me-1" />
+                                Settings
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={() =>
+                                    toast.info("Adding new attendance rule")
+                                }
+                                className="d-flex align-items-center"
+                            >
+                                <BiPlus className="me-1" />
+                                Add Rule
+                            </Button>
+                        </ButtonGroup>
+                    </div>
+                </div>
+
+                {/* Statistics Cards */}
                 <Row className="mb-4">
-                    <Col xl={12}>
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h3 className="fw-bold text-primary">
-                                    Attendance Management
-                                </h3>
-                                <p className="text-muted mb-0">
-                                    Track and manage employee attendance in
-                                    real-time
-                                </p>
-                            </div>
-                            <div className="d-flex gap-2">
-                                <Button
-                                    variant="outline-primary"
-                                    onClick={() => setShowSettingsModal(true)}
+                    {statCards.map((card, index) => (
+                        <Col
+                            xl={2}
+                            lg={4}
+                            md={4}
+                            sm={6}
+                            xs={6}
+                            key={index}
+                            className="mb-3"
+                        >
+                            <AttendanceStatisticsCard {...card} />
+                        </Col>
+                    ))}
+                </Row>
+
+                {/* Attendance Table */}
+                <Card className="border-0 shadow-sm">
+                    <Card.Header className="bg-light py-3">
+                        <div className="d-flex justify-content-between align-items-center">
+                            <h5 className="mb-0">Daily Attendance Register</h5>
+                            <div className="d-flex align-items-center gap-2">
+                                <Badge
+                                    bg="light"
+                                    text="dark"
+                                    className="border"
                                 >
-                                    <FaCog className="me-2" /> Settings
-                                </Button>
-                                <Button
-                                    variant="primary"
-                                    onClick={() =>
-                                        toast.info("Adding new attendance rule")
-                                    }
-                                >
-                                    <Plus className="me-2" /> Add Rule
-                                </Button>
+                                    {formatDate(dateFilter, "DD MMM, YYYY")}
+                                </Badge>
+                                {selectedEmployees.length > 0 && (
+                                    <Badge bg="primary" pill>
+                                        {selectedEmployees.length} selected
+                                    </Badge>
+                                )}
                             </div>
                         </div>
+                    </Card.Header>
 
-                        {/* Stats Cards */}
-                        <Row className="g-3">
-                            <Col xs={6} md={4} lg={2}>
-                                <Card className="border-0 bg-primary bg-opacity-10">
-                                    <Card.Body className="p-3">
-                                        <div className="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 className="text-muted mb-1">
-                                                    Total
-                                                </h6>
-                                                <h4 className="fw-bold mb-0">
-                                                    {
-                                                        attendanceStats.totalEmployees
-                                                    }
-                                                </h4>
-                                            </div>
-                                            <FaUsers
-                                                size={24}
-                                                className="text-primary"
-                                            />
-                                        </div>
-                                        <small className="text-muted">
-                                            Employees
-                                        </small>
-                                    </Card.Body>
-                                </Card>
+                    <Card.Header>
+                        <Row className="g-3 align-items-end">
+                            {/* Search */}
+                            <Col lg={3} md={6}>
+                                <InputGroup>
+                                    <InputGroup.Text className="bg-light">
+                                        <FaSearch />
+                                    </InputGroup.Text>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Search employee..."
+                                        value={search}
+                                        onChange={(e) =>
+                                            setSearch(e.target.value)
+                                        }
+                                        className="border-start-0"
+                                    />
+                                </InputGroup>
                             </Col>
-                            <Col xs={6} md={4} lg={2}>
-                                <Card className="border-0 bg-success bg-opacity-10">
-                                    <Card.Body className="p-3">
-                                        <div className="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 className="text-muted mb-1">
-                                                    Present
-                                                </h6>
-                                                <h4 className="fw-bold mb-0">
-                                                    {
-                                                        attendanceStats.presentCount
-                                                    }
-                                                </h4>
-                                            </div>
-                                            <FaUserCheck
-                                                size={24}
-                                                className="text-success"
-                                            />
-                                        </div>
-                                        <small className="text-muted">
-                                            {attendanceStats.presentCount > 0
-                                                ? `${(
-                                                      (attendanceStats.presentCount /
-                                                          attendanceStats.totalEmployees) *
-                                                      100
-                                                  ).toFixed(1)}%`
-                                                : "0%"}
-                                        </small>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                            <Col xs={6} md={4} lg={2}>
-                                <Card className="border-0 bg-danger bg-opacity-10">
-                                    <Card.Body className="p-3">
-                                        <div className="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 className="text-muted mb-1">
-                                                    Absent
-                                                </h6>
-                                                <h4 className="fw-bold mb-0">
-                                                    {
-                                                        attendanceStats.absentCount
-                                                    }
-                                                </h4>
-                                            </div>
-                                            <FaUserTimes
-                                                size={24}
-                                                className="text-danger"
-                                            />
-                                        </div>
-                                        <small className="text-muted">
-                                            {attendanceStats.absentCount > 0
-                                                ? `${(
-                                                      (attendanceStats.absentCount /
-                                                          attendanceStats.totalEmployees) *
-                                                      100
-                                                  ).toFixed(1)}%`
-                                                : "0%"}
-                                        </small>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                            <Col xs={6} md={4} lg={2}>
-                                <Card className="border-0 bg-warning bg-opacity-10">
-                                    <Card.Body className="p-3">
-                                        <div className="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 className="text-muted mb-1">
-                                                    Late
-                                                </h6>
-                                                <h4 className="fw-bold mb-0">
-                                                    {attendanceStats.lateCount}
-                                                </h4>
-                                            </div>
-                                            <FaClock
-                                                size={24}
-                                                className="text-warning"
-                                            />
-                                        </div>
-                                        <small className="text-muted">
-                                            Arrivals
-                                        </small>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                            <Col xs={6} md={4} lg={2}>
-                                <Card className="border-0 bg-info bg-opacity-10">
-                                    <Card.Body className="p-3">
-                                        <div className="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 className="text-muted mb-1">
-                                                    On Leave
-                                                </h6>
-                                                <h4 className="fw-bold mb-0">
-                                                    {
-                                                        attendanceStats.onLeaveCount
-                                                    }
-                                                </h4>
-                                            </div>
-                                            <Calendar
-                                                size={24}
-                                                className="text-info"
-                                            />
-                                        </div>
-                                        <small className="text-muted">
-                                            Approved
-                                        </small>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                            <Col xs={6} md={4} lg={2}>
-                                <Card className="border-0 bg-purple bg-opacity-10">
-                                    <Card.Body className="p-3">
-                                        <div className="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 className="text-muted mb-1">
-                                                    Attendance Rate
-                                                </h6>
-                                                <h4 className="fw-bold mb-0">
-                                                    {attendanceRate.toFixed(1)}%
-                                                </h4>
-                                            </div>
-                                            <FaChartLine
-                                                size={24}
-                                                className="text-purple"
-                                            />
-                                        </div>
-                                        <ProgressBar
-                                            now={attendanceRate}
-                                            variant={
-                                                attendanceRate >= 90
-                                                    ? "success"
-                                                    : attendanceRate >= 70
-                                                    ? "warning"
-                                                    : "danger"
-                                            }
-                                            style={{ height: "4px" }}
-                                        />
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                        </Row>
-                    </Col>
-                </Row>
 
-                {/* Main Content */}
-                <Row>
-                    {/* Left Column - Main Table */}
-                    <Col xl={9} lg={8}>
-                        <Card className="border-0 shadow-sm">
-                            <Card.Header className="d-flex justify-content-between align-items-center bg-transparent py-3">
-                                <div className="d-flex align-items-center gap-3">
-                                    <h6 className="mb-0 fw-semibold">
-                                        Daily Attendance Register
-                                    </h6>
-                                    <Badge
-                                        bg="light"
-                                        text="dark"
-                                        className="border"
+                            {/* Status Filter */}
+                            <Col lg={2} md={4}>
+                                <Form.Select
+                                    value={statusFilter}
+                                    onChange={(e) =>
+                                        setStatusFilter(e.target.value)
+                                    }
+                                >
+                                    <option value="all">All Status</option>
+                                    <option value="present">Present</option>
+                                    <option value="absent">Absent</option>
+                                    <option value="late">Late</option>
+                                    <option value="on_leave">On Leave</option>
+                                    <option value="half_day">Half Day</option>
+                                </Form.Select>
+                            </Col>
+
+                            {/* Department Filter */}
+                            <Col lg={2} md={4}>
+                                <Form.Select
+                                    value={departmentFilter}
+                                    onChange={(e) =>
+                                        setDepartmentFilter(e.target.value)
+                                    }
+                                >
+                                    <option value="all">All Departments</option>
+                                    {departments?.map((dept) => (
+                                        <option key={dept.id} value={dept.id}>
+                                            {dept.name}
+                                        </option>
+                                    ))}
+                                </Form.Select>
+                            </Col>
+
+                            {/* Date Filter */}
+                            <Col lg={2} md={4}>
+                                <InputGroup>
+                                    <InputGroup.Text>
+                                        <BiCalendar />
+                                    </InputGroup.Text>
+                                    <Form.Control
+                                        type="date"
+                                        value={dateFilter}
+                                        onChange={(e) =>
+                                            setDateFilter(e.target.value)
+                                        }
+                                    />
+                                </InputGroup>
+                            </Col>
+
+                            {/* Action Buttons */}
+                            <Col lg={3} md={6}>
+                                <ButtonGroup className="d-flex gap-2">
+                                    <Button
+                                        variant="outline-info"
+                                        onClick={refreshTable}
+                                        className="d-flex align-items-center rounded"
                                     >
-                                        {formatDate(
-                                            selectedDate,
-                                            "DD MMM, YYYY"
-                                        )}
-                                    </Badge>
-                                    {selectedEmployees.length > 0 && (
-                                        <Badge bg="primary" pill>
-                                            {selectedEmployees.length} selected
-                                        </Badge>
-                                    )}
-                                </div>
-                                <div className="d-flex align-items-center gap-2">
-                                    {/* Date Selection */}
-                                    <InputGroup style={{ width: "200px" }}>
-                                        <InputGroup.Text>
-                                            <FaCalendarAlt />
-                                        </InputGroup.Text>
-                                        <Form.Control
-                                            type="date"
-                                            value={selectedDate}
-                                            onChange={handleDateChange}
-                                            disabled={processing}
-                                        />
-                                    </InputGroup>
-
-                                    {/* Action Buttons */}
-                                    <ButtonGroup>
-                                        <Dropdown>
-                                            <Dropdown.Toggle
-                                                variant="outline-success"
-                                                id="export-dropdown"
-                                            >
-                                                <Download /> Export
-                                            </Dropdown.Toggle>
-                                            <Dropdown.Menu>
-                                                <Dropdown.Item
-                                                    onClick={() =>
-                                                        exportAttendance("pdf")
-                                                    }
-                                                >
-                                                    <FaFilePdf className="me-2 text-danger" />{" "}
-                                                    PDF Report
-                                                </Dropdown.Item>
-                                                <Dropdown.Item
-                                                    onClick={() =>
-                                                        exportAttendance(
-                                                            "excel"
-                                                        )
-                                                    }
-                                                >
-                                                    <FaFileExcel className="me-2 text-success" />{" "}
-                                                    Excel Sheet
-                                                </Dropdown.Item>
-                                                <Dropdown.Item
-                                                    onClick={() =>
-                                                        toast.info(
-                                                            "Printing..."
-                                                        )
-                                                    }
-                                                >
-                                                    <FaPrint className="me-2 text-secondary" />{" "}
-                                                    Print
-                                                </Dropdown.Item>
-                                            </Dropdown.Menu>
-                                        </Dropdown>
-                                    </ButtonGroup>
-                                </div>
-                            </Card.Header>
-
-                            <Card.Body className="p-0">
-                                {/* Filters */}
-                                <div className="p-3 border-bottom bg-light">
-                                    <Row className="g-2">
-                                        <Col md={6}>
-                                            <InputGroup>
-                                                <InputGroup.Text>
-                                                    <Search />
-                                                </InputGroup.Text>
-                                                <Form.Control
-                                                    placeholder="Search employees..."
-                                                    value={searchTerm}
-                                                    onChange={(e) =>
-                                                        setSearchTerm(
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                />
-                                                <Button variant="outline-secondary">
-                                                    <FaFilter />
-                                                </Button>
-                                            </InputGroup>
-                                        </Col>
-                                        <Col md={4}>
-                                            <Form.Select
-                                                value={departmentFilter}
-                                                onChange={(e) =>
-                                                    setDepartmentFilter(
-                                                        e.target.value
-                                                    )
+                                        <BiRefresh className="me-1" />
+                                        Refresh
+                                    </Button>
+                                    <Dropdown>
+                                        <Dropdown.Toggle
+                                            variant="outline-secondary"
+                                            className="d-flex align-items-center"
+                                        >
+                                            <BiDownload className="me-1" />
+                                            Export
+                                        </Dropdown.Toggle>
+                                        <Dropdown.Menu>
+                                            <Dropdown.Item
+                                                onClick={() =>
+                                                    exportAttendance("excel")
                                                 }
                                             >
-                                                <option value="all">
-                                                    All Departments
-                                                </option>
-                                                {departments.map((dept) => (
-                                                    <option
-                                                        key={dept.id}
-                                                        value={dept.id}
-                                                    >
-                                                        {dept.name}
-                                                    </option>
-                                                ))}
-                                            </Form.Select>
-                                        </Col>
-                                        <Col md={2}>
-                                            <Form.Check
-                                                type="switch"
-                                                id="selectAllEmployees"
-                                                label="Select All"
-                                                className="pt-2"
-                                            />
-                                        </Col>
-                                    </Row>
-                                </div>
-
-                                {/* Quick Actions Bar */}
-                                {selectedEmployees.length > 0 && (
-                                    <Alert variant="info" className="m-3 py-2">
-                                        <div className="d-flex justify-content-between align-items-center">
-                                            <span>
-                                                <strong>
-                                                    {selectedEmployees.length}
-                                                </strong>{" "}
-                                                employees selected
-                                            </span>
-                                            <div className="d-flex gap-2">
-                                                <Button
-                                                    variant="success"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        bulkMarkAttendance(
-                                                            "clockIn",
-                                                            "present"
-                                                        )
-                                                    }
-                                                >
-                                                    <PersonCheck className="me-1" />{" "}
-                                                    Mark Present
-                                                </Button>
-                                                <Button
-                                                    variant="danger"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        bulkMarkAttendance(
-                                                            "clockIn",
-                                                            "absent"
-                                                        )
-                                                    }
-                                                >
-                                                    <PersonDash className="me-1" />{" "}
-                                                    Mark Absent
-                                                </Button>
-                                                <Button
-                                                    variant="outline-secondary"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        setSelectedEmployees([])
-                                                    }
-                                                >
-                                                    <Trash className="me-1" />{" "}
-                                                    Clear
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </Alert>
-                                )}
-
-                                {/* Quick Actions */}
-                                <div className="p-3 border-bottom">
-                                    <div className="d-flex flex-wrap gap-2">
-                                        {quickActions.map((action, index) => (
-                                            <Button
-                                                key={index}
-                                                variant={action.variant}
-                                                size="sm"
-                                                className="d-flex align-items-center"
-                                                onClick={action.onClick}
-                                                disabled={processing}
+                                                <FaFileExcel className="me-2 text-success" />{" "}
+                                                Excel
+                                            </Dropdown.Item>
+                                            <Dropdown.Item
+                                                onClick={() =>
+                                                    exportAttendance("pdf")
+                                                }
                                             >
-                                                {action.icon}
-                                                <span className="ms-2">
-                                                    {action.label}
-                                                </span>
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </div>
+                                                <FaFilePdf className="me-2 text-danger" />{" "}
+                                                PDF
+                                            </Dropdown.Item>
+                                            <Dropdown.Item
+                                                onClick={printAttendance}
+                                            >
+                                                <FaPrint className="me-2 text-secondary" />{" "}
+                                                Print
+                                            </Dropdown.Item>
+                                        </Dropdown.Menu>
+                                    </Dropdown>
+                                </ButtonGroup>
+                            </Col>
+                        </Row>
+                    </Card.Header>
 
-                                {/* Attendance Table */}
-                                <div className="table-responsive">
-                                    <Table
-                                        bordered
-                                        hover
-                                        responsive
-                                        id="attendanceRegisterTable"
-                                        className="m-0 align-middle"
-                                    />
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-
-                    {/* Right Column - Quick Actions & Recent Activity */}
-                    <Col xl={3} lg={4}>
-                        {/* Quick Stats */}
-                        <Card className="border-0 shadow-sm mb-3">
-                            <Card.Body>
-                                <h6 className="fw-semibold mb-3">
-                                    <Activity className="me-2" /> Today's
-                                    Summary
-                                </h6>
-                                <ListGroup variant="flush">
-                                    <ListGroup.Item className="d-flex justify-content-between align-items-center px-0 py-2">
-                                        <span className="text-muted">
-                                            Expected
-                                        </span>
-                                        <Badge bg="light" text="dark">
-                                            {attendanceStats.totalEmployees}
-                                        </Badge>
-                                    </ListGroup.Item>
-                                    <ListGroup.Item className="d-flex justify-content-between align-items-center px-0 py-2">
-                                        <span className="text-muted">
-                                            Checked In
-                                        </span>
-                                        <Badge bg="success">
-                                            {attendanceStats.presentCount}
-                                        </Badge>
-                                    </ListGroup.Item>
-                                    <ListGroup.Item className="d-flex justify-content-between align-items-center px-0 py-2">
-                                        <span className="text-muted">
-                                            Pending
-                                        </span>
-                                        <Badge bg="warning">
-                                            {attendanceStats.totalEmployees -
-                                                attendanceStats.presentCount}
-                                        </Badge>
-                                    </ListGroup.Item>
-                                    <ListGroup.Item className="d-flex justify-content-between align-items-center px-0 py-2">
-                                        <span className="text-muted">
-                                            Late Arrivals
-                                        </span>
-                                        <Badge bg="danger">
-                                            {attendanceStats.lateCount}
-                                        </Badge>
-                                    </ListGroup.Item>
-                                </ListGroup>
-                            </Card.Body>
-                        </Card>
-
-                        {/* Recent Activity */}
-                        <Card className="border-0 shadow-sm mb-3">
-                            <Card.Body>
-                                <h6 className="fw-semibold mb-3">
-                                    <Bell className="me-2" /> Recent Activity
-                                </h6>
-                                <div
-                                    style={{
-                                        maxHeight: "300px",
-                                        overflowY: "auto",
-                                    }}
-                                >
-                                    {recentActivities.map((activity) => (
-                                        <div
-                                            key={activity.id}
-                                            className="d-flex align-items-start mb-3"
-                                        >
-                                            <div className="avatar-sm me-3">
-                                                <div
-                                                    className={`avatar-title rounded-circle bg-${
-                                                        activity.status ===
-                                                        "completed"
-                                                            ? "success"
-                                                            : "warning"
-                                                    }-subtle`}
-                                                >
-                                                    {activity.icon}
-                                                </div>
-                                            </div>
-                                            <div className="flex-grow-1">
-                                                <h6 className="mb-0 fs-14">
-                                                    {activity.employee_name}
-                                                </h6>
-                                                <p className="text-muted mb-0 fs-12">
-                                                    {activity.action ===
-                                                    "clock_in"
-                                                        ? "Clocked in at"
-                                                        : "Clocked out at"}{" "}
-                                                    {activity.time}
-                                                </p>
-                                                <small className="text-muted">
-                                                    {formatDate(
-                                                        activity.created_at,
-                                                        "hh:mm A"
-                                                    )}
-                                                </small>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {recentActivities.length === 0 && (
-                                        <p className="text-muted text-center py-3">
-                                            No recent activity
-                                        </p>
-                                    )}
-                                </div>
-                            </Card.Body>
-                        </Card>
-
-                        {/* Mobile Check-in */}
-                        <Card className="border-0 shadow-sm">
-                            <Card.Body>
-                                <h6 className="fw-semibold mb-3">
-                                    <FaMobileAlt className="me-2" /> Mobile
-                                    Check-in
-                                </h6>
-                                <div className="text-center">
-                                    <div className="bg-light rounded p-4 mb-3">
-                                        <FaQrcode
-                                            size={48}
-                                            className="text-primary mb-2"
-                                        />
-                                        <p className="text-muted mb-2">
-                                            Scan QR code to check-in
-                                        </p>
+                    {/* Quick Actions */}
+                    {selectedEmployees.length > 0 && (
+                        <Card.Header className="border-top">
+                            <Alert variant="info" className="m-0 py-2">
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <strong>
+                                            {selectedEmployees.length}
+                                        </strong>{" "}
+                                        employees selected
+                                    </span>
+                                    <div className="d-flex gap-2">
                                         <Button
-                                            variant="outline-primary"
+                                            variant="success"
                                             size="sm"
-                                            onClick={generateQRCode}
+                                            onClick={handleBulkMarkPresent}
                                         >
-                                            Generate QR Code
+                                            <FaUserCheck className="me-1" />{" "}
+                                            Mark Present
+                                        </Button>
+                                        <Button
+                                            variant="danger"
+                                            size="sm"
+                                            onClick={handleBulkMarkAbsent}
+                                        >
+                                            <FaUserTimes className="me-1" />{" "}
+                                            Mark Absent
+                                        </Button>
+                                        <Button
+                                            variant="outline-secondary"
+                                            size="sm"
+                                            onClick={() =>
+                                                setSelectedEmployees([])
+                                            }
+                                        >
+                                            <FaTrash className="me-1" /> Clear
                                         </Button>
                                     </div>
-                                    <small className="text-muted">
-                                        Employees can scan QR code or use mobile
-                                        app to check-in
-                                    </small>
                                 </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
+                            </Alert>
+                        </Card.Header>
+                    )}
 
-                {/* Modals */}
-                <SettingsModal
-                    show={showSettingsModal}
-                    onHide={() => setShowSettingsModal(false)}
-                    settings={attendanceSettings}
-                    onSave={(newSettings) => {
-                        setAttendanceSettings(newSettings);
-                        toast.success("Attendance settings updated!");
-                    }}
-                />
+                    {/* Additional Quick Actions */}
+                    <Card.Header className="border-top">
+                        <div className="d-flex flex-wrap gap-2">
+                            <Button
+                                variant="success"
+                                size="sm"
+                                className="d-flex align-items-center"
+                                onClick={handleBulkMarkPresent}
+                            >
+                                <FaUserCheck className="me-1" /> Mark All
+                                Present
+                            </Button>
+                            <Button
+                                variant="danger"
+                                size="sm"
+                                className="d-flex align-items-center"
+                                onClick={handleBulkMarkAbsent}
+                            >
+                                <FaUserTimes className="me-1" /> Mark All Absent
+                            </Button>
+                            <Button
+                                variant="info"
+                                size="sm"
+                                className="d-flex align-items-center"
+                                onClick={generateQRCode}
+                            >
+                                <FaQrcode className="me-1" /> Generate QR
+                            </Button>
+                            <Button
+                                variant="warning"
+                                size="sm"
+                                className="d-flex align-items-center"
+                                onClick={() => setShowLocationModal(true)}
+                            >
+                                <FaMapMarkerAlt className="me-1" /> Location
+                                Check
+                            </Button>
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                className="d-flex align-items-center"
+                                onClick={() =>
+                                    toast.info(
+                                        "Reminder sent to absent employees"
+                                    )
+                                }
+                            >
+                                <FaBell className="me-1" /> Send Reminder
+                            </Button>
+                        </div>
+                    </Card.Header>
 
-                <QRCodeModal
-                    show={showQRModal}
-                    onHide={() => setShowQRModal(false)}
-                    date={selectedDate}
-                />
-
-                <LocationModal
-                    show={showLocationModal}
-                    onHide={() => setShowLocationModal(false)}
-                />
+                    <Card.Body className="p-0">
+                        <div className="table-responsive">
+                            <Table
+                                hover
+                                className="align-middle mb-0"
+                                id="attendanceTable"
+                            />
+                        </div>
+                    </Card.Body>
+                </Card>
             </Container>
+
+            {/* Modals */}
+            <AttendanceSettingsModal
+                show={showAttendanceSettingsModal}
+                onHide={() => setShowAttendanceSettingsModal(false)}
+                settings={attendanceSettings}
+                onSave={(newSettings) => {
+                    setAttendanceSettings(newSettings);
+                    toast.success("Attendance settings updated!");
+                }}
+            />
+
+            <QRCodeModal
+                show={showQRModal}
+                onHide={() => setShowQRModal(false)}
+                date={dateFilter}
+            />
+
+            <LocationModal
+                show={showLocationModal}
+                onHide={() => setShowLocationModal(false)}
+            />
+
+            <ViewAttendanceModal
+                show={showViewModal}
+                onHide={() => setShowViewModal(false)}
+                attendanceData={selectedAttendance}
+            />
         </ErpLayout>
     );
 }
-
-/** Settings Modal */
-const SettingsModal = ({ show, onHide, settings, onSave }) => {
-    const [localSettings, setLocalSettings] = useState(settings);
-
-    const handleSave = () => {
-        onSave(localSettings);
-        onHide();
-    };
-
-    return (
-        <Modal show={show} onHide={onHide} size="lg">
-            <Modal.Header closeButton>
-                <Modal.Title>Attendance Settings</Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-                <Tabs defaultActiveKey="general" className="mb-3">
-                    <Tab eventKey="general" title="General">
-                        <Form>
-                            <Row className="g-3">
-                                <Col md={6}>
-                                    <Form.Group>
-                                        <Form.Label>Work Start Time</Form.Label>
-                                        <Form.Control
-                                            type="time"
-                                            value={localSettings.workStartTime}
-                                            onChange={(e) =>
-                                                setLocalSettings({
-                                                    ...localSettings,
-                                                    workStartTime:
-                                                        e.target.value,
-                                                })
-                                            }
-                                        />
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group>
-                                        <Form.Label>Work End Time</Form.Label>
-                                        <Form.Control
-                                            type="time"
-                                            value={localSettings.workEndTime}
-                                            onChange={(e) =>
-                                                setLocalSettings({
-                                                    ...localSettings,
-                                                    workEndTime: e.target.value,
-                                                })
-                                            }
-                                        />
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group>
-                                        <Form.Label>
-                                            Late Threshold (minutes)
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="number"
-                                            value={localSettings.lateThreshold}
-                                            onChange={(e) =>
-                                                setLocalSettings({
-                                                    ...localSettings,
-                                                    lateThreshold: parseInt(
-                                                        e.target.value
-                                                    ),
-                                                })
-                                            }
-                                        />
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group>
-                                        <Form.Label>
-                                            Early Leave Threshold (minutes)
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="number"
-                                            value={
-                                                localSettings.earlyLeaveThreshold
-                                            }
-                                            onChange={(e) =>
-                                                setLocalSettings({
-                                                    ...localSettings,
-                                                    earlyLeaveThreshold:
-                                                        parseInt(
-                                                            e.target.value
-                                                        ),
-                                                })
-                                            }
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                        </Form>
-                    </Tab>
-                    <Tab eventKey="advanced" title="Advanced">
-                        <Form>
-                            <Form.Check
-                                type="switch"
-                                id="enable-geo"
-                                label="Enable Geolocation Tracking"
-                                checked={localSettings.enableGeoLocation}
-                                onChange={(e) =>
-                                    setLocalSettings({
-                                        ...localSettings,
-                                        enableGeoLocation: e.target.checked,
-                                    })
-                                }
-                                className="mb-3"
-                            />
-                            <Form.Check
-                                type="switch"
-                                id="require-reason"
-                                label="Require Reason for Absence"
-                                checked={localSettings.requireReasonForAbsence}
-                                onChange={(e) =>
-                                    setLocalSettings({
-                                        ...localSettings,
-                                        requireReasonForAbsence:
-                                            e.target.checked,
-                                    })
-                                }
-                                className="mb-3"
-                            />
-                            <Form.Check
-                                type="switch"
-                                id="auto-calculate"
-                                label="Auto-calculate Work Hours"
-                                checked={localSettings.autoCalculateHours}
-                                onChange={(e) =>
-                                    setLocalSettings({
-                                        ...localSettings,
-                                        autoCalculateHours: e.target.checked,
-                                    })
-                                }
-                                className="mb-3"
-                            />
-                        </Form>
-                    </Tab>
-                </Tabs>
-            </Modal.Body>
-            <Modal.Footer>
-                <Button variant="secondary" onClick={onHide}>
-                    Cancel
-                </Button>
-                <Button variant="primary" onClick={handleSave}>
-                    Save Changes
-                </Button>
-            </Modal.Footer>
-        </Modal>
-    );
-};
-
-/** QR Code Modal */
-const QRCodeModal = ({ show, onHide, date }) => (
-    <Modal show={show} onHide={onHide} centered>
-        <Modal.Header closeButton>
-            <Modal.Title>Attendance QR Code</Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="text-center">
-            <div className="bg-light p-4 rounded mb-3">
-                {/* QR Code would be rendered here */}
-                <div className="qr-placeholder bg-white p-4 d-inline-block">
-                    <div
-                        style={{
-                            width: "200px",
-                            height: "200px",
-                            background:
-                                "linear-gradient(45deg, #f3f3f3 25%, transparent 25%, transparent 75%, #f3f3f3 75%, #f3f3f3), linear-gradient(45deg, #f3f3f3 25%, transparent 25%, transparent 75%, #f3f3f3 75%, #f3f3f3)",
-                            backgroundSize: "40px 40px",
-                            backgroundPosition: "0 0, 20px 20px",
-                        }}
-                    />
-                </div>
-            </div>
-            <p className="text-muted mb-2">Scan this QR code to check-in</p>
-            <small className="text-muted d-block mb-2">
-                Valid for: {formatDate(date, "DD MMM, YYYY")}
-            </small>
-            <small className="text-muted">Expires in: 1 hour</small>
-        </Modal.Body>
-        <Modal.Footer className="justify-content-center">
-            <Button
-                variant="primary"
-                onClick={() => toast.info("QR code downloaded")}
-            >
-                <Download className="me-2" /> Download QR
-            </Button>
-            <Button
-                variant="outline-primary"
-                onClick={() => toast.info("QR code shared")}
-            >
-                Share
-            </Button>
-        </Modal.Footer>
-    </Modal>
-);
-
-/** Location Modal */
-const LocationModal = ({ show, onHide }) => (
-    <Modal show={show} onHide={onHide}>
-        <Modal.Header closeButton>
-            <Modal.Title>Location-Based Attendance</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-            <div className="text-center mb-4">
-                <Map size={48} className="text-primary mb-3" />
-                <h5>Enable Location Services</h5>
-                <p className="text-muted">
-                    Allow location access for accurate attendance tracking.
-                    Employees must be within company premises to check-in.
-                </p>
-            </div>
-
-            <Alert variant="info">
-                <FaMapMarkerAlt className="me-2" />
-                <strong>Current Location:</strong>
-                <div className="mt-2">
-                    <small>Latitude: 40.7128° N</small>
-                    <br />
-                    <small>Longitude: 74.0060° W</small>
-                    <br />
-                    <small>Accuracy: ±10 meters</small>
-                </div>
-            </Alert>
-
-            <Form>
-                <Form.Group className="mb-3">
-                    <Form.Label>Allowed Radius (meters)</Form.Label>
-                    <Form.Range min="10" max="500" defaultValue="100" />
-                    <small className="text-muted">
-                        100m radius from office center
-                    </small>
-                </Form.Group>
-
-                <Form.Check
-                    type="switch"
-                    id="enable-wifi"
-                    label="Require Company WiFi"
-                    className="mb-3"
-                />
-            </Form>
-        </Modal.Body>
-        <Modal.Footer>
-            <Button variant="secondary" onClick={onHide}>
-                Cancel
-            </Button>
-            <Button
-                variant="primary"
-                onClick={() => {
-                    toast.success("Location settings updated!");
-                    onHide();
-                }}
-            >
-                Save Settings
-            </Button>
-        </Modal.Footer>
-    </Modal>
-);

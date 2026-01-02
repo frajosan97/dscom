@@ -2,21 +2,17 @@
 
 namespace App\Models\Erp\Hrm;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\Erp\Finance\Transaction;
-use App\Models\User;
 
 class SalaryPayment extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'salary_payments';
-
     protected $fillable = [
         'salary_id',
-        'transaction_id',
         'amount',
         'payment_date',
         'payment_method',
@@ -24,32 +20,14 @@ class SalaryPayment extends Model
         'notes',
         'paid_by',
         'verified_by',
-        'verified_at',
+        'verified_at'
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'payment_date' => 'date',
-        'verified_at' => 'datetime',
+        'verified_at' => 'datetime'
     ];
-
-    // Payment method constants
-    const METHOD_CASH = 'cash';
-    const METHOD_BANK_TRANSFER = 'bank_transfer';
-    const METHOD_CHEQUE = 'cheque';
-    const METHOD_ONLINE = 'online';
-    const METHOD_MOBILE = 'mobile';
-
-    public static function getPaymentMethods()
-    {
-        return [
-            self::METHOD_CASH,
-            self::METHOD_BANK_TRANSFER,
-            self::METHOD_CHEQUE,
-            self::METHOD_ONLINE,
-            self::METHOD_MOBILE,
-        ];
-    }
 
     // Relationships
     public function salary()
@@ -57,48 +35,24 @@ class SalaryPayment extends Model
         return $this->belongsTo(Salary::class);
     }
 
-    // public function transaction()
-    // {
-    //     return $this->belongsTo(Transaction::class);
-    // }
-
-    public function paidByUser()
+    public function paidBy()
     {
         return $this->belongsTo(User::class, 'paid_by');
     }
 
-    public function verifiedByUser()
+    public function verifiedBy()
     {
         return $this->belongsTo(User::class, 'verified_by');
     }
 
     // Scopes
-    public function scopeByDate($query, $date)
+    public function scopeVerified($query)
     {
-        return $query->where('payment_date', $date);
+        return $query->whereNotNull('verified_at');
     }
 
-    public function scopeBetweenDates($query, $startDate, $endDate)
+    public function scopeUnverified($query)
     {
-        return $query->whereBetween('payment_date', [$startDate, $endDate]);
-    }
-
-    public function scopeByMethod($query, $method)
-    {
-        return $query->where('payment_method', $method);
-    }
-
-    // Methods
-    public function markAsVerified($userId)
-    {
-        $this->update([
-            'verified_by' => $userId,
-            'verified_at' => now(),
-        ]);
-    }
-
-    public function isVerified()
-    {
-        return !is_null($this->verified_at);
+        return $query->whereNull('verified_at');
     }
 }

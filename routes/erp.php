@@ -86,6 +86,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'attendance' => AttendanceController::class,
             'salary' => SalaryController::class,
         ]);
+
+        Route::get('/salaries/statistics', [SalaryController::class, 'statistics'])->name('salary.statistics');
+
+        Route::post('/attendances/clock-in/{user}', [AttendanceController::class, 'markClockIn'])->name('attendance.clock-in');
+        Route::post('/attendances/clock-out/{user}', [AttendanceController::class, 'markClockOut'])->name('attendance.clock-out');
+        Route::get('/attendances/statistics', [AttendanceController::class, 'statistics'])->name('attendance.statistics');
+        Route::get('/attendances/activities', [AttendanceController::class, 'activities'])->name('attendance.activities');
     });
 
     Route::prefix('crm')->group(function () {
