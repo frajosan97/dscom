@@ -60,44 +60,26 @@ return new class extends Migration {
             $table->string('month');
             $table->integer('year');
             $table->foreignId('payroll_period_id')->nullable()->constrained('payroll_periods')->onDelete('set null');
-
-            // Basic salary info
             $table->decimal('basic_salary', 15, 2)->default(0);
-
-            // Attendance
             $table->integer('total_days')->default(26);
             $table->integer('days_present')->default(26);
             $table->integer('days_absent')->default(0);
-
-            // Allowances (stored as JSON for flexibility)
             $table->json('allowances')->nullable();
-
-            // Deductions (stored as JSON for flexibility)
             $table->json('deductions')->nullable();
-
-            // Calculated totals
             $table->decimal('real_salary', 15, 2)->default(0);
             $table->decimal('total_allowances', 15, 2)->default(0);
             $table->decimal('total_deductions', 15, 2)->default(0);
             $table->decimal('gross_salary', 15, 2)->default(0);
             $table->decimal('net_salary', 15, 2)->default(0);
             $table->decimal('days_deduction', 15, 2)->default(0);
-
-            // Currency conversion
             $table->string('currency', 3)->default('USD');
             $table->decimal('exchange_rate', 15, 2)->default(1);
             $table->decimal('net_in_usd', 15, 2)->default(0);
             $table->decimal('net_in_cdf', 15, 2)->default(0);
-
-            // Status and dates
             $table->enum('status', ['pending', 'processing', 'paid'])->default('pending');
             $table->date('payment_date')->nullable();
             $table->date('salary_date')->useCurrent();
-
-            // Additional info
             $table->text('notes')->nullable();
-
-            // Audit fields
             $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('approved_at')->nullable();
             $table->foreignId('paid_by')->nullable()->constrained('users')->onDelete('set null');
