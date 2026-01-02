@@ -69,7 +69,7 @@ const ViewSalaryModal = ({ show, onHide, salaryData, employee }) => {
                 amount: parseFloat(salaryData.real_salary),
                 details: salaryData.days_present
                     ? `${salaryData.days_present} days × $${parseFloat(
-                          salaryData.daily_rate || 0
+                          salaryData.real_salary / salaryData.days_present || 0
                       ).toFixed(2)}`
                     : null,
             });
@@ -232,7 +232,7 @@ const ViewSalaryModal = ({ show, onHide, salaryData, employee }) => {
                         </table>
 
                         <div className="text-center fw-bold mb-2">
-                            Equity Bank - Kitui Branch
+                            Cash Transfer | No Bank Account
                         </div>
 
                         {/* Earnings & Deductions */}

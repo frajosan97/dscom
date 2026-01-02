@@ -1,5 +1,5 @@
 // SalaryModal.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     Modal,
     Form,
@@ -185,14 +185,16 @@ const SalaryModal = ({
     years,
 }) => {
     const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [isTotalDaysModified, setIsTotalDaysModified] = useState(false);
+    const [originalTotalDays, setOriginalTotalDays] = useState(null);
 
-    // Calculate all values
+    // Calculate all values WITHOUT rounding for accuracy
     const calculateSummary = () => {
         const basic = parseFloat(formData.basic_salary) || 0;
         const dailyRate = parseFloat(formData.daily_rate) || 0;
         const daysPresent = parseInt(formData.days_present) || 0;
 
-        // Real Salary
+        // Real Salary - NO ROUNDING HERE
         const realSalary = dailyRate * daysPresent;
 
         // Total Allowances
@@ -291,28 +293,49 @@ const SalaryModal = ({
         }));
     };
 
-    // Handle month/year change to update total days
+    // Handle month/year change - respect user-modified total days
     useEffect(() => {
         if (formData.month && formData.year) {
             const daysInMonth = getDaysInMonth(formData.month, formData.year);
 
-            setFormData((prev) => {
-                const currentTotalDays = parseInt(prev.total_days) || 26;
-                const currentDaysPresent = parseInt(prev.days_present) || 0;
+            // Only auto-update total_days if:
+            // 1. It hasn't been manually modified, OR
+            // 2. We're initializing from an existing record that matches the default
+            const currentTotalDays = parseInt(formData.total_days) || 0;
 
-                // If changing to a month with different days, adjust days present
-                const newDaysPresent = Math.min(
-                    currentDaysPresent,
-                    daysInMonth
-                );
+            if (!isTotalDaysModified) {
+                setFormData((prev) => {
+                    const currentDaysPresent = parseInt(prev.days_present) || 0;
+                    const newDaysPresent = Math.min(
+                        currentDaysPresent,
+                        daysInMonth
+                    );
 
-                return {
-                    ...prev,
-                    total_days: daysInMonth,
-                    days_present: newDaysPresent,
-                    days_absent: daysInMonth - newDaysPresent,
-                };
-            });
+                    return {
+                        ...prev,
+                        total_days: daysInMonth,
+                        days_present: newDaysPresent,
+                        days_absent: daysInMonth - newDaysPresent,
+                    };
+                });
+            } else {
+                // If user has modified total days, keep their value but adjust days_present if needed
+                setFormData((prev) => {
+                    const currentDaysPresent = parseInt(prev.days_present) || 0;
+                    const userTotalDays =
+                        parseInt(prev.total_days) || daysInMonth;
+                    const newDaysPresent = Math.min(
+                        currentDaysPresent,
+                        userTotalDays
+                    );
+
+                    return {
+                        ...prev,
+                        days_present: newDaysPresent,
+                        days_absent: userTotalDays - newDaysPresent,
+                    };
+                });
+            }
         }
     }, [formData.month, formData.year]);
 
@@ -322,16 +345,21 @@ const SalaryModal = ({
         if (employee) {
             setSelectedEmployee(employee);
 
-            // Calculate total days in the selected month
-            const daysInMonth =
-                formData.month && formData.year
-                    ? getDaysInMonth(formData.month, formData.year)
-                    : 26; // Default fallback
+            // Calculate total days - respect user modification if exists
+            let totalDays;
+            if (isTotalDaysModified && formData.total_days) {
+                totalDays = parseInt(formData.total_days);
+            } else {
+                totalDays =
+                    formData.month && formData.year
+                        ? getDaysInMonth(formData.month, formData.year)
+                        : 26; // Default fallback
+            }
 
-            // Calculate daily rate based on total days in the month
+            // Calculate daily rate WITHOUT rounding to prevent accumulation errors
             const dailyRate =
-                employee.salary && daysInMonth > 0
-                    ? Math.round((employee.salary / daysInMonth) * 100) / 100
+                employee.salary && totalDays > 0
+                    ? parseFloat((employee.salary / totalDays).toFixed(6)) // Use more precision
                     : 0;
 
             setFormData((prev) => ({
@@ -341,7 +369,7 @@ const SalaryModal = ({
                 basic_salary: employee.salary || 0,
                 daily_rate: dailyRate,
                 daily_transport_rate: 8.27,
-                total_days: daysInMonth, // Ensure total_days is set
+                total_days: totalDays,
             }));
         }
     };
@@ -372,13 +400,14 @@ const SalaryModal = ({
 
     // Attendance calculation with proper validation
     const updateAttendance = (field, value) => {
-        const totalDays =
-            parseInt(formData.total_days) ||
-            getDaysInMonth(formData.month, formData.year);
-
         if (field === "total_days") {
-            const newTotalDays = parseInteger(value, totalDays, 1, 31);
+            const newTotalDays = parseInteger(value, 0, 1, 31);
             const currentDaysPresent = parseInt(formData.days_present) || 0;
+
+            // Mark as manually modified
+            if (!isTotalDaysModified) {
+                setIsTotalDaysModified(true);
+            }
 
             setFormData((prev) => ({
                 ...prev,
@@ -388,17 +417,23 @@ const SalaryModal = ({
                     newTotalDays - Math.min(currentDaysPresent, newTotalDays),
             }));
 
-            // Update daily rate when total days changes
+            // Update daily rate when total days changes - WITHOUT rounding
             if (formData.basic_salary && newTotalDays > 0) {
-                const newDailyRate =
-                    Math.round((formData.basic_salary / newTotalDays) * 100) /
-                    100;
+                const newDailyRate = parseFloat(
+                    (formData.basic_salary / newTotalDays).toFixed(6)
+                );
                 setFormData((prev) => ({
                     ...prev,
                     daily_rate: newDailyRate,
                 }));
             }
         } else if (field === "days_present") {
+            const totalDays =
+                parseInt(formData.total_days) ||
+                (formData.month && formData.year
+                    ? getDaysInMonth(formData.month, formData.year)
+                    : 26);
+
             const newDaysPresent = parseInteger(value, 0, 0, totalDays);
 
             setFormData((prev) => ({
@@ -409,19 +444,20 @@ const SalaryModal = ({
         }
     };
 
-    // Update daily rate when basic salary changes
+    // Update daily rate when basic salary changes - WITHOUT rounding
     useEffect(() => {
         if (
             formData.basic_salary &&
             formData.total_days &&
             formData.total_days > 0
         ) {
-            const newDailyRate =
-                Math.round(
-                    (formData.basic_salary / formData.total_days) * 100
-                ) / 100;
+            const newDailyRate = parseFloat(
+                (formData.basic_salary / formData.total_days).toFixed(6)
+            );
             // Only update if the calculated value is different from current
-            if (Math.abs(newDailyRate - (formData.daily_rate || 0)) > 0.01) {
+            if (
+                Math.abs(newDailyRate - (formData.daily_rate || 0)) > 0.000001
+            ) {
                 setFormData((prev) => ({
                     ...prev,
                     daily_rate: newDailyRate,
@@ -430,16 +466,30 @@ const SalaryModal = ({
         }
     }, [formData.basic_salary, formData.total_days]);
 
-    // Initialize form with default total days
+    // Initialize form
     useEffect(() => {
-        if (show && !formData.total_days && formData.month && formData.year) {
-            const daysInMonth = getDaysInMonth(formData.month, formData.year);
-            setFormData((prev) => ({
-                ...prev,
-                total_days: daysInMonth,
-                days_present: prev.days_present || 0,
-                days_absent: daysInMonth - (prev.days_present || 0),
-            }));
+        if (show) {
+            // Reset modification flag when modal opens
+            setIsTotalDaysModified(false);
+
+            // If editing existing salary, preserve the total_days value
+            if (selectedSalary && formData.total_days) {
+                setIsTotalDaysModified(true);
+            }
+
+            // Set default total days if not already set
+            if (!formData.total_days && formData.month && formData.year) {
+                const daysInMonth = getDaysInMonth(
+                    formData.month,
+                    formData.year
+                );
+                setFormData((prev) => ({
+                    ...prev,
+                    total_days: daysInMonth,
+                    days_present: prev.days_present || 0,
+                    days_absent: daysInMonth - (prev.days_present || 0),
+                }));
+            }
         }
     }, [show, formData.month, formData.year]);
 
@@ -620,6 +670,10 @@ const SalaryModal = ({
                                         <h6 className="mb-0">
                                             Salary Calculation
                                         </h6>
+                                        <small className="text-muted">
+                                            Using full precision for accurate
+                                            calculations
+                                        </small>
                                     </Card.Header>
                                     <Card.Body>
                                         <Row className="g-3">
@@ -665,11 +719,7 @@ const SalaryModal = ({
                                                         />
                                                     </InputGroup>
                                                     <Form.Text className="text-muted">
-                                                        Monthly salary divided
-                                                        by{" "}
-                                                        {formData.total_days ||
-                                                            "total"}{" "}
-                                                        days
+                                                        Monthly salary
                                                     </Form.Text>
                                                 </Form.Group>
                                             </Col>
@@ -689,12 +739,16 @@ const SalaryModal = ({
                                                                 formData.daily_rate ===
                                                                 0
                                                                     ? ""
-                                                                    : formData.daily_rate
+                                                                    : parseFloat(
+                                                                          formData.daily_rate
+                                                                      ).toFixed(
+                                                                          6
+                                                                      )
                                                             }
                                                             onChange={
                                                                 handleInputChange
                                                             }
-                                                            step="0.01"
+                                                            step="0.000001"
                                                             min="0"
                                                             onBlur={(e) => {
                                                                 if (
@@ -721,9 +775,13 @@ const SalaryModal = ({
                                                         ÷{" "}
                                                         {formData.total_days ||
                                                             "--"}{" "}
-                                                        days = $
-                                                        {formData.daily_rate ||
-                                                            0}{" "}
+                                                        days
+                                                        <br />
+                                                        Precise: $
+                                                        {(
+                                                            formData.daily_rate ||
+                                                            0
+                                                        ).toFixed(6)}{" "}
                                                         per day
                                                     </Form.Text>
                                                 </Form.Group>
@@ -740,12 +798,17 @@ const SalaryModal = ({
                                             Attendance
                                         </h6>
                                         <small className="text-muted">
-                                            Total days:{" "}
+                                            Month has:{" "}
                                             {getDaysInMonth(
                                                 formData.month,
                                                 formData.year
                                             )}{" "}
-                                            days this month
+                                            days
+                                            {isTotalDaysModified && (
+                                                <span className="text-warning ms-1">
+                                                    (Custom)
+                                                </span>
+                                            )}
                                         </small>
                                     </Card.Header>
                                     <Card.Body>
@@ -753,7 +816,7 @@ const SalaryModal = ({
                                             <Col md={6}>
                                                 <Form.Group>
                                                     <Form.Label>
-                                                        Total Days
+                                                        Total Days *
                                                     </Form.Label>
                                                     <Form.Control
                                                         type="number"
@@ -768,6 +831,7 @@ const SalaryModal = ({
                                                         }
                                                         min="1"
                                                         max="31"
+                                                        required
                                                         onBlur={(e) => {
                                                             if (
                                                                 !e.target
@@ -793,11 +857,16 @@ const SalaryModal = ({
                                                                                 0),
                                                                     })
                                                                 );
+                                                                setIsTotalDaysModified(
+                                                                    false
+                                                                );
                                                             }
                                                         }}
                                                     />
                                                     <Form.Text className="text-muted">
-                                                        Working days in month
+                                                        Working days this month
+                                                        {isTotalDaysModified &&
+                                                            " (manually set)"}
                                                     </Form.Text>
                                                 </Form.Group>
                                             </Col>
@@ -825,6 +894,7 @@ const SalaryModal = ({
                                                                 formData.year
                                                             )
                                                         }
+                                                        required
                                                         onBlur={(e) => {
                                                             if (
                                                                 !e.target
@@ -917,6 +987,7 @@ const SalaryModal = ({
                                             title="Real Salary"
                                             amount={summary.real_salary}
                                             color="info"
+                                            prefix="$"
                                         />
                                     </Col>
                                     <Col md={3}>
@@ -946,13 +1017,19 @@ const SalaryModal = ({
                                                     undefined,
                                                     {
                                                         minimumFractionDigits: 2,
-                                                        maximumFractionDigits: 2,
+                                                        maximumFractionDigits: 6,
                                                     }
                                                 )}
                                             </h4>
                                             <small className="text-muted">
                                                 CDF:{" "}
-                                                {summary.net_in_cdf.toLocaleString()}
+                                                {summary.net_in_cdf.toLocaleString(
+                                                    undefined,
+                                                    {
+                                                        minimumFractionDigits: 2,
+                                                        maximumFractionDigits: 2,
+                                                    }
+                                                )}
                                             </small>
                                         </div>
                                     </Col>
@@ -998,6 +1075,35 @@ const SalaryModal = ({
                 >
                     {selectedSalary ? "Update Payroll" : "Save Payroll"}
                 </Button>
+                {isTotalDaysModified && (
+                    <Button
+                        variant="outline-warning"
+                        size="sm"
+                        onClick={() => {
+                            const daysInMonth = getDaysInMonth(
+                                formData.month,
+                                formData.year
+                            );
+                            setFormData((prev) => ({
+                                ...prev,
+                                total_days: daysInMonth,
+                                days_present: Math.min(
+                                    prev.days_present || 0,
+                                    daysInMonth
+                                ),
+                                days_absent:
+                                    daysInMonth -
+                                    Math.min(
+                                        prev.days_present || 0,
+                                        daysInMonth
+                                    ),
+                            }));
+                            setIsTotalDaysModified(false);
+                        }}
+                    >
+                        Reset to Month Default
+                    </Button>
+                )}
             </Modal.Footer>
         </Modal>
     );
