@@ -42,6 +42,7 @@ class UsersImport implements ToModel, WithHeadingRow, WithValidation
                     'last_name' => $row['lastname'] ?? $existingUser->last_name,
                     'phone' => $row['phone'] ?? $existingUser->phone,
                     'designation' => $row['designation'] ?? $existingUser->designation,
+                    'salary'=> $row['salary'] ?? $existingUser->salary,
                 ]);
 
                 $user = $existingUser;
@@ -53,6 +54,7 @@ class UsersImport implements ToModel, WithHeadingRow, WithValidation
                     'email' => $row['email'] ?? '',
                     'phone' => $row['phone'] ?? '',
                     'designation' => $row['designation'] ?? '',
+                    'salary'=> $row['salary'] ?? '',
                     'password' => Hash::make($row['password'] ?? '12345678'),
                 ]);
 
@@ -128,6 +130,7 @@ class UsersImport implements ToModel, WithHeadingRow, WithValidation
             'email' => 'required|email|max:255',
             'phone' => 'nullable|string|max:20',
             'designation' => 'nullable|string|max:255',
+            'salary' => 'nullable|numeric',
             'password' => 'nullable|string|min:6',
             'role' => 'nullable|string',
         ];
