@@ -228,7 +228,7 @@ export default function ErpHeader() {
             show:
                 (permissions.canViewStore || isSuper) &&
                 !showSupplierHorizontalMenu &&
-                !showOnlyHR &&
+                !showHRHorizontalMenu &&
                 !showFinanceHorizontalMenu,
             children: storeMenuItems,
         },
