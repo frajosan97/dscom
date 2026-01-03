@@ -2,6 +2,7 @@ import { Card, Col, Form, Row, Image } from "react-bootstrap";
 import { BiImage, BiLock } from "react-icons/bi";
 
 const PersonalDetailsTab = ({ formik, photoPreview, handlePhotoChange }) => {
+    console.log(formik);
     return (
         <>
             <Row className="g-4">
@@ -124,6 +125,7 @@ const PersonalDetailsTab = ({ formik, photoPreview, handlePhotoChange }) => {
                                     }
                                     placeholder="employee@example.com"
                                     className="py-2"
+                                    disabled={!!formik.values.email}
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {formik.errors.email}
@@ -224,84 +226,88 @@ const PersonalDetailsTab = ({ formik, photoPreview, handlePhotoChange }) => {
             </Row>
 
             {/* Credentials Section */}
-            <Row className="mt-4">
-                <Col md={12}>
-                    <Card className="border-0 bg-light">
-                        <Card.Body className="p-4">
-                            <h6 className="fw-bold mb-3 d-flex align-items-center">
-                                <BiLock className="me-2" />
-                                Login Credentials
-                            </h6>
-                            <Row className="g-3">
-                                <Col md={4}>
-                                    <Form.Group>
-                                        <Form.Label className="fw-semibold">
-                                            Username
-                                        </Form.Label>
-                                        <Form.Control
-                                            name="username"
-                                            value={formik.values.username}
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            placeholder="username"
-                                            className="py-2"
-                                        />
-                                    </Form.Group>
-                                </Col>
-                                <Col md={4}>
-                                    <Form.Group>
-                                        <Form.Label className="fw-semibold">
-                                            Password
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="password"
-                                            name="password"
-                                            value={formik.values.password}
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            isInvalid={
-                                                formik.touched.password &&
-                                                !!formik.errors.password
-                                            }
-                                            placeholder="••••••"
-                                            className="py-2"
-                                        />
-                                        <Form.Control.Feedback type="invalid">
-                                            {formik.errors.password}
-                                        </Form.Control.Feedback>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={4}>
-                                    <Form.Group>
-                                        <Form.Label className="fw-semibold">
-                                            Confirm Password
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="password"
-                                            name="confirm_password"
-                                            value={
-                                                formik.values.confirm_password
-                                            }
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            isInvalid={
-                                                formik.touched
-                                                    .confirm_password &&
-                                                !!formik.errors.confirm_password
-                                            }
-                                            placeholder="••••••"
-                                            className="py-2"
-                                        />
-                                        <Form.Control.Feedback type="invalid">
-                                            {formik.errors.confirm_password}
-                                        </Form.Control.Feedback>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                        </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
+            {!formik.values.email && (
+                <Row className="mt-4">
+                    <Col md={12}>
+                        <Card className="border-0 bg-light">
+                            <Card.Body className="p-4">
+                                <h6 className="fw-bold mb-3 d-flex align-items-center">
+                                    <BiLock className="me-2" />
+                                    Login Credentials
+                                </h6>
+                                <Row className="g-3">
+                                    <Col md={4}>
+                                        <Form.Group>
+                                            <Form.Label className="fw-semibold">
+                                                Username
+                                            </Form.Label>
+                                            <Form.Control
+                                                name="username"
+                                                value={formik.values.username}
+                                                onChange={formik.handleChange}
+                                                onBlur={formik.handleBlur}
+                                                placeholder="username"
+                                                className="py-2"
+                                            />
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Group>
+                                            <Form.Label className="fw-semibold">
+                                                Password
+                                            </Form.Label>
+                                            <Form.Control
+                                                type="password"
+                                                name="password"
+                                                value={formik.values.password}
+                                                onChange={formik.handleChange}
+                                                onBlur={formik.handleBlur}
+                                                isInvalid={
+                                                    formik.touched.password &&
+                                                    !!formik.errors.password
+                                                }
+                                                placeholder="••••••"
+                                                className="py-2"
+                                            />
+                                            <Form.Control.Feedback type="invalid">
+                                                {formik.errors.password}
+                                            </Form.Control.Feedback>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Group>
+                                            <Form.Label className="fw-semibold">
+                                                Confirm Password
+                                            </Form.Label>
+                                            <Form.Control
+                                                type="password"
+                                                name="confirm_password"
+                                                value={
+                                                    formik.values
+                                                        .confirm_password
+                                                }
+                                                onChange={formik.handleChange}
+                                                onBlur={formik.handleBlur}
+                                                isInvalid={
+                                                    formik.touched
+                                                        .confirm_password &&
+                                                    !!formik.errors
+                                                        .confirm_password
+                                                }
+                                                placeholder="••••••"
+                                                className="py-2"
+                                            />
+                                            <Form.Control.Feedback type="invalid">
+                                                {formik.errors.confirm_password}
+                                            </Form.Control.Feedback>
+                                        </Form.Group>
+                                    </Col>
+                                </Row>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            )}
         </>
     );
 };

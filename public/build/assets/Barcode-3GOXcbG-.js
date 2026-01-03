@@ -1,1 +1,0 @@
-import{j as r,$ as t}from"./app-Dad_-i9_.js";import{E as o}from"./ErpLayout-DMTrf_ot.js";import"./Footer-DlTkX6Mv.js";import"./Image-BqRrxf8V.js";import"./CloseButton-BfcxKKqK.js";import"./Form-U4ModQtX.js";/* empty css                      */const c=()=>r.jsx(o,{children:r.jsx(t,{title:"Barcodes"})});export{c as default};

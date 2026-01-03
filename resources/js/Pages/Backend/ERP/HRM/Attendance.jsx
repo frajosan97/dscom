@@ -39,7 +39,7 @@ import Swal from "sweetalert2";
 import ErpLayout from "@/Layouts/ErpLayout";
 import xios from "@/Utils/axios";
 import useData from "@/Hooks/useData";
-import AttendanceStatisticsCard from "@/Components/Cards/AttendanceStatisticsCard";
+import AttendanceStatsCard from "@/Components/Cards/AttendanceStatsCard";
 import { useErrorToast } from "@/Hooks/useErrorToast";
 import { formatDate } from "@/Utils/helpers";
 
@@ -670,7 +670,7 @@ export default function Attendance() {
                             key={index}
                             className="mb-3"
                         >
-                            <AttendanceStatisticsCard {...card} />
+                            <AttendanceStatsCard {...card} />
                         </Col>
                     ))}
                 </Row>

@@ -33,7 +33,7 @@ import useData from "@/Hooks/useData";
 import SalaryModal from "@/Components/Modals/SalaryModal";
 import ViewSalaryModal from "@/Components/Modals/ViewSalaryModal";
 import { useErrorToast } from "@/Hooks/useErrorToast";
-import SalaryStatisticsCard from "@/Components/Cards/SalaryStatisticsCard";
+import SalaryStatsCard from "@/Components/Cards/SalaryStatsCard";
 import { FaFileExcel, FaFilePdf, FaPrint } from "react-icons/fa";
 
 // Months array
@@ -545,7 +545,7 @@ export default function Salary() {
                             key={index}
                             className="mb-3"
                         >
-                            <SalaryStatisticsCard {...card} />
+                            <SalaryStatsCard {...card} />
                         </Col>
                     ))}
                 </Row>

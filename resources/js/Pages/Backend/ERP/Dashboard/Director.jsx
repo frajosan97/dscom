@@ -1,21 +1,10 @@
+import DashboardStatsCard from "@/Components/Cards/DashboardStatsCard";
 import ErpLayout from "@/Layouts/ErpLayout";
 import { Head, usePage } from "@inertiajs/react";
-import {
-    BiCart,
-    BiDollar,
-    BiBox,
-    BiWrench,
-    BiLineChart,
-    BiPackage,
-} from "react-icons/bi";
+import { Col, Row, Card, ProgressBar, Badge } from "react-bootstrap";
 import {
     BarChart,
     Bar,
-    LineChart,
-    Line,
-    PieChart,
-    Pie,
-    Cell,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -23,521 +12,718 @@ import {
     Legend,
     ResponsiveContainer,
 } from "recharts";
-import {
-    Card,
-    Row,
-    Col,
-    ProgressBar,
-    Badge,
-    Button,
-    Container,
-    Dropdown,
-} from "react-bootstrap";
+import { Link } from "@inertiajs/react";
+import { useRef, useEffect } from "react";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
-
-export default function DirectorDashboard({ dashboardData }) {
+const DirectorDashboard = ({ dashboardData }) => {
     const { auth } = usePage().props;
+
+    // Refs for DataTables
+    const lowStockTableRef = useRef(null);
+    const topSellingTableRef = useRef(null);
+    const recentOrdersTableRef = useRef(null);
+
+    // Track if DataTables have been initialized
+    const tablesInitialized = useRef({
+        lowStock: false,
+        topSelling: false,
+        recentOrders: false,
+    });
 
     // Destructure data from backend
     const {
-        summaryMetrics,
-        salesData,
-        revenueSources,
-        repairData,
-        inventoryData,
-        topProducts,
+        statCards,
+        additionalMetrics,
         recentOrders,
-        repairStatus,
-        customerAcquisition,
+        revenueChart,
+        summary,
+        lowStockProducts = [], // Default to empty array
+        topSellingProducts = [],
     } = dashboardData;
 
-    // Summary cards data
-    const summaryCards = [
-        {
-            title: "Total Sales",
-            value: `$${summaryMetrics.totalSales.toLocaleString()}`,
-            description: `${summaryMetrics.salesGrowth >= 0 ? "+" : ""}${
-                summaryMetrics.salesGrowth
-            }% vs last month`,
-            icon: <BiDollar size={24} className="text-primary" />,
-            bg: "bg-primary bg-opacity-10",
-            trend: summaryMetrics.salesGrowth >= 0 ? "up" : "down",
-        },
-        {
-            title: "Total Orders",
-            value: summaryMetrics.totalOrders,
-            description: `<span class="text-success">${summaryMetrics.onlineOrders} online</span> • <span class="text-info">${summaryMetrics.retailOrders} in-store</span>`,
-            icon: <BiCart size={24} className="text-success" />,
-            bg: "bg-success bg-opacity-10",
-            isHtml: true,
-        },
-        {
-            title: "Inventory Value",
-            value: `$${summaryMetrics.inventoryValue.toLocaleString()}`,
-            description: `${summaryMetrics.lowStockItems} low stock items`,
-            icon: <BiBox size={24} className="text-warning" />,
-            bg: "bg-warning bg-opacity-10",
-            trend: "down",
-        },
-        {
-            title: "Repair Revenue",
-            value: `$${summaryMetrics.repairRevenue.toLocaleString()}`,
-            description: `${summaryMetrics.completedRepairs} completed • ${
-                summaryMetrics.repairOrders - summaryMetrics.completedRepairs
-            } in progress`,
-            icon: <BiWrench size={24} className="text-info" />,
-            bg: "bg-info bg-opacity-10",
-        },
-    ];
+    // Initialize DataTables
+    useEffect(() => {
+        // Initialize Low Stock Products DataTable
+        if (lowStockTableRef.current && !tablesInitialized.current.lowStock) {
+            $(lowStockTableRef.current).DataTable({
+                data: lowStockProducts || [],
+                columns: [
+                    {
+                        data: "name",
+                        title: "Product",
+                        className: "text-start",
+                        render: function (data, type, row) {
+                            if (!data)
+                                return '<div class="text-center text-muted">-</div>';
 
-    // Status badge colors mapping
-    const statusColors = {
-        completed: "success",
-        processing: "primary",
-        pending: "warning",
-        shipped: "info",
-        in_progress: "primary",
-        diagnosis: "info",
-        awaiting_parts: "warning",
-    };
+                            return `
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-light rounded me-2">
+                                        <img src="${
+                                            row.image ||
+                                            "/images/default-product.jpg"
+                                        }" 
+                                             alt="${row.name}" 
+                                             class="img-fluid rounded"
+                                             style="width: 40px; height: 40px; object-fit: cover;"
+                                             onerror="this.src='/images/default-product.jpg'">
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">${row.name || "-"}</h6>
+                                        <small class="text-muted">${
+                                            row.category || "Uncategorized"
+                                        }</small>
+                                    </div>
+                                </div>
+                            `;
+                        },
+                    },
+                    {
+                        data: "sku",
+                        title: "SKU",
+                        className: "text-start",
+                        defaultContent: "-",
+                    },
+                    {
+                        data: "total_quantity",
+                        title: "Current Stock",
+                        className: "text-center",
+                        defaultContent: "-",
+                        render: function (data, type, row) {
+                            if (data === undefined || data === null) return "-";
+
+                            const isCritical =
+                                data <= (row.low_stock_alert || 0);
+                            const colorClass = isCritical
+                                ? "text-danger fw-bold"
+                                : "text-warning";
+                            return `<span class="${colorClass}">${data}</span>`;
+                        },
+                    },
+                    {
+                        data: "low_stock_alert",
+                        title: "Alert Level",
+                        className: "text-center",
+                        defaultContent: "-",
+                    },
+                    {
+                        data: "total_quantity",
+                        title: "Status",
+                        className: "text-center",
+                        defaultContent: "-",
+                        render: function (data, type, row) {
+                            if (data === undefined || data === null)
+                                return '<span class="badge bg-secondary">N/A</span>';
+
+                            let badgeClass = "success";
+                            let statusText = "In Stock";
+
+                            if (data <= 0) {
+                                badgeClass = "danger";
+                                statusText = "Out of Stock";
+                            } else if (data <= (row.low_stock_alert || 0)) {
+                                badgeClass = "warning";
+                                statusText = "Low Stock";
+                            }
+
+                            return `<span class="badge bg-${badgeClass}">${statusText}</span>`;
+                        },
+                    },
+                ],
+                responsive: true,
+                searching: false,
+                paging: false,
+                info: false,
+                lengthChange: false,
+                order: [[2, "asc"]],
+                language: {
+                    emptyTable:
+                        '<div class="text-center py-5"><i class="bi bi-check-circle display-4 text-success"></i><p class="mt-2">All products are well stocked</p></div>',
+                },
+                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>tip',
+                initComplete: function () {
+                    $(this).addClass("table-striped table-hover");
+                },
+                drawCallback: function (settings) {
+                    if (settings.fnRecordsTotal() === 0) {
+                        $(this)
+                            .find("tbody")
+                            .html(
+                                '<tr><td colspan="5" class="text-center py-4">' +
+                                    '<i class="bi bi-check-circle display-4 text-success"></i>' +
+                                    '<p class="mt-2">All products are well stocked</p>' +
+                                    "</td></tr>"
+                            );
+                    }
+                },
+            });
+
+            tablesInitialized.current.lowStock = true;
+        }
+
+        // Initialize Top Selling Products DataTable
+        if (
+            topSellingTableRef.current &&
+            !tablesInitialized.current.topSelling
+        ) {
+            $(topSellingTableRef.current).DataTable({
+                data: topSellingProducts || [],
+                columns: [
+                    {
+                        data: "name",
+                        title: "Product",
+                        className: "text-start",
+                        render: function (data, type, row) {
+                            if (!data)
+                                return '<div class="text-center text-muted">-</div>';
+
+                            return `
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-light rounded me-2">
+                                        <img src="${
+                                            row.image ||
+                                            "/images/default-product.jpg"
+                                        }" 
+                                             alt="${row.name}" 
+                                             class="img-fluid rounded"
+                                             style="width: 40px; height: 40px; object-fit: cover;"
+                                             onerror="this.src='/images/default-product.jpg'">
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">${row.name || "-"}</h6>
+                                        <small class="text-muted">${
+                                            row.category || "Uncategorized"
+                                        }</small>
+                                    </div>
+                                </div>
+                            `;
+                        },
+                    },
+                    {
+                        data: "sales_count",
+                        title: "Sales",
+                        className: "text-center",
+                        defaultContent: "-",
+                        render: function (data, type, row) {
+                            if (data === undefined || data === null) return "-";
+
+                            return `
+                                <div>
+                                    <span class="fw-bold">${data}</span>
+                                    <br>
+                                    <small class="text-muted">units sold</small>
+                                </div>
+                            `;
+                        },
+                    },
+                    {
+                        data: "revenue",
+                        title: "Revenue",
+                        className: "text-end",
+                        defaultContent: "-",
+                        render: function (data) {
+                            if (data === undefined || data === null) return "-";
+
+                            return `<span class="fw-bold text-success">$${Number(
+                                data
+                            ).toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                            })}</span>`;
+                        },
+                    },
+                    {
+                        data: "total_quantity",
+                        title: "Stock",
+                        className: "text-center",
+                        defaultContent: "-",
+                        render: function (data, type, row) {
+                            if (data === undefined || data === null) return "-";
+
+                            const isLow = data <= (row.low_stock_alert || 0);
+                            const colorClass = isLow ? "text-danger" : "";
+                            return `<span class="fw-bold ${colorClass}">${data}</span>`;
+                        },
+                    },
+                    {
+                        data: "is_active",
+                        title: "Status",
+                        className: "text-center",
+                        defaultContent: "-",
+                        render: function (data) {
+                            if (data === undefined || data === null)
+                                return '<span class="badge bg-secondary">N/A</span>';
+
+                            const badgeClass = data ? "success" : "secondary";
+                            const statusText = data ? "Active" : "Inactive";
+                            return `<span class="badge bg-${badgeClass}">${statusText}</span>`;
+                        },
+                    },
+                ],
+                responsive: true,
+                searching: false,
+                paging: false,
+                info: false,
+                lengthChange: false,
+                order: [[2, "asc"]],
+                language: {
+                    emptyTable:
+                        '<div class="text-center py-5"><i class="bi bi-graph-up display-4 text-muted"></i><p class="mt-2">No sales data available</p></div>',
+                },
+                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>tip',
+                initComplete: function () {
+                    $(this).addClass("table-striped table-hover");
+                },
+                drawCallback: function (settings) {
+                    // Handle empty state
+                    if (settings.fnRecordsTotal() === 0) {
+                        $(this)
+                            .find("tbody")
+                            .html(
+                                '<tr><td colspan="5" class="text-center py-4">' +
+                                    '<i class="bi bi-graph-up display-4 text-muted"></i>' +
+                                    '<p class="mt-2">No sales data available</p>' +
+                                    "</td></tr>"
+                            );
+                    }
+                },
+            });
+
+            tablesInitialized.current.topSelling = true;
+        }
+
+        // Initialize Recent Orders DataTable
+        if (
+            recentOrdersTableRef.current &&
+            !tablesInitialized.current.recentOrders
+        ) {
+            $(recentOrdersTableRef.current).DataTable({
+                data: recentOrders || [],
+                columns: [
+                    {
+                        data: "order_number",
+                        title: "Order #",
+                        className: "text-start",
+                        defaultContent: "-",
+                        render: function (data) {
+                            if (!data) return "-";
+                            return `<a href="${
+                                route("erp.orders.show", data) || "#"
+                            }" class="text-decoration-none fw-bold">${data}</a>`;
+                        },
+                    },
+                    {
+                        data: "customer_name",
+                        title: "Customer",
+                        className: "text-start",
+                        defaultContent: "-",
+                    },
+                    {
+                        data: "total",
+                        title: "Amount",
+                        className: "text-end",
+                        defaultContent: "-",
+                        render: function (data) {
+                            if (data === undefined || data === null) return "-";
+                            return `<span class="fw-bold">$${Number(
+                                data
+                            ).toFixed(2)}</span>`;
+                        },
+                    },
+                    {
+                        data: "status",
+                        title: "Status",
+                        className: "text-center",
+                        defaultContent: "-",
+                        render: function (data) {
+                            if (!data)
+                                return '<span class="badge bg-secondary">-</span>';
+
+                            const colors = {
+                                pending: "warning",
+                                processing: "info",
+                                completed: "success",
+                                cancelled: "danger",
+                                refunded: "secondary",
+                            };
+                            const color = colors[data] || "secondary";
+                            return `<span class="badge bg-${color}">${data}</span>`;
+                        },
+                    },
+                    {
+                        data: "payment_status",
+                        title: "Payment",
+                        className: "text-center",
+                        defaultContent: "-",
+                        render: function (data) {
+                            if (!data)
+                                return '<span class="badge bg-secondary">-</span>';
+
+                            const colors = {
+                                pending: "warning",
+                                paid: "success",
+                                partially_paid: "info",
+                                failed: "danger",
+                                refunded: "secondary",
+                            };
+                            const color = colors[data] || "secondary";
+                            return `<span class="badge bg-${color}">${data}</span>`;
+                        },
+                    },
+                    {
+                        data: "created_at",
+                        title: "Date",
+                        className: "text-center",
+                        defaultContent: "-",
+                    },
+                    {
+                        data: "order_number",
+                        title: "Actions",
+                        className: "text-center",
+                        orderable: false,
+                        searchable: false,
+                        defaultContent: "-",
+                        render: function (data) {
+                            if (!data) return "-";
+                            return `
+                                <a href="${
+                                    route("erp.orders.show", data) || "#"
+                                }" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    View
+                                </a>
+                            `;
+                        },
+                    },
+                ],
+                responsive: true,
+                searching: false,
+                paging: false,
+                info: false,
+                lengthChange: false,
+                order: [[5, "asc"]],
+                language: {
+                    emptyTable:
+                        '<div class="text-center py-5"><i class="bi bi-receipt display-4 text-muted"></i><p class="mt-2">No orders found</p></div>',
+                },
+                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>tip',
+                initComplete: function () {
+                    $(this).addClass("table-striped table-hover");
+                },
+                drawCallback: function (settings) {
+                    // Handle empty state
+                    if (settings.fnRecordsTotal() === 0) {
+                        $(this)
+                            .find("tbody")
+                            .html(
+                                '<tr><td colspan="7" class="text-center py-4">' +
+                                    '<i class="bi bi-receipt display-4 text-muted"></i>' +
+                                    '<p class="mt-2">No orders found</p>' +
+                                    "</td></tr>"
+                            );
+                    }
+                },
+            });
+
+            tablesInitialized.current.recentOrders = true;
+        }
+
+        // Cleanup function
+        return () => {
+            // Destroy DataTables instances
+            [
+                lowStockTableRef,
+                topSellingTableRef,
+                recentOrdersTableRef,
+            ].forEach((ref) => {
+                if (ref.current && $.fn.DataTable.isDataTable(ref.current)) {
+                    $(ref.current).DataTable().destroy(true);
+                }
+            });
+
+            // Reset initialization flags
+            tablesInitialized.current = {
+                lowStock: false,
+                topSelling: false,
+                recentOrders: false,
+            };
+        };
+    }, [lowStockProducts, topSellingProducts, recentOrders]);
 
     return (
         <ErpLayout>
-            <Head title="Dashboard" />
+            <Head title="Director Dashboard" />
 
-            <Container fluid>
-                {/* Summary Cards */}
-                <Row className="mb-4">
-                    {summaryCards.map((card, index) => (
-                        <Col md={3} sm={6} key={index}>
-                            <Card className="shadow-sm border-0 h-100">
-                                <Card.Body>
-                                    <div className="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 className="text-muted mb-2">
-                                                {card.title}
-                                            </h6>
-                                            <h3 className="mb-0">
-                                                {card.value}
-                                            </h3>
-                                            {card.isHtml ? (
-                                                <div
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: card.description,
-                                                    }}
-                                                />
-                                            ) : (
-                                                <p className="mb-0">
-                                                    {card.description}
-                                                </p>
+            {/* Main Statistics Cards */}
+            <Row className="mb-3 g-3">
+                {statCards.map((card, index) => (
+                    <Col key={index} lg={3} md={6}>
+                        <DashboardStatsCard {...card} />
+                    </Col>
+                ))}
+            </Row>
+
+            {/* Additional Metrics */}
+            <Row className="mb-3 g-3">
+                {additionalMetrics?.map((metric, index) => (
+                    <Col key={index} lg={3} md={6}>
+                        <Card className="h-100 shadow-sm border-0">
+                            <Card.Body className="d-flex align-items-center">
+                                <div className="flex-shrink-0 me-3 fs-2">
+                                    {metric.icon}
+                                </div>
+                                <div className="flex-grow-1">
+                                    <Card.Title
+                                        as="h6"
+                                        className="text-muted mb-1"
+                                    >
+                                        {metric.title}
+                                    </Card.Title>
+                                    <Card.Text as="h4" className="mb-0">
+                                        {metric.value}
+                                    </Card.Text>
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                ))}
+            </Row>
+
+            {/* Revenue Chart */}
+            <Row className="mb-3 g-3">
+                <Col lg={8} md={12}>
+                    <Card className="shadow-sm border-0 h-100">
+                        <Card.Header className="bg-white border-0">
+                            <Card.Title as="h5" className="mb-0">
+                                Revenue Overview (Last 6 Months)
+                            </Card.Title>
+                        </Card.Header>
+                        <Card.Body>
+                            <div style={{ width: "100%", height: 300 }}>
+                                <ResponsiveContainer>
+                                    <BarChart data={revenueChart}>
+                                        <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            stroke="#f0f0f0"
+                                        />
+                                        <XAxis dataKey="month" />
+                                        <YAxis />
+                                        <Tooltip
+                                            formatter={(value) => [
+                                                `$${Number(
+                                                    value
+                                                ).toLocaleString()}`,
+                                                "Amount",
+                                            ]}
+                                            labelFormatter={(label) =>
+                                                `Month: ${label}`
+                                            }
+                                        />
+                                        <Legend />
+                                        <Bar
+                                            dataKey="sales"
+                                            name="Sales Revenue"
+                                            fill="#8884d8"
+                                        />
+                                        <Bar
+                                            dataKey="repairs"
+                                            name="Repair Revenue"
+                                            fill="#82ca9d"
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+
+                {/* Summary Stats */}
+                <Col lg={4} md={12}>
+                    <Card className="shadow-sm border-0 h-100">
+                        <Card.Header className="bg-white border-0">
+                            <Card.Title as="h5" className="mb-0">
+                                Business Summary
+                            </Card.Title>
+                        </Card.Header>
+                        <Card.Body>
+                            <div className="mb-4">
+                                <h6 className="text-muted mb-2">
+                                    Total Revenue
+                                </h6>
+                                <h3 className="text-success">
+                                    {summary?.totalRevenue}
+                                </h3>
+                            </div>
+
+                            <div className="mb-4">
+                                <h6 className="text-muted mb-2">
+                                    Average Order Value
+                                </h6>
+                                <h4>${summary?.averageOrderValue}</h4>
+                            </div>
+
+                            <div className="mb-4">
+                                <h6 className="text-muted mb-2">
+                                    Active Customers
+                                </h6>
+                                <h4>{summary?.customerCount}</h4>
+                            </div>
+
+                            <div className="mb-3">
+                                <h6 className="text-muted mb-2">
+                                    Stock Health
+                                </h6>
+                                <div className="d-flex align-items-center">
+                                    <div className="flex-grow-1 me-3">
+                                        <ProgressBar
+                                            now={summary?.stockHealth || 0}
+                                            label={`${
+                                                summary?.stockHealth || 0
+                                            }%`}
+                                            variant={getStockHealthColor(
+                                                summary?.stockHealth || 0
                                             )}
-                                        </div>
-                                        <div
-                                            className={`${card.bg} p-3 rounded`}
-                                        >
-                                            {card.icon}
-                                        </div>
+                                        />
                                     </div>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                    ))}
-                </Row>
+                                    <small className="text-muted">
+                                        {summary?.lowStockCount || 0} low stock
+                                    </small>
+                                </div>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
 
-                {/* Sales & Revenue Charts */}
-                <Row className="mb-4">
-                    <Col lg={8}>
-                        <Card className="shadow-sm border-0 h-100">
-                            <Card.Body>
-                                <div className="d-flex justify-content-between align-items-center mb-3">
-                                    <h5 className="mb-0">Sales Performance</h5>
-                                    <div>
-                                        <Badge
-                                            bg="light"
-                                            text="dark"
-                                            className="me-2"
-                                        >
-                                            Online
-                                        </Badge>
-                                        <Badge bg="light" text="dark">
-                                            Retail
-                                        </Badge>
-                                    </div>
-                                </div>
-                                <div style={{ height: "300px" }}>
-                                    <ResponsiveContainer
-                                        width="100%"
-                                        height="100%"
-                                    >
-                                        <BarChart data={salesData}>
-                                            <CartesianGrid
-                                                strokeDasharray="3 3"
-                                                vertical={false}
-                                            />
-                                            <XAxis dataKey="name" />
-                                            <YAxis />
-                                            <Tooltip />
-                                            <Legend />
-                                            <Bar
-                                                dataKey="online"
-                                                fill="#4e73df"
-                                                radius={[4, 4, 0, 0]}
-                                            />
-                                            <Bar
-                                                dataKey="retail"
-                                                fill="#1cc88a"
-                                                radius={[4, 4, 0, 0]}
-                                            />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                    <Col lg={4}>
-                        <Card className="shadow-sm border-0 h-100">
-                            <Card.Body>
-                                <h5 className="mb-3">Revenue Sources</h5>
-                                <div style={{ height: "300px" }}>
-                                    <ResponsiveContainer
-                                        width="100%"
-                                        height="100%"
-                                    >
-                                        <PieChart>
-                                            <Pie
-                                                data={revenueSources}
-                                                cx="50%"
-                                                cy="50%"
-                                                labelLine={false}
-                                                outerRadius={80}
-                                                fill="#8884d8"
-                                                dataKey="value"
-                                                label={({ name, percent }) =>
-                                                    `${name}: ${(
-                                                        percent * 100
-                                                    ).toFixed(0)}%`
-                                                }
-                                            >
-                                                {revenueSources.map(
-                                                    (entry, index) => (
-                                                        <Cell
-                                                            key={`cell-${index}`}
-                                                            fill={
-                                                                COLORS[
-                                                                    index %
-                                                                        COLORS.length
-                                                                ]
-                                                            }
-                                                        />
-                                                    )
-                                                )}
-                                            </Pie>
-                                            <Tooltip />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
+            <Row className="mb-3 g-3">
+                {/* Low Stock Products */}
+                <Col lg={6} md={12}>
+                    <Card className="shadow-sm border-0 h-100">
+                        <Card.Header className="bg-white border-0 d-flex justify-content-between align-items-center">
+                            <Card.Title as="h5" className="mb-0">
+                                Low Stock Products
+                                <Badge bg="danger" className="ms-2">
+                                    {lowStockProducts?.length || 0}
+                                </Badge>
+                            </Card.Title>
+                            <Link
+                                href={route("product.index")}
+                                className="btn btn-sm btn-outline-primary"
+                            >
+                                Manage Products
+                            </Link>
+                        </Card.Header>
+                        <Card.Body>
+                            <div className="table-responsive">
+                                <table
+                                    ref={lowStockTableRef}
+                                    className="table table-hover mb-0"
+                                    style={{ width: "100%" }}
+                                >
+                                    {/* Table headers will be auto-generated by DataTables */}
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>SKU</th>
+                                            <th>Current Stock</th>
+                                            <th>Alert Level</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {/* DataTables will populate this */}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
 
-                {/* Inventory & Repair Analytics */}
-                <Row className="mb-4">
-                    <Col lg={6}>
-                        <Card className="shadow-sm border-0 h-100">
-                            <Card.Body>
-                                <h5 className="mb-3">Inventory Distribution</h5>
-                                <div style={{ height: "250px" }}>
-                                    <ResponsiveContainer
-                                        width="100%"
-                                        height="100%"
-                                    >
-                                        <PieChart>
-                                            <Pie
-                                                data={inventoryData}
-                                                cx="50%"
-                                                cy="50%"
-                                                labelLine={false}
-                                                outerRadius={70}
-                                                fill="#8884d8"
-                                                dataKey="value"
-                                                label={({ name, percent }) =>
-                                                    `${name}: ${(
-                                                        percent * 100
-                                                    ).toFixed(0)}%`
-                                                }
-                                            >
-                                                {inventoryData.map(
-                                                    (entry, index) => (
-                                                        <Cell
-                                                            key={`cell-${index}`}
-                                                            fill={
-                                                                COLORS[
-                                                                    index %
-                                                                        COLORS.length
-                                                                ]
-                                                            }
-                                                        />
-                                                    )
-                                                )}
-                                            </Pie>
-                                            <Tooltip
-                                                formatter={(value) => [
-                                                    `${value} units`,
-                                                    "Inventory",
-                                                ]}
-                                            />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                    <Col lg={6}>
-                        <Card className="shadow-sm border-0 h-100">
-                            <Card.Body>
-                                <h5 className="mb-3">Repair Service Trends</h5>
-                                <div style={{ height: "250px" }}>
-                                    <ResponsiveContainer
-                                        width="100%"
-                                        height="100%"
-                                    >
-                                        <LineChart data={repairData}>
-                                            <CartesianGrid
-                                                strokeDasharray="3 3"
-                                                vertical={false}
-                                            />
-                                            <XAxis dataKey="name" />
-                                            <YAxis />
-                                            <Tooltip />
-                                            <Legend />
-                                            <Line
-                                                type="monotone"
-                                                dataKey="completed"
-                                                stroke="#36b9cc"
-                                                strokeWidth={2}
-                                                dot={{ r: 4 }}
-                                            />
-                                            <Line
-                                                type="monotone"
-                                                dataKey="pending"
-                                                stroke="#f6c23e"
-                                                strokeWidth={2}
-                                                dot={{ r: 4 }}
-                                            />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
+                {/* Top Selling Products */}
+                <Col lg={6} md={12}>
+                    <Card className="shadow-sm border-0 h-100">
+                        <Card.Header className="bg-white border-0">
+                            <Card.Title as="h5" className="mb-0">
+                                Top Selling Products
+                            </Card.Title>
+                        </Card.Header>
+                        <Card.Body>
+                            <div className="table-responsive">
+                                <table
+                                    ref={topSellingTableRef}
+                                    className="table table-hover mb-0"
+                                    style={{ width: "100%" }}
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Sales</th>
+                                            <th>Revenue</th>
+                                            <th>Stock</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {/* DataTables will populate this */}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
 
-                {/* Top Products & Recent Orders */}
-                <Row className="mb-4">
-                    <Col lg={6}>
-                        <Card className="shadow-sm border-0 h-100">
-                            <Card.Body>
-                                <h5 className="mb-3">Top Selling Products</h5>
-                                <div className="table-responsive">
-                                    <table className="table table-hover mb-0">
-                                        <thead>
-                                            <tr>
-                                                <th>Product</th>
-                                                <th className="text-end">
-                                                    Sales
-                                                </th>
-                                                <th className="text-end">
-                                                    Revenue
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {topProducts.map((product) => (
-                                                <tr key={product.id}>
-                                                    <td>
-                                                        <div className="d-flex align-items-center">
-                                                            <div className="bg-light rounded p-1 me-2">
-                                                                <BiPackage
-                                                                    size={16}
-                                                                />
-                                                            </div>
-                                                            <span>
-                                                                {product.name}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="text-end">
-                                                        {product.sales}
-                                                    </td>
-                                                    <td className="text-end">
-                                                        $
-                                                        {product.revenue.toLocaleString()}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                    <Col lg={6}>
-                        <Card className="shadow-sm border-0 h-100">
-                            <Card.Body>
-                                <h5 className="mb-3">Recent Orders</h5>
-                                <div className="table-responsive">
-                                    <table className="table table-hover mb-0">
-                                        <thead>
-                                            <tr>
-                                                <th>Order #</th>
-                                                <th>Customer</th>
-                                                <th className="text-end">
-                                                    Amount
-                                                </th>
-                                                <th>Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {recentOrders.map((order) => (
-                                                <tr key={order.id}>
-                                                    <td>{order.id}</td>
-                                                    <td>{order.customer}</td>
-                                                    <td className="text-end">
-                                                        ${order.amount}
-                                                    </td>
-                                                    <td>
-                                                        <Badge
-                                                            bg={
-                                                                statusColors[
-                                                                    order.status
-                                                                ]
-                                                            }
-                                                        >
-                                                            {order.status}
-                                                        </Badge>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-
-                {/* Repair Status & Customer Acquisition */}
-                <Row>
-                    <Col lg={6}>
-                        <Card className="shadow-sm border-0 h-100">
-                            <Card.Body>
-                                <h5 className="mb-3">Repair Status</h5>
-                                <div className="table-responsive">
-                                    <table className="table table-hover mb-0">
-                                        <thead>
-                                            <tr>
-                                                <th>Repair #</th>
-                                                <th>Device</th>
-                                                <th>Issue</th>
-                                                <th>Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {repairStatus.map((repair) => (
-                                                <tr key={repair.id}>
-                                                    <td>{repair.id}</td>
-                                                    <td>{repair.device}</td>
-                                                    <td>{repair.issue}</td>
-                                                    <td>
-                                                        <Badge
-                                                            bg={
-                                                                statusColors[
-                                                                    repair
-                                                                        .status
-                                                                ]
-                                                            }
-                                                        >
-                                                            {repair.status.replace(
-                                                                "_",
-                                                                " "
-                                                            )}
-                                                        </Badge>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                    <Col lg={6}>
-                        <Card className="shadow-sm border-0 h-100">
-                            <Card.Body>
-                                <h5 className="mb-3">Customer Acquisition</h5>
-                                {customerAcquisition.metrics.map(
-                                    (metric, index) => (
-                                        <div className="mb-4" key={index}>
-                                            <div className="d-flex justify-content-between mb-1">
-                                                <span>{metric.label}</span>
-                                                <span>
-                                                    {metric.value}
-                                                    {metric.trend && (
-                                                        <small
-                                                            className={`text-${
-                                                                metric.trend > 0
-                                                                    ? "success"
-                                                                    : "danger"
-                                                            }`}
-                                                        >
-                                                            (
-                                                            {metric.trend > 0
-                                                                ? "+"
-                                                                : ""}
-                                                            {metric.trend}%)
-                                                        </small>
-                                                    )}
-                                                </span>
-                                            </div>
-                                            {metric.components ? (
-                                                <ProgressBar>
-                                                    {metric.components.map(
-                                                        (comp, i) => (
-                                                            <ProgressBar
-                                                                variant={
-                                                                    comp.variant
-                                                                }
-                                                                now={comp.value}
-                                                                key={i}
-                                                            />
-                                                        )
-                                                    )}
-                                                </ProgressBar>
-                                            ) : (
-                                                <ProgressBar
-                                                    now={metric.percentage}
-                                                    variant={
-                                                        metric.variant ||
-                                                        "success"
-                                                    }
-                                                />
-                                            )}
-                                        </div>
-                                    )
-                                )}
-                                <div className="text-center mt-4">
-                                    <Button variant="outline-primary" size="sm">
-                                        View Customer Analytics{" "}
-                                        <BiLineChart className="ms-1" />
-                                    </Button>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-            </Container>
+            {/* Recent Orders */}
+            <Row className="mb-3 g-3">
+                <Col lg={12}>
+                    <Card className="shadow-sm border-0">
+                        <Card.Header className="bg-white border-0 d-flex justify-content-between align-items-center">
+                            <Card.Title as="h5" className="mb-0">
+                                Recent Orders
+                            </Card.Title>
+                            <Link
+                                href={route("sales.index")}
+                                className="btn btn-sm btn-outline-primary"
+                            >
+                                View All
+                            </Link>
+                        </Card.Header>
+                        <Card.Body>
+                            <div className="table-responsive">
+                                <table
+                                    ref={recentOrdersTableRef}
+                                    className="table table-hover mb-0"
+                                    style={{ width: "100%" }}
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th>Order #</th>
+                                            <th>Customer</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                            <th>Payment</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {/* DataTables will populate this */}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
         </ErpLayout>
     );
-}
+};
+
+const getStockHealthColor = (percentage) => {
+    if (percentage >= 80) return "success";
+    if (percentage >= 60) return "info";
+    if (percentage >= 40) return "warning";
+    return "danger";
+};
+
+export default DirectorDashboard;
