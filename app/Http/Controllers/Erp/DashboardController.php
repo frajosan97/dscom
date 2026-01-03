@@ -262,4 +262,327 @@ class DashboardController extends Controller
             ],
         ];
     }
+
+    public function getHRData()
+    {
+        $totalEmployees = User::whereHas('roles', function ($q) {
+            $q->whereNotIn('name', ['customer']);
+        })->count();
+
+        // $onLeave = User::whereHas('leaveRequests', function ($q) {
+        //     $q->where('status', 'approved')
+        //         ->where('start_date', '<=', now())
+        //         ->where('end_date', '>=', now());
+        // })->count();
+
+        $onLeave = 0;
+
+        $newHires = User::whereHas('roles', function ($q) {
+            $q->whereNotIn('name', ['customer']);
+        })->where('created_at', '>=', Carbon::now()->subDays(30))->count();
+
+        // $pendingLeaveRequests = LeaveRequest::where('status', 'pending')->count();
+        $pendingLeaveRequests = 0;
+
+        return [
+            'statCards' => [
+                [
+                    'title' => 'Total Employees',
+                    'amount' => $totalEmployees,
+                    'subtitle' => 'Active staff members',
+                    'icon' => '👥',
+                    'color' => 'info',
+                ],
+                [
+                    'title' => 'On Leave',
+                    'amount' => $onLeave,
+                    'subtitle' => 'Currently away',
+                    'icon' => '🏖️',
+                    'color' => 'warning',
+                ],
+                [
+                    'title' => 'New Hires',
+                    'amount' => $newHires,
+                    'subtitle' => 'Last 30 days',
+                    'icon' => '🎯',
+                    'color' => 'success',
+                ],
+                [
+                    'title' => 'Leave Requests',
+                    'amount' => $pendingLeaveRequests,
+                    'subtitle' => 'Awaiting approval',
+                    'icon' => '📋',
+                    'color' => 'danger',
+                ],
+            ],
+            'recentActivities' => [
+                // Add recent HR activities
+            ],
+        ];
+    }
+
+    public function getFinanceData()
+    {
+        $totalRevenue = Order::sum('total') + RepairOrder::whereIn('status', ['completed', 'delivered'])->sum('total_amount');
+        $totalReceivables = Order::whereColumn('total_paid', '<', 'total')->sum(DB::raw('total - total_paid'));
+        $monthlyExpenses = 0; // You'll need to implement an Expense model
+        $profitMargin = $totalRevenue > 0 ? (($totalRevenue - $monthlyExpenses) / $totalRevenue * 100) : 0;
+
+        // Top customers by revenue
+        $topCustomers = Order::select('customer_id', DB::raw('SUM(total) as total_spent'))
+            ->whereNotNull('customer_id')
+            ->groupBy('customer_id')
+            ->with('customer')
+            ->orderByDesc('total_spent')
+            ->take(5)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'name' => $item->customer->name ?? 'Unknown',
+                    'email' => $item->customer->email ?? '',
+                    'total_spent' => number_format($item->total_spent, 2),
+                    'order_count' => $item->customer->orders->count() ?? 0,
+                ];
+            });
+
+        return [
+            'statCards' => [
+                [
+                    'title' => 'Total Revenue',
+                    'amount' => number_format($totalRevenue, 2),
+                    'subtitle' => 'All-time total',
+                    'icon' => '💰',
+                    'color' => 'success',
+                ],
+                [
+                    'title' => 'Accounts Receivable',
+                    'amount' => number_format($totalReceivables, 2),
+                    'subtitle' => 'Outstanding payments',
+                    'icon' => '📊',
+                    'color' => 'warning',
+                ],
+                [
+                    'title' => 'Monthly Expenses',
+                    'amount' => number_format($monthlyExpenses, 2),
+                    'subtitle' => 'Current month',
+                    'icon' => '💸',
+                    'color' => 'danger',
+                ],
+                [
+                    'title' => 'Profit Margin',
+                    'amount' => number_format($profitMargin, 1) . '%',
+                    'subtitle' => 'Net profit percentage',
+                    'icon' => '📈',
+                    'color' => $profitMargin > 20 ? 'success' : ($profitMargin > 10 ? 'warning' : 'danger'),
+                ],
+            ],
+            'topCustomers' => $topCustomers,
+            'paymentMethods' => [
+                // Add payment method distribution
+            ],
+        ];
+    }
+
+    public function getTechnicianData($user)
+    {
+        $assignedRepairs = RepairOrder::where('assigned_technician_id', $user->id)
+            ->whereNotIn('status', ['completed', 'delivered', 'cancelled'])
+            ->count();
+
+        $completedThisMonth = RepairOrder::where('assigned_technician_id', $user->id)
+            ->whereIn('status', ['completed', 'delivered'])
+            ->whereMonth('completion_date', Carbon::now()->month)
+            ->count();
+
+        $overdueRepairs = RepairOrder::where('assigned_technician_id', $user->id)
+            ->where('expected_completion_date', '<', now())
+            ->whereNotIn('status', ['completed', 'delivered', 'cancelled'])
+            ->count();
+
+        $awaitingParts = RepairOrder::where('assigned_technician_id', $user->id)
+            ->where('status', 'awaiting_parts')
+            ->count();
+
+        $myRepairs = RepairOrder::where('assigned_technician_id', $user->id)
+            ->whereNotIn('status', ['completed', 'delivered', 'cancelled'])
+            ->with(['repairService', 'customer'])
+            ->orderBy('priority', 'desc')
+            ->orderBy('expected_completion_date')
+            ->take(10)
+            ->get()
+            ->map(function ($repair) {
+                return [
+                    'id' => $repair->id,
+                    'order_number' => $repair->order_number,
+                    'service' => $repair->repairService->name ?? 'Unknown',
+                    'customer' => $repair->customer->name ?? 'Walk-in',
+                    'status' => $repair->status,
+                    'priority' => $repair->priority,
+                    'expected_date' => $repair->expected_completion_date?->format('M d, Y'),
+                    'is_overdue' => $repair->expected_completion_date && $repair->expected_completion_date < now(),
+                ];
+            });
+
+        return [
+            'statCards' => [
+                [
+                    'title' => 'Assigned Repairs',
+                    'amount' => $assignedRepairs,
+                    'subtitle' => 'Currently working on',
+                    'icon' => '🛠️',
+                    'color' => 'info',
+                ],
+                [
+                    'title' => 'Completed (Month)',
+                    'amount' => $completedThisMonth,
+                    'subtitle' => 'This month',
+                    'icon' => '✅',
+                    'color' => 'success',
+                ],
+                [
+                    'title' => 'Overdue',
+                    'amount' => $overdueRepairs,
+                    'subtitle' => 'Past due date',
+                    'icon' => '⚠️',
+                    'color' => 'danger',
+                ],
+                [
+                    'title' => 'Awaiting Parts',
+                    'amount' => $awaitingParts,
+                    'subtitle' => 'Waiting for inventory',
+                    'icon' => '📦',
+                    'color' => 'warning',
+                ],
+            ],
+            'myRepairs' => $myRepairs,
+            'recentActivity' => [
+                // Add recent repair activity
+            ],
+        ];
+    }
+
+    public function getSupplierData($user)
+    {
+        // Assuming supplier is linked via user_id in supplier_products or similar
+        $activeProducts = 0; // You'll need to implement this based on your supplier model
+        $pendingOrders = 0;
+        $totalRevenue = 0;
+        $averageRating = 0;
+
+        return [
+            'statCards' => [
+                [
+                    'title' => 'Active Products',
+                    'amount' => $activeProducts,
+                    'subtitle' => 'Supplied items',
+                    'icon' => '📦',
+                    'color' => 'info',
+                ],
+                [
+                    'title' => 'Pending Orders',
+                    'amount' => $pendingOrders,
+                    'subtitle' => 'Awaiting fulfillment',
+                    'icon' => '📋',
+                    'color' => 'warning',
+                ],
+                [
+                    'title' => 'Total Revenue',
+                    'amount' => number_format($totalRevenue, 2),
+                    'subtitle' => 'All-time sales',
+                    'icon' => '💰',
+                    'color' => 'success',
+                ],
+                [
+                    'title' => 'Average Rating',
+                    'amount' => number_format($averageRating, 1),
+                    'subtitle' => 'Customer feedback',
+                    'icon' => '⭐',
+                    'color' => $averageRating >= 4 ? 'success' : ($averageRating >= 3 ? 'warning' : 'danger'),
+                ],
+            ],
+            'recentOrders' => [
+                // Add recent supplier orders
+            ],
+        ];
+    }
+
+    public function getCustomerData($user)
+    {
+        $totalOrders = Order::where('customer_id', $user->id)->count();
+        $totalSpent = Order::where('customer_id', $user->id)->sum('total');
+        $pendingOrders = Order::where('customer_id', $user->id)
+            ->where('status', 'pending')
+            ->count();
+
+        $repairOrders = RepairOrder::where('customer_id', $user->id)->count();
+
+        $recentOrders = Order::where('customer_id', $user->id)
+            ->with(['branch', 'items'])
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($order) {
+                return [
+                    'order_number' => $order->order_number,
+                    'total' => $order->total,
+                    'status' => $order->status,
+                    'payment_status' => $order->payment_status,
+                    'created_at' => $order->created_at->format('M d, Y'),
+                    'item_count' => $order->items->count(),
+                ];
+            });
+
+        $activeRepairs = RepairOrder::where('customer_id', $user->id)
+            ->whereNotIn('status', ['completed', 'delivered', 'cancelled'])
+            ->with(['repairService', 'assignedTechnician'])
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($repair) {
+                return [
+                    'order_number' => $repair->order_number,
+                    'service' => $repair->repairService->name ?? 'Unknown',
+                    'status' => $repair->status,
+                    'estimated_cost' => $repair->estimated_cost,
+                    'expected_date' => $repair->expected_completion_date?->format('M d, Y'),
+                    'technician' => $repair->assignedTechnician->name ?? 'Not assigned',
+                ];
+            });
+
+        return [
+            'statCards' => [
+                [
+                    'title' => 'Total Orders',
+                    'amount' => $totalOrders,
+                    'subtitle' => 'All purchases',
+                    'icon' => '🛒',
+                    'color' => 'info',
+                ],
+                [
+                    'title' => 'Total Spent',
+                    'amount' => number_format($totalSpent, 2),
+                    'subtitle' => 'Lifetime value',
+                    'icon' => '💰',
+                    'color' => 'success',
+                ],
+                [
+                    'title' => 'Pending Orders',
+                    'amount' => $pendingOrders,
+                    'subtitle' => 'Awaiting processing',
+                    'icon' => '⏳',
+                    'color' => 'warning',
+                ],
+                [
+                    'title' => 'Repair Orders',
+                    'amount' => $repairOrders,
+                    'subtitle' => 'Device repairs',
+                    'icon' => '🛠️',
+                    'color' => 'danger',
+                ],
+            ],
+            'recentOrders' => $recentOrders,
+            'activeRepairs' => $activeRepairs,
+            'loyaltyPoints' => $user->loyalty_points ?? 0,
+        ];
+    }
 }

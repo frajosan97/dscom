@@ -7,44 +7,46 @@ export default function ErpHeader() {
     const { hasRole, hasPermission } = useRolePermissions();
 
     // Roles
-    const isDirector = hasRole("director");
-    const isAdmin = hasRole("admin");
-    const isHR = hasRole("hr");
-    const isFinance = hasRole("finance");
-    const isSales = hasRole("sales");
-    const isReceptionist = hasRole("receptionist");
-    const isTechnician = hasRole("technician");
-    const isCustomer = hasRole("customer");
+    const roles = {
+        isDirector: hasRole("director"),
+        isAdmin: hasRole("admin"),
+        isHR: hasRole("hr"),
+        isFinance: hasRole("finance"),
+        isSales: hasRole("sales"),
+        isReceptionist: hasRole("receptionist"),
+        isTechnician: hasRole("technician"),
+        isCustomer: hasRole("customer"),
+        isSupplier: hasRole("supplier"), // added supplier role
+    };
 
-    // Admin & Director override everything
-    const isSuper = isDirector || isAdmin;
+    const isSuper = roles.isDirector || roles.isAdmin;
 
     // Permissions
-    const canViewServices =
-        isSuper || isTechnician || hasPermission("view services");
+    const permissions = {
+        canViewServices:
+            isSuper || roles.isTechnician || hasPermission("view services"),
+        canViewStore:
+            isSuper ||
+            roles.isSales ||
+            roles.isReceptionist ||
+            roles.isSupplier ||
+            hasPermission("view store"),
+        canViewAccounts:
+            isSuper || roles.isFinance || hasPermission("view accounts"),
+        canViewHR: isSuper || roles.isHR || hasPermission("view hr"),
+        canViewReports: isSuper || hasPermission("view reports"),
+        canViewSettings: isSuper,
+    };
 
-    const canViewStore =
-        isSuper || isSales || isReceptionist || hasPermission("view store");
+    // Horizontal menu flags
+    const showHRHorizontalMenu = roles.isHR && !isSuper;
+    const showFinanceHorizontalMenu = roles.isFinance && !isSuper;
+    const showTechnicianHorizontalMenu = roles.isTechnician && !isSuper;
+    const showSupplierHorizontalMenu = roles.isSupplier && !isSuper;
+    const showCRMHorizontalMenu =
+        roles.isSales || roles.isReceptionist || roles.isCustomer;
 
-    const canViewAccounts =
-        isSuper || isFinance || hasPermission("view accounts");
-
-    const canViewHR = isSuper || isHR || hasPermission("view hr");
-
-    const canViewReports = isSuper || hasPermission("view reports");
-
-    const canViewSettings = isSuper;
-
-    // HR-only mode
-    const showOnlyHR = isHR && !isSuper;
-
-    // Finance-only mode
-    const showOnlyAccounts = isFinance && !isSuper;
-
-    // CRM horizontal mode
-    const showCRMHorizontal = isSales || isReceptionist;
-
-    // Base Items
+    // Base Items (always visible)
     const baseItems = [
         {
             path: route("dashboard"),
@@ -54,208 +56,214 @@ export default function ErpHeader() {
         },
     ];
 
-    // CRM menu items
+    // CRM menu (hidden from Supplier)
     const crmMenuItems = [
         {
             path: route("customers.index"),
             icon: "bi bi-people",
             label: "Customer",
-            show: !isCustomer,
+            show: !roles.isCustomer && !roles.isSupplier,
         },
         {
             path: route("customers.create"),
             icon: "bi bi-person-plus",
             label: "New Customer",
-            show: !isCustomer,
+            show: !roles.isCustomer && !roles.isSupplier,
         },
         {
             path: route("promotion.index"),
             icon: "bi bi-bullseye",
             label: "Promotions",
-            show: true,
+            show: !roles.isSupplier,
         },
         {
             path: route("feedback.index"),
             icon: "bi bi-chat-dots",
             label: "Feedback",
-            show: true,
+            show: !roles.isSupplier,
         },
         {
             path: route("ticket.index"),
             icon: "bi bi-headset",
             label: "Support Tickets",
-            show: true,
+            show: !roles.isSupplier,
         },
     ].filter((i) => i.show);
 
-    // Main Menu
+    // HRM menu
+    const hrmMenuItems = [
+        {
+            path: route("employee.index"),
+            icon: "bi bi-person-gear",
+            label: "Employee Mgnt",
+            show: true,
+        },
+        {
+            path: route("employee.create"),
+            icon: "bi bi-person-plus",
+            label: "New Employee",
+            show: isSuper || roles.isHR,
+        },
+        {
+            path: route("attendance.index"),
+            icon: "bi bi-clock-history",
+            label: "Attendance Mgnt",
+            show: true,
+        },
+        {
+            path: route("salary.index"),
+            icon: "bi bi-cash-coin",
+            label: "Salaries Mgnt",
+            show: isSuper || roles.isHR || roles.isFinance,
+        },
+    ].filter((i) => i.show);
+
+    // Services menu (for Technicians)
+    const servicesMenuItems = [
+        {
+            path: route("device-type.index"),
+            icon: "bi bi-hdd-stack",
+            label: "Device Types",
+            show: roles.isTechnician || isSuper,
+        },
+        {
+            path: route("repair-service.index"),
+            icon: "bi bi-wrench-adjustable",
+            label: "Repair Services",
+            show: roles.isTechnician || isSuper,
+        },
+        {
+            path: route("repair-orders.create"),
+            icon: "bi bi-clipboard-plus",
+            label: "Service Job Entry",
+            show: roles.isReceptionist || roles.isTechnician || isSuper,
+        },
+        {
+            path: route("repair-orders.index"),
+            icon: "bi bi-clipboard-data",
+            label: "Jobs List & Status",
+            show: true,
+        },
+        {
+            path: route("repair-orders.assign-technician"),
+            icon: "bi bi-person-badge",
+            label: "Assign Technician",
+            show: isSuper || roles.isReceptionist,
+        },
+    ].filter((i) => i.show);
+
+    // Accounts menu (for Finance)
+    const accountsMenuItems = [
+        {
+            path: route("finance.reports"),
+            icon: "bi bi-graph-up",
+            label: "Financial Reports",
+            show: true,
+        },
+        {
+            path: route("finance.chart-of-accounts"),
+            icon: "bi bi-journal-text",
+            label: "Chart of Accounts",
+            show: roles.isFinance || isSuper,
+        },
+        {
+            path: route("finance.transactions"),
+            icon: "bi bi-arrow-left-right",
+            label: "Transactions",
+            show: true,
+        },
+        {
+            path: route("finance.invoices"),
+            icon: "bi bi-receipt-cutoff",
+            label: "Invoices",
+            show: true,
+        },
+        {
+            path: route("finance.payments"),
+            icon: "bi bi-currency-dollar",
+            label: "Payments",
+            show: true,
+        },
+        {
+            path: route("finance.bank-reconciliation"),
+            icon: "bi bi-bank",
+            label: "Bank Reconciliation",
+            show: roles.isFinance || isSuper,
+        },
+    ].filter((i) => i.show);
+
+    // Store menu (for Supplier horizontal view)
+    const storeMenuItems = [
+        {
+            path: route("product.index"),
+            icon: "bi bi-boxes",
+            label: "Items List",
+            show: true,
+        },
+        {
+            path: route("product.create"),
+            icon: "bi bi-plus-square",
+            label: "New Item",
+            show: !roles.isSales && !roles.isReceptionist,
+        },
+        {
+            path: route("sales.index"),
+            icon: "bi bi-receipt",
+            label: "Sales List",
+            show: true,
+        },
+        {
+            path: route("sales.create"),
+            icon: "bi bi-cart-plus",
+            label: "New Sale",
+            show: roles.isSales || roles.isReceptionist || isSuper,
+        },
+    ].filter((i) => i.show);
+
+    // Main vertical menu
     const menuItems = [
         {
             label: "Store",
             icon: "bi bi-cart3",
-            show: (canViewStore || isSuper) && !showOnlyHR && !showOnlyAccounts,
-            children: [
-                {
-                    path: route("product.index"),
-                    icon: "bi bi-boxes",
-                    label: "Items List",
-                    show: true,
-                },
-                {
-                    path: route("product.create"),
-                    icon: "bi bi-plus-square",
-                    label: "New Item",
-                    show: !isSales && !isReceptionist,
-                },
-                {
-                    path: route("sales.index"),
-                    icon: "bi bi-receipt",
-                    label: "Sales List",
-                    show: true,
-                },
-                {
-                    path: route("sales.create"),
-                    icon: "bi bi-cart-plus",
-                    label: "New Sale",
-                    show: isSales || isReceptionist || isSuper,
-                },
-                // {
-                //     path: route("barcode.index"),
-                //     icon: "bi bi-upc-scan",
-                //     label: "Barcode Printing",
-                //     show: !isSales && !isReceptionist,
-                // },
-            ].filter((i) => i.show),
+            show:
+                (permissions.canViewStore || isSuper) &&
+                !showSupplierHorizontalMenu &&
+                !showOnlyHR &&
+                !showFinanceHorizontalMenu,
+            children: storeMenuItems,
         },
-
         {
             label: "Services",
             icon: "bi bi-tools",
             show:
-                (canViewServices || isSuper) &&
-                !showOnlyHR &&
-                !showOnlyAccounts,
-            children: [
-                {
-                    path: route("device-type.index"),
-                    icon: "bi bi-hdd-stack",
-                    label: "Device Types",
-                    show: isTechnician || isSuper,
-                },
-                {
-                    path: route("repair-service.index"),
-                    icon: "bi bi-wrench-adjustable",
-                    label: "Repair Services",
-                    show: isTechnician || isSuper,
-                },
-                {
-                    path: route("repair-orders.create"),
-                    icon: "bi bi-clipboard-plus",
-                    label: "Service Job Entry",
-                    show: isReceptionist || isTechnician || isSuper,
-                },
-                {
-                    path: route("repair-orders.index"),
-                    icon: "bi bi-clipboard-data",
-                    label: "Jobs List & Status",
-                    show: true,
-                },
-                {
-                    path: route("repair-orders.assign-technician"),
-                    icon: "bi bi-person-badge",
-                    label: "Assign Technician",
-                    show: isSuper || isReceptionist,
-                },
-            ].filter((i) => i.show),
+                (permissions.canViewServices || isSuper) &&
+                !showTechnicianHorizontalMenu,
+            children: servicesMenuItems,
         },
-
         {
             label: "CRM",
             icon: "bi bi-people-fill",
-            show: !showOnlyHR && !showOnlyAccounts && !showCRMHorizontal,
+            show: !showCRMHorizontalMenu,
             children: crmMenuItems,
         },
-
         {
             label: "HRM",
             icon: "bi bi-people-fill",
-            show: canViewHR || isSuper,
-            children: [
-                {
-                    path: route("employee.index"),
-                    icon: "bi bi-person-gear",
-                    label: "Employee Mgnt",
-                    show: true,
-                },
-                {
-                    path: route("employee.create"),
-                    icon: "bi bi-person-plus",
-                    label: "New Employee",
-                    show: isSuper || isHR,
-                },
-                {
-                    path: route("attendance.index"),
-                    icon: "bi bi-clock-history",
-                    label: "Attendance Mgnt",
-                    show: true,
-                },
-                {
-                    path: route("salary.index"),
-                    icon: "bi bi-cash-coin",
-                    label: "Salaries Mgnt",
-                    show: isSuper || isHR || isFinance,
-                },
-            ].filter((i) => i.show),
+            show: isSuper && !showHRHorizontalMenu,
+            children: hrmMenuItems,
         },
-
         {
             label: "Accounts",
             icon: "bi bi-journal-arrow-down",
-            show: canViewAccounts || isSuper,
-            children: [
-                {
-                    path: route("finance.reports"),
-                    icon: "bi bi-graph-up",
-                    label: "Financial Reports",
-                    show: true,
-                },
-                {
-                    path: route("finance.chart-of-accounts"),
-                    icon: "bi bi-journal-text",
-                    label: "Chart of Accounts",
-                    show: isFinance || isSuper,
-                },
-                {
-                    path: route("finance.transactions"),
-                    icon: "bi bi-arrow-left-right",
-                    label: "Transactions",
-                    show: true,
-                },
-                {
-                    path: route("finance.invoices"),
-                    icon: "bi bi-receipt-cutoff",
-                    label: "Invoices",
-                    show: true,
-                },
-                {
-                    path: route("finance.payments"),
-                    icon: "bi bi-currency-dollar",
-                    label: "Payments",
-                    show: true,
-                },
-                {
-                    path: route("finance.bank-reconciliation"),
-                    icon: "bi bi-bank",
-                    label: "Bank Reconciliation",
-                    show: isFinance || isSuper,
-                },
-            ].filter((i) => i.show),
+            show:
+                (permissions.canViewAccounts || isSuper) &&
+                !showFinanceHorizontalMenu,
+            children: accountsMenuItems,
         },
-
         {
             label: "Settings",
             icon: "bi bi-gear-fill",
-            show: canViewSettings || isSuper,
+            show: permissions.canViewSettings || isSuper,
             children: [
                 {
                     path: route("slider.index"),
@@ -297,33 +305,36 @@ export default function ErpHeader() {
         },
     ];
 
-    // Final nav items
+    // Final vertical nav items
     let navItems = [
         ...baseItems,
         ...menuItems.filter((i) => i.show && i.children.length > 0),
     ];
 
-    // HR-only
-    if (showOnlyHR && !isSuper) {
-        navItems = [
-            ...baseItems,
-            ...menuItems.filter((i) => i.label === "HRM"),
-        ];
-    }
+    // Vertical overrides: hide vertical menus if horizontal menu is active
+    if (showHRHorizontalMenu && !isSuper) navItems = [...baseItems];
+    if (showFinanceHorizontalMenu && !isSuper) navItems = [...baseItems];
+    if (showTechnicianHorizontalMenu && !isSuper) navItems = [...baseItems];
+    if (showSupplierHorizontalMenu && !isSuper) navItems = [...baseItems];
 
-    // Finance-only
-    if (showOnlyAccounts && !isSuper) {
-        navItems = [
-            ...baseItems,
-            ...menuItems.filter((i) => i.label === "Accounts"),
-        ];
-    }
+    // Unified horizontal menu
+    const horizontalItems = showHRHorizontalMenu
+        ? hrmMenuItems
+        : showFinanceHorizontalMenu
+        ? accountsMenuItems
+        : showTechnicianHorizontalMenu
+        ? servicesMenuItems
+        : showSupplierHorizontalMenu
+        ? storeMenuItems
+        : showCRMHorizontalMenu
+        ? crmMenuItems
+        : [];
 
     return (
         <NavBar
             variant="erp"
             NavItems={navItems}
-            horizontalCRMItems={showCRMHorizontal ? crmMenuItems : []}
+            horizontalItems={horizontalItems}
         />
     );
 }

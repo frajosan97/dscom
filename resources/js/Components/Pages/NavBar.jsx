@@ -4,7 +4,7 @@ import { ChevronDown } from "react-feather";
 export default function NavBar({
     variant = "ecommerce",
     NavItems,
-    horizontalCRMItems = [],
+    horizontalItems = [],
 }) {
     return (
         <Navbar
@@ -42,17 +42,15 @@ export default function NavBar({
                                     />
                                 ))}
 
-                                {horizontalCRMItems.length > 0 && (
+                                {horizontalItems?.length > 0 && (
                                     <>
-                                        {horizontalCRMItems.map(
-                                            (item, index) => (
-                                                <NavItem
-                                                    key={index}
-                                                    item={item}
-                                                    variant={variant}
-                                                />
-                                            )
-                                        )}
+                                        {horizontalItems.map((item, index) => (
+                                            <NavItem
+                                                key={index}
+                                                item={item}
+                                                variant={variant}
+                                            />
+                                        ))}
                                     </>
                                 )}
                             </Nav>
