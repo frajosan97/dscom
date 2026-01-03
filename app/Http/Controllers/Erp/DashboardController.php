@@ -70,24 +70,26 @@ class DashboardController extends Controller
         // Product Data (replacing inventory data)
         $productsValue = Product::sum(DB::raw('base_price * total_quantity'));
 
-        // Get low stock products
-        $lowStockProducts = Product::where('track_quantity', true)
-            ->where('total_quantity', '>', 0)
-            ->whereRaw('total_quantity <= low_stock_alert')
-            ->with('category')
-            ->take(10)
-            ->get()
-            ->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'sku' => $product->sku,
-                    'image' => $product->default_image_url,
-                    'category' => $product->category->name ?? 'Uncategorized',
-                    'total_quantity' => $product->total_quantity,
-                    'low_stock_alert' => $product->low_stock_alert,
-                ];
-            });
+        // // Get low stock products
+        // $lowStockProducts = Product::where('track_quantity', true)
+        //     ->where('total_quantity', '>', 0)
+        //     ->whereRaw('total_quantity <= low_stock_alert')
+        //     ->with('category')
+        //     ->take(10)
+        //     ->get()
+        //     ->map(function ($product) {
+        //         return [
+        //             'id' => $product->id,
+        //             'name' => $product->name,
+        //             'sku' => $product->sku,
+        //             'image' => $product->default_image_url,
+        //             'category' => $product->category->name ?? 'Uncategorized',
+        //             'total_quantity' => $product->total_quantity,
+        //             'low_stock_alert' => $product->low_stock_alert,
+        //         ];
+        //     });
+
+        $lowStockProducts = [];
 
         $lowStockItemsCount = Product::where('track_quantity', true)
             ->where('total_quantity', '>', 0)
